@@ -1,0 +1,370 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  CLIENT
+  SELLER
+  DELIVERY
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderType {
+  ONLINE
+  REFILL
+  CASH_ON_DELIVERY
+}
+
+enum PaymentMethod {
+  NEQUI
+  DAVIPLATA
+  BANCOLOMBIA
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+enum MovementReason {
+  PURCHASE
+  SALE
+  REFILL
+  ADJUSTMENT
+  RETURN
+}
+
+enum BottleMovementType {
+  IN
+  OUT
+}
+
+enum BottleMovementReason {
+  PURCHASE
+  SALE
+  RETURN
+  ADJUSTMENT
+}
+
+enum BottleType {
+  STANDARD
+  LUXURY
+}
+
+enum DiscountType {
+  BOTTLE_RETURN
+  FREQUENT_CLIENT
+  VOLUME
+}
+
+// Categoria del producto: perfume artesanal, accesorio u otro producto general.
+enum ProductCategory {
+  PERFUME
+  ACCESSORY
+  GENERAL
+}
+
+// Tipo de entidad en auditorias de inventario.
+enum AuditEntityType {
+  ESSENCE
+  BOTTLE
+  PRODUCT
+}
+
+// ---------------------------------------------------------------------------
+// USERS
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  email     String   @unique
+  password  String
+  role      UserRole @default(CLIENT)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  orders        Order[]
+  bottleReturns BottleReturn[]
+  addresses     Address[]
+  inventoryAudits InventoryAudit[]
+
+  @@map("users")
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  city      String
+  address   String
+  detail    String?
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@map("addresses")
+}
+
+// ---------------------------------------------------------------------------
+// CATALOG
+// ---------------------------------------------------------------------------
+
+model OlfactiveFamily {
+  id   String @id @default(uuid())
+  name String @unique
+
+  essences Essence[]
+
+  @@map("olfactive_families")
+}
+
+model Essence {
+  id                String   @id @default(uuid())
+  name              String
+  description       String?
+  olfactiveFamilyId String   @map("olfactive_family_id")
+  inspirationBrand  String?  @map("inspiration_brand")
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  olfactiveFamily    OlfactiveFamily     @relation(fields: [olfactiveFamilyId], references: [id])
+  products           Product[]
+  essenceMovements   EssenceMovement[]
+
+  @@map("essences")
+}
+
+model Bottle {
+  id        String     @id @default(uuid())
+  name      String
+  type      BottleType
+  material  String
+  capacityMl Float     @map("capacity_ml")
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  products        Product[]
+  bottleMovements BottleMovement[]
+  bottleReturns   BottleReturn[]
+
+  @@map("bottles")
+}
+
+model Product {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  category    ProductCategory @default(PERFUME)
+  essenceId   String?         @map("essence_id")
+  bottleId    String?         @map("bottle_id")
+  mlQuantity  Float?          @map("ml_quantity")
+  price       Float
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  essence    Essence?          @relation(fields: [essenceId], references: [id])
+  bottle     Bottle?           @relation(fields: [bottleId], references: [id])
+  orderItems OrderItem[]
+  movements  ProductMovement[]
+
+  @@unique([essenceId, bottleId, mlQuantity])
+  @@map("products")
+}
+
+// ---------------------------------------------------------------------------
+// INVENTORY - Movements-based (not direct stock fields)
+// ---------------------------------------------------------------------------
+
+model EssenceMovement {
+  id        String          @id @default(uuid())
+  essenceId String          @map("essence_id")
+  type      MovementType
+  ml        Float
+  reason    MovementReason
+  reference String?
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  essence Essence @relation(fields: [essenceId], references: [id])
+
+  @@map("essence_movements")
+}
+
+model BottleMovement {
+  id        String               @id @default(uuid())
+  bottleId  String               @map("bottle_id")
+  type      BottleMovementType
+  quantity  Int
+  reason    BottleMovementReason
+  reference String?
+  createdAt DateTime             @default(now()) @map("created_at")
+
+  bottle Bottle @relation(fields: [bottleId], references: [id])
+
+  @@map("bottle_movements")
+}
+
+// ---------------------------------------------------------------------------
+// ORDERS
+// ---------------------------------------------------------------------------
+
+model Order {
+  id            String        @id @default(uuid())
+  userId        String        @map("user_id")
+  addressId     String?       @map("address_id")
+  type          OrderType     @default(ONLINE)
+  status        OrderStatus   @default(PENDING)
+  subtotal      Float
+  discount      Float         @default(0)
+  total         Float
+  paymentMethod PaymentMethod @map("payment_method")
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user     User        @relation(fields: [userId], references: [id])
+  address  Address?    @relation(fields: [addressId], references: [id])
+  items    OrderItem[]
+  payment  Payment?
+  discounts OrderDiscount[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(uuid())
+  orderId   String @map("order_id")
+  productId String @map("product_id")
+  quantity  Int
+  unitPrice Float  @map("unit_price")
+  subtotal  Float
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderDiscount {
+  id          String       @id @default(uuid())
+  orderId     String       @map("order_id")
+  type        DiscountType
+  percentage  Float
+  amount      Float
+  description String?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_discounts")
+}
+
+// ---------------------------------------------------------------------------
+// PAYMENTS
+// ---------------------------------------------------------------------------
+
+model Payment {
+  id              String        @id @default(uuid())
+  orderId         String        @unique @map("order_id")
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  amount          Float
+  gatewayRef      String?       @map("gateway_ref")
+  gatewayResponse Json?         @map("gateway_response")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+// ---------------------------------------------------------------------------
+// BOTTLE RETURNS (refill program)
+// ---------------------------------------------------------------------------
+
+model BottleReturn {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  bottleId        String   @map("bottle_id")
+  discountApplied Float    @map("discount_applied")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  bottle Bottle @relation(fields: [bottleId], references: [id])
+
+  @@map("bottle_returns")
+}
+
+// ---------------------------------------------------------------------------
+// PRODUCT MOVEMENTS - Inventario basado en movimientos para productos
+// generales (accesorios, productos no-esencia). Los perfumes usan
+// EssenceMovement y BottleMovement para su control.
+// ---------------------------------------------------------------------------
+
+model ProductMovement {
+  id        String         @id @default(uuid())
+  productId String         @map("product_id")
+  type      MovementType
+  quantity  Int
+  reason    MovementReason
+  reference String?
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("product_movements")
+}
+
+// ---------------------------------------------------------------------------
+// INVENTORY AUDITS - Conciliacion de inventario fisico vs sistema.
+// Se registra al hacer conteo fisico para detectar diferencias.
+// ---------------------------------------------------------------------------
+
+model InventoryAudit {
+  id            String          @id @default(uuid())
+  entityType    AuditEntityType @map("entity_type")
+  entityId      String          @map("entity_id")
+  systemValue   Float           @map("system_value")
+  physicalValue Float           @map("physical_value")
+  difference    Float
+  notes         String?
+  userId        String          @map("user_id")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("inventory_audits")
+}

@@ -1,0 +1,97 @@
+# =============================================================================
+# docker-compose.yml - Variedades Danni (Full Stack)
+# =============================================================================
+# Orquesta tres servicios:
+# 1. db:       PostgreSQL 16 Alpine como base de datos.
+# 2. api:      Backend Node.js/Express (desde backendVD/).
+# 3. frontend: Frontend React + TypeScript con Vite (desde frontendVD/).
+#
+# Uso:
+#   docker compose up -d              -> Levantar todo en background
+#   docker compose up --build          -> Rebuildar imagenes y levantar
+#   docker compose down                -> Detener y eliminar contenedores
+#   docker compose logs -f api         -> Ver logs del backend en tiempo real
+#   docker compose logs -f frontend    -> Ver logs del frontend en tiempo real
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Servicio: Base de datos PostgreSQL
+  # Usa la imagen oficial de PostgreSQL 16 Alpine (ligera).
+  # Los datos se persisten en un volumen Docker llamado "pg_data".
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: variedades_danni_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: variedades_danni
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Servicio: API Backend (Node.js / Express / Prisma)
+  # Se construye desde backendVD/Dockerfile.
+  # Espera a que PostgreSQL este healthy antes de arrancar.
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ./backendVD
+      dockerfile: Dockerfile
+    container_name: variedades_danni_api
+    # Override: usar db push con --url ya que prisma.config.ts solo define migrate.url
+    command: ["sh", "-c", "npx prisma db push --url \"$$DATABASE_URL\" && node dist/server.js"]
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/variedades_danni
+      JWT_SECRET: cambiar-este-secret-en-produccion
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:5173
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX: 100
+      ADMIN_EMAIL: danielramon379@gmail.com
+      ADMIN_PASSWORD: "Drrl2468#"
+      ADMIN_NAME: Administrador
+      ADMIN_PHONE: "+573000000000"
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Servicio: Frontend React + TypeScript (Vite dev server)
+  # Se construye desde frontendVD/Dockerfile.
+  # El volumen monta el codigo local para hot-reload en desarrollo.
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontendVD
+      dockerfile: Dockerfile
+    container_name: variedades_danni_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      # Montar codigo fuente para hot-reload en desarrollo
+      - ./frontendVD:/app
+      # Volumen anonimo para no sobreescribir node_modules del contenedor
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:4000
+    depends_on:
+      - api
+
+# ---------------------------------------------------------------------------
+# Volumenes persistentes
+# ---------------------------------------------------------------------------
+volumes:
+  pg_data:

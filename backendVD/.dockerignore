@@ -1,0 +1,25 @@
+# Modulos de Node: se instalan dentro del contenedor
+node_modules
+
+# Carpeta de compilacion: se genera en el build stage
+dist
+
+# Archivos de entorno: se inyectan como variables en docker-compose
+.env
+.env.*
+
+# Git y configuraciones del editor
+.git
+.gitignore
+.vscode
+
+# Logs generados en ejecucion local
+logs
+*.log
+
+# Archivos de documentacion (no necesarios en la imagen)
+*.md
+
+# Archivos de Docker (no se necesitan dentro de la imagen)
+Dockerfile
+docker-compose.yml
