@@ -97,6 +97,29 @@ enum AuditEntityType {
   PRODUCT
 }
 
+// Nivel de fidelizacion del cliente en el programa de puntos.
+enum LoyaltyLevel {
+  BASIC     // 0-99 puntos acumulados; sin descuento adicional
+  PREFERRED // 100-499 puntos; descuento moderado activo
+  VIP       // 500+ puntos; maximo descuento y beneficios exclusivos
+}
+
+// Tipo de movimiento en el historial de puntos de fidelizacion.
+enum LoyaltyTxType {
+  EARN   // Acumulacion de puntos por compra o accion
+  REDEEM // Canje de puntos como descuento en una orden
+  EXPIRE // Expiracion automatica por politica de vencimiento
+  ADJUST // Ajuste manual realizado por un administrador
+}
+
+// Estado de la factura electronica ante la DIAN (Colombia).
+enum InvoiceStatus {
+  DRAFT    // Borrador generado localmente, aun no enviado a la DIAN
+  SENT     // Enviado a la DIAN, esperando respuesta de aceptacion
+  ACCEPTED // Aceptado y validado por la DIAN
+  REJECTED // Rechazado por la DIAN; requiere correccion y reenvio
+}
+
 // ---------------------------------------------------------------------------
 // USERS
 // ---------------------------------------------------------------------------
@@ -108,14 +131,28 @@ model User {
   email     String   @unique
   password  String
   role      UserRole @default(CLIENT)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  active        Boolean  @default(true)
+  /// Indica si el usuario ya verifico su correo electronico (RF-004)
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  orders        Order[]
-  bottleReturns BottleReturn[]
-  addresses     Address[]
-  inventoryAudits InventoryAudit[]
+  orders              Order[]
+  bottleReturns       BottleReturn[]
+  addresses           Address[]
+  inventoryAudits     InventoryAudit[]
+  /// Cuenta de puntos de fidelizacion del cliente (1:1)
+  loyaltyAccount      LoyaltyAccount?
+  /// Codigo de referido propio del cliente (1:1)
+  referralCode        ReferralCode?
+  /// Registros en los que este usuario uso el codigo de otro cliente
+  referralUsages      ReferralUsage[]
+  /// Tokens de verificacion de correo emitidos para este usuario
+  emailVerifications  EmailVerification[]
+  /// Tokens de recuperacion de contrasena emitidos para este usuario
+  passwordResets      PasswordReset[]
+  /// Cambios de estado de pedido realizados por este usuario (admin/seller)
+  orderStatusChanges  OrderStatusHistory[]
 
   @@map("users")
 }
@@ -251,14 +288,20 @@ model Order {
   total         Float
   paymentMethod PaymentMethod @map("payment_method")
   notes         String?
+  /// Numero de pedido legible en formato VD-YYYYXXXX, generado en capa de negocio (RF-025)
+  orderNumber   String?       @unique @map("order_number")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   user     User        @relation(fields: [userId], references: [id])
   address  Address?    @relation(fields: [addressId], references: [id])
-  items    OrderItem[]
-  payment  Payment?
-  discounts OrderDiscount[]
+  items         OrderItem[]
+  payment       Payment?
+  discounts     OrderDiscount[]
+  /// Historial de todas las transiciones de estado de esta orden
+  statusHistory OrderStatusHistory[]
+  /// Factura electronica asociada a esta orden (1:1, opcional)
+  invoice       ElectronicInvoice?
 
   @@map("orders")
 }
@@ -300,10 +343,14 @@ model Payment {
   method          PaymentMethod
   status          PaymentStatus @default(PENDING)
   amount          Float
-  gatewayRef      String?       @map("gateway_ref")
-  gatewayResponse Json?         @map("gateway_response")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  gatewayRef       String?       @map("gateway_ref")
+  gatewayResponse  Json?         @map("gateway_response")
+  /// Referencia de transaccion Bre-B/Wompi para rastrear el pago en la pasarela
+  brebRef          String?       @map("breb_ref")
+  /// Payload JSON completo del webhook recibido de Bre-B, almacenado para auditoria y reproceso
+  brebWebhookData  Json?         @map("breb_webhook_data")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
 
   order Order @relation(fields: [orderId], references: [id])
 
@@ -367,4 +414,208 @@ model InventoryAudit {
   user User @relation(fields: [userId], references: [id])
 
   @@map("inventory_audits")
+}
+
+// ---------------------------------------------------------------------------
+// LOYALTY PROGRAM - Puntos de fidelizacion y niveles de cliente
+// ---------------------------------------------------------------------------
+
+// Cuenta de puntos de fidelizacion asociada 1:1 con un cliente.
+model LoyaltyAccount {
+  /// Identificador unico (UUID) de la cuenta
+  id          String       @id @default(uuid())
+  /// FK al usuario dueno de la cuenta; cada usuario tiene una sola cuenta
+  userId      String       @unique @map("user_id")
+  /// Puntos actuales disponibles para canje
+  points      Int          @default(0)
+  /// Nivel de fidelizacion calculado segun puntos historicos acumulados
+  level       LoyaltyLevel @default(BASIC)
+  /// Porcentaje de descuento activo segun el nivel (0.0 a 30.0)
+  discountPct Float        @default(0) @map("discount_pct")
+  /// Fecha de la ultima modificacion de puntos o nivel (auto-gestionada)
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  /// Usuario propietario de esta cuenta de puntos
+  user         User                @relation(fields: [userId], references: [id])
+  /// Movimientos de puntos (entradas, canjes, expiraciones, ajustes)
+  transactions LoyaltyTransaction[]
+
+  @@map("loyalty_accounts")
+}
+
+// Registro individual de un movimiento de puntos en una cuenta de fidelizacion.
+model LoyaltyTransaction {
+  /// Identificador unico (UUID) del movimiento
+  id          String        @id @default(uuid())
+  /// FK a la cuenta de fidelizacion sobre la que aplica el movimiento
+  accountId   String        @map("account_id")
+  /// Clasificacion del movimiento: acumulacion, canje, expiracion o ajuste
+  type        LoyaltyTxType
+  /// Cantidad de puntos afectados; positivo = acumulacion, negativo = canje/expiracion
+  points      Int
+  /// Descripcion legible del motivo del movimiento (ej. "Compra orden VD-20240001")
+  reason      String
+  /// ID opcional de la orden o devolucion que origino el movimiento
+  referenceId String?       @map("reference_id")
+  /// Fecha y hora de creacion del movimiento
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  /// Cuenta de fidelizacion a la que pertenece este movimiento
+  account LoyaltyAccount @relation(fields: [accountId], references: [id])
+
+  @@map("loyalty_transactions")
+}
+
+// ---------------------------------------------------------------------------
+// REFERRAL PROGRAM - Codigos de referido entre clientes
+// ---------------------------------------------------------------------------
+
+// Codigo unico de referido asignado a cada cliente para compartir con nuevos usuarios.
+model ReferralCode {
+  /// Identificador unico (UUID) del codigo
+  id         String   @id @default(uuid())
+  /// FK al usuario propietario del codigo; cada usuario tiene maximo un codigo
+  userId     String   @unique @map("user_id")
+  /// Cadena alfanumerica legible que el cliente comparte (ej. MARIA15)
+  code       String   @unique
+  /// Numero de veces que el codigo ha sido utilizado exitosamente
+  usageCount Int      @default(0) @map("usage_count")
+  /// Fecha de generacion del codigo
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  /// Usuario dueno del codigo
+  user   User            @relation(fields: [userId], references: [id])
+  /// Registros de uso de este codigo por nuevos clientes
+  usages ReferralUsage[]
+
+  @@map("referral_codes")
+}
+
+// Registro de cada vez que un nuevo usuario utilizo un codigo de referido.
+model ReferralUsage {
+  /// Identificador unico (UUID) del uso
+  id             String   @id @default(uuid())
+  /// FK al codigo de referido que fue utilizado
+  referralCodeId String   @map("referral_code_id")
+  /// FK al nuevo usuario que ingreso usando el codigo
+  newUserId      String   @map("new_user_id")
+  /// Indica si ya se proceso y entrego la recompensa al dueno del codigo
+  rewardGiven    Boolean  @default(false) @map("reward_given")
+  /// Fecha en que se registro el uso del codigo
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  /// Codigo de referido que fue utilizado
+  referralCode ReferralCode @relation(fields: [referralCodeId], references: [id])
+  /// Nuevo usuario que utilizo el codigo
+  newUser      User         @relation(fields: [newUserId], references: [id])
+
+  @@map("referral_usages")
+}
+
+// ---------------------------------------------------------------------------
+// ORDER STATUS HISTORY - Auditoria de cambios de estado de pedidos
+// ---------------------------------------------------------------------------
+
+// Registro inmutable de cada transicion de estado de un pedido.
+model OrderStatusHistory {
+  /// Identificador unico (UUID) del registro
+  id          String      @id @default(uuid())
+  /// FK al pedido cuyo estado fue modificado
+  orderId     String      @map("order_id")
+  /// Estado anterior antes de la transicion
+  fromStatus  OrderStatus @map("from_status")
+  /// Nuevo estado al que paso el pedido
+  toStatus    OrderStatus @map("to_status")
+  /// FK al usuario (admin/vendedor/domiciliario) que realizo el cambio
+  changedById String      @map("changed_by_id")
+  /// Notas opcionales que justifican o describen el cambio de estado
+  notes       String?
+  /// Fecha y hora exacta del cambio de estado
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  /// Pedido al que pertenece este historial de estado
+  order     Order @relation(fields: [orderId], references: [id])
+  /// Usuario que ejecuto el cambio de estado
+  changedBy User  @relation(fields: [changedById], references: [id])
+
+  @@map("order_status_history")
+}
+
+// ---------------------------------------------------------------------------
+// AUTH TOKENS - Verificacion de correo y recuperacion de contrasena
+// ---------------------------------------------------------------------------
+
+// Token de un solo uso para verificar la direccion de correo del usuario (RF-004).
+model EmailVerification {
+  /// Identificador unico (UUID) del token
+  id        String    @id @default(uuid())
+  /// FK al usuario que solicito la verificacion de su correo
+  userId    String    @map("user_id")
+  /// Token aleatorio firmado enviado al correo; debe ser unico en la tabla
+  token     String    @unique
+  /// Fecha y hora limite para usar el token; pasada esta fecha queda invalido
+  expiresAt DateTime  @map("expires_at")
+  /// Fecha en que el token fue consumido; null si aun no se ha utilizado
+  usedAt    DateTime? @map("used_at")
+  /// Fecha de generacion del token
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  /// Usuario al que pertenece este token (cascade: si se elimina el usuario, se eliminan sus tokens)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verifications")
+}
+
+// Token de un solo uso para autorizar el cambio de contrasena olvidada.
+model PasswordReset {
+  /// Identificador unico (UUID) del token
+  id        String    @id @default(uuid())
+  /// FK al usuario que solicito el restablecimiento de su contrasena
+  userId    String    @map("user_id")
+  /// Token aleatorio enviado al correo para autorizar el cambio; debe ser unico
+  token     String    @unique
+  /// Fecha y hora limite para usar el token; pasada esta fecha queda invalido
+  expiresAt DateTime  @map("expires_at")
+  /// Fecha en que el token fue consumido; null si aun no se ha utilizado
+  usedAt    DateTime? @map("used_at")
+  /// Fecha de generacion del token
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  /// Usuario al que pertenece este token (cascade: si se elimina el usuario, se eliminan sus tokens)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+// ---------------------------------------------------------------------------
+// ELECTRONIC INVOICES - Facturacion electronica DIAN (Colombia)
+// ---------------------------------------------------------------------------
+
+// Factura electronica conforme a la normativa DIAN asociada a un pedido.
+model ElectronicInvoice {
+  /// Identificador unico (UUID) de la factura
+  id            String        @id @default(uuid())
+  /// FK al pedido facturado; relacion 1:1 (un pedido tiene una sola factura)
+  orderId       String        @unique @map("order_id")
+  /// Numero de factura secuencial en formato SEQF-0001, generado en capa de negocio
+  invoiceNumber String        @unique @map("invoice_number")
+  /// Codigo Unico de Factura Electronica asignado por la DIAN tras aceptacion
+  cufe          String?
+  /// Estado actual del ciclo de vida de la factura ante la DIAN
+  status        InvoiceStatus @default(DRAFT)
+  /// Contenido XML de la factura en formato UBL 2.1 requerido por la DIAN
+  xmlContent    String?       @map("xml_content")
+  /// URL publica del PDF generado para entregar al cliente
+  pdfUrl        String?       @map("pdf_url")
+  /// Respuesta JSON completa devuelta por la DIAN o el proveedor tecnologico habilitado
+  dianResponse  Json?         @map("dian_response")
+  /// Fecha y hora en que la factura fue emitida y enviada a la DIAN
+  issuedAt      DateTime?     @map("issued_at")
+  /// Fecha de creacion del registro en el sistema
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  /// Pedido al que pertenece esta factura electronica
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("electronic_invoices")
 }
