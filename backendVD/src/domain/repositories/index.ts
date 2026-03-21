@@ -22,3 +22,10 @@ export type {
   LowStockEssence,
   DashboardSummary,
 } from "./IAdminRepository";
+export { ILoyaltyRepository } from "./ILoyaltyRepository";
+export { IReferralRepository } from "./IReferralRepository";
+export { IEmailVerificationRepository } from "./IEmailVerificationRepository";
+export { IPasswordResetRepository } from "./IPasswordResetRepository";
+export { IOrderStatusHistoryRepository } from "./IOrderStatusHistoryRepository";
+export { IInvoiceRepository } from "./IInvoiceRepository";
+export type { InvoiceListResult } from "./IInvoiceRepository";

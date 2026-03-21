@@ -39,3 +39,29 @@ export type { BottleReturnProps } from "./BottleReturn";
 // Entidad Auditoria de Inventario y sus tipos asociados.
 export { InventoryAudit, AuditEntityType } from "./InventoryAudit";
 export type { InventoryAuditProps } from "./InventoryAudit";
+
+// Entidades del programa de fidelizacion.
+export { LoyaltyAccount, LoyaltyLevel, LoyaltyTxType } from "./LoyaltyAccount";
+export type { LoyaltyAccountProps } from "./LoyaltyAccount";
+export { LoyaltyTransaction } from "./LoyaltyTransaction";
+export type { LoyaltyTransactionProps } from "./LoyaltyTransaction";
+
+// Entidades del programa de referidos.
+export { ReferralCode } from "./ReferralCode";
+export type { ReferralCodeProps } from "./ReferralCode";
+export { ReferralUsage } from "./ReferralUsage";
+export type { ReferralUsageProps } from "./ReferralUsage";
+
+// Entidad historial de estados de pedido.
+export { OrderStatusHistory } from "./OrderStatusHistory";
+export type { OrderStatusHistoryProps } from "./OrderStatusHistory";
+
+// Entidades de autenticacion (tokens de un solo uso).
+export { EmailVerification } from "./EmailVerification";
+export type { EmailVerificationProps } from "./EmailVerification";
+export { PasswordReset } from "./PasswordReset";
+export type { PasswordResetProps } from "./PasswordReset";
+
+// Entidad de facturacion electronica DIAN.
+export { ElectronicInvoice, InvoiceStatus } from "./ElectronicInvoice";
+export type { ElectronicInvoiceProps } from "./ElectronicInvoice";
