@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<!--
+  Template: low-stock-alert.hbs
+  Proposito: Alertar al administrador cuando el stock de una esencia cae por debajo del minimo.
+  Variables Handlebars:
+    - {{essenceName}}  : Nombre comercial de la esencia.
+    - {{currentGrams}} : Stock actual en gramos.
+    - {{minGrams}}     : Stock minimo configurado en gramos.
+  Nota: Este correo va dirigido a administradores, no a clientes.
+        Usa estilo de alerta urgente (amarillo/rojo) en lugar del rosa de marca.
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>[ALERTA] Stock bajo – {{essenceName}} | Variedades DANII</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:Arial,Helvetica,sans-serif;">
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+         style="background-color:#f5f5f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+               style="max-width:600px;background-color:#ffffff;border-radius:8px;
+                      overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- ===== ENCABEZADO – tono de alerta ===== -->
+          <tr>
+            <td style="background-color:#b71c1c;padding:22px 32px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#ffcdd2;
+                         text-transform:uppercase;letter-spacing:1px;">
+                Sistema de inventario
+              </p>
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">
+                ⚠️ Alerta de stock bajo
+              </h1>
+              <p style="margin:6px 0 0;color:#ef9a9a;font-size:12px;">
+                Variedades DANII &bull; Armenia, Quindio
+              </p>
+            </td>
+          </tr>
+
+          <!-- ===== BANNER DE URGENCIA ===== -->
+          <tr>
+            <td style="background-color:#fff9c4;padding:14px 32px;text-align:center;
+                       border-bottom:1px solid #f9a825;">
+              <p style="margin:0;font-size:14px;color:#e65100;font-weight:700;">
+                🕐 Se requiere reposicion de inventario a la brevedad posible
+              </p>
+            </td>
+          </tr>
+
+          <!-- ===== DETALLE DE LA ALERTA ===== -->
+          <tr>
+            <td style="padding:28px 32px 24px;">
+
+              <p style="margin:0 0 20px;font-size:15px;color:#424242;line-height:1.6;">
+                El siguiente producto de inventario ha caido por debajo del nivel
+                minimo establecido y requiere reposicion:
+              </p>
+
+              <!-- Tarjeta de la esencia -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                     style="border:2px solid #ef9a9a;border-radius:8px;
+                            overflow:hidden;margin-bottom:24px;">
+
+                <!-- Nombre de la esencia -->
+                <tr style="background-color:#ffebee;">
+                  <td colspan="2" style="padding:16px 20px;text-align:center;">
+                    <p style="margin:0 0 4px;font-size:11px;color:#b71c1c;
+                               text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                      Esencia
+                    </p>
+                    <p style="margin:0;font-size:20px;font-weight:700;color:#b71c1c;">
+                      {{essenceName}}
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Stock actual -->
+                <tr>
+                  <td style="padding:16px 20px;border-right:1px solid #eeeeee;
+                              text-align:center;width:50%;">
+                    <p style="margin:0 0 6px;font-size:11px;color:#9e9e9e;
+                               text-transform:uppercase;letter-spacing:0.5px;">
+                      Stock actual
+                    </p>
+                    <p style="margin:0;font-size:32px;font-weight:700;color:#f44336;
+                               line-height:1;">
+                      {{currentGrams}} g
+                    </p>
+                  </td>
+
+                  <!-- Stock minimo -->
+                  <td style="padding:16px 20px;text-align:center;width:50%;">
+                    <p style="margin:0 0 6px;font-size:11px;color:#9e9e9e;
+                               text-transform:uppercase;letter-spacing:0.5px;">
+                      Minimo requerido
+                    </p>
+                    <p style="margin:0;font-size:32px;font-weight:700;color:#616161;
+                               line-height:1;">
+                      {{minGrams}} g
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+
+              <!-- Advertencia de impacto -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                     style="background-color:#fff3e0;border-radius:6px;
+                            border-left:4px solid #ff9800;margin-bottom:20px;">
+                <tr>
+                  <td style="padding:14px 16px;font-size:13px;color:#e65100;line-height:1.6;">
+                    <strong>Impacto potencial:</strong> no podran prepararse pedidos que
+                    incluyan esta esencia hasta que se reponga el inventario.
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;font-size:12px;color:#9e9e9e;line-height:1.6;">
+                Este mensaje fue generado automaticamente por el sistema de inventario.
+                Por favor, no respondas directamente a este correo.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- ===== PIE DE PAGINA ===== -->
+          <tr>
+            <td style="background-color:#fce4ec;padding:20px 32px;text-align:center;
+                       border-top:1px solid #f8bbd0;">
+              <p style="margin:0 0 4px;font-size:12px;color:#880e4f;font-weight:700;">
+                Variedades DANII Perfumeria – Sistema de Inventario
+              </p>
+              <p style="margin:0;font-size:11px;color:#ad1457;">
+                C.C. San Andresito Calle 18 #15-26, Armenia Quindio
+                &bull; 300 383 7442
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

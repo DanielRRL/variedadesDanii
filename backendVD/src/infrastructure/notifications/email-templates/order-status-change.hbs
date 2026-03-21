@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<!--
+  Template: order-status-change.hbs
+  Proposito: Notificar al cliente cada cambio de estado de su pedido.
+  Variables Handlebars:
+    - {{clientName}}  : Nombre del cliente.
+    - {{orderNumber}} : Numero del pedido (ej: VD-20260001).
+    - {{newStatus}}   : Nuevo estado en texto legible (ej: "En preparacion").
+    - {{statusKey}}   : Clave del enum en ingles para resaltar el paso
+                        correcto en la linea de tiempo.
+                        Valores: PENDING | PAID | PREPARING | SHIPPED | DELIVERED | CANCELLED
+  Notas:
+    - La linea de tiempo visual muestra los 5 estados principales.
+    - El estado activo se resalta en rosa (#D81B60).
+    - CANCELLED se trata aparte con un mensaje de advertencia.
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estado de tu pedido {{orderNumber}} – Variedades DANII</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:Arial,Helvetica,sans-serif;">
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+         style="background-color:#f5f5f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+               style="max-width:600px;background-color:#ffffff;border-radius:8px;
+                      overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- ===== ENCABEZADO ===== -->
+          <tr>
+            <td style="background-color:#D81B60;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;
+                         letter-spacing:1px;">Variedades DANII</h1>
+              <p style="margin:6px 0 0;color:#fce4ec;font-size:13px;">
+                Perfumeria artesanal &bull; Armenia, Quindio
+              </p>
+            </td>
+          </tr>
+
+          <!-- ===== CUERPO ===== -->
+          <tr>
+            <td style="padding:32px 32px 24px;">
+
+              <p style="margin:0 0 8px;font-size:16px;color:#212121;">
+                Hola <strong>{{clientName}}</strong>,
+              </p>
+              <p style="margin:0 0 24px;font-size:15px;color:#424242;line-height:1.6;">
+                El estado de tu pedido <strong style="color:#D81B60;">{{orderNumber}}</strong>
+                ha cambiado a:
+                <strong style="font-size:16px;color:#D81B60;"> {{newStatus}}</strong>
+              </p>
+
+              <!-- ===== LINEA DE TIEMPO DE ESTADOS ===== -->
+              <!--
+                Cada celda representa un estado. La clase activa se simula
+                con background/color diferente segun el statusKey recibido.
+                Los estados inactivos usan gris; el activo usa rosa.
+              -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                     style="margin-bottom:28px;">
+                <tr>
+
+                  <!-- PENDIENTE -->
+                  <td align="center" width="20%"
+                      style="padding:8px 4px;
+                             background-color:{{#ifeq statusKey 'PENDING'}}#D81B60{{else}}#f5f5f5{{/ifeq}};
+                             border-radius:4px;">
+                    <p style="margin:0;font-size:18px;">🕐</p>
+                    <p style="margin:4px 0 0;font-size:10px;font-weight:700;
+                               color:{{#ifeq statusKey 'PENDING'}}#ffffff{{else}}#9e9e9e{{/ifeq}};">
+                      Pendiente
+                    </p>
+                  </td>
+
+                  <td width="2%" style="font-size:12px;color:#bdbdbd;text-align:center;">›</td>
+
+                  <!-- PAGADO -->
+                  <td align="center" width="20%"
+                      style="padding:8px 4px;
+                             background-color:{{#ifeq statusKey 'PAID'}}#D81B60{{else}}#f5f5f5{{/ifeq}};
+                             border-radius:4px;">
+                    <p style="margin:0;font-size:18px;">💳</p>
+                    <p style="margin:4px 0 0;font-size:10px;font-weight:700;
+                               color:{{#ifeq statusKey 'PAID'}}#ffffff{{else}}#9e9e9e{{/ifeq}};">
+                      Pagado
+                    </p>
+                  </td>
+
+                  <td width="2%" style="font-size:12px;color:#bdbdbd;text-align:center;">›</td>
+
+                  <!-- EN PREPARACION -->
+                  <td align="center" width="20%"
+                      style="padding:8px 4px;
+                             background-color:{{#ifeq statusKey 'PREPARING'}}#D81B60{{else}}#f5f5f5{{/ifeq}};
+                             border-radius:4px;">
+                    <p style="margin:0;font-size:18px;">🧪</p>
+                    <p style="margin:4px 0 0;font-size:10px;font-weight:700;
+                               color:{{#ifeq statusKey 'PREPARING'}}#ffffff{{else}}#9e9e9e{{/ifeq}};">
+                      Preparando
+                    </p>
+                  </td>
+
+                  <td width="2%" style="font-size:12px;color:#bdbdbd;text-align:center;">›</td>
+
+                  <!-- ENVIADO -->
+                  <td align="center" width="20%"
+                      style="padding:8px 4px;
+                             background-color:{{#ifeq statusKey 'SHIPPED'}}#D81B60{{else}}#f5f5f5{{/ifeq}};
+                             border-radius:4px;">
+                    <p style="margin:0;font-size:18px;">🚚</p>
+                    <p style="margin:4px 0 0;font-size:10px;font-weight:700;
+                               color:{{#ifeq statusKey 'SHIPPED'}}#ffffff{{else}}#9e9e9e{{/ifeq}};">
+                      Enviado
+                    </p>
+                  </td>
+
+                  <td width="2%" style="font-size:12px;color:#bdbdbd;text-align:center;">›</td>
+
+                  <!-- ENTREGADO -->
+                  <td align="center" width="20%"
+                      style="padding:8px 4px;
+                             background-color:{{#ifeq statusKey 'DELIVERED'}}#D81B60{{else}}#f5f5f5{{/ifeq}};
+                             border-radius:4px;">
+                    <p style="margin:0;font-size:18px;">✅</p>
+                    <p style="margin:4px 0 0;font-size:10px;font-weight:700;
+                               color:{{#ifeq statusKey 'DELIVERED'}}#ffffff{{else}}#9e9e9e{{/ifeq}};">
+                      Entregado
+                    </p>
+                  </td>
+
+                </tr>
+              </table>
+
+              <!-- Mensaje especial si el pedido fue cancelado -->
+              {{#ifeq statusKey 'CANCELLED'}}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                     style="margin-bottom:20px;background-color:#ffebee;border-radius:6px;
+                            border-left:4px solid #f44336;">
+                <tr>
+                  <td style="padding:14px 16px;font-size:13px;color:#b71c1c;line-height:1.6;">
+                    ❌ Tu pedido fue <strong>cancelado</strong>. Si tienes alguna duda,
+                    contactanos al <strong>300 383 7442</strong>.
+                  </td>
+                </tr>
+              </table>
+              {{/ifeq}}
+
+              <p style="margin:0;font-size:13px;color:#757575;line-height:1.6;">
+                ¿Tienes preguntas? Escríbenos al WhatsApp
+                <strong>300 383 7442</strong> con el numero de tu pedido.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- ===== PIE DE PAGINA ===== -->
+          <tr>
+            <td style="background-color:#fce4ec;padding:20px 32px;text-align:center;
+                       border-top:1px solid #f8bbd0;">
+              <p style="margin:0 0 4px;font-size:12px;color:#880e4f;font-weight:700;">
+                Variedades DANII Perfumeria
+              </p>
+              <p style="margin:0;font-size:11px;color:#ad1457;">
+                C.C. San Andresito Calle 18 #15-26, Armenia Quindio
+                &bull; 300 383 7442
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

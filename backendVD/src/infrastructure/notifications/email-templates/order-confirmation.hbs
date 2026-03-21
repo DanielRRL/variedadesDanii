@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!--
+  Template: order-confirmation.hbs
+  Proposito: Confirmar al cliente que su pedido fue recibido exitosamente.
+  Variables Handlebars:
+    - {{orderNumber}}  : Numero legible del pedido (ej: VD-20260001).
+    - {{items}}        : Array de { name, qty, price } con los productos.
+    - {{subtotal}}     : Suma bruta antes de descuentos (calculado externamente).
+    - {{discounts}}    : Total de descuentos aplicados.
+    - {{total}}        : Monto final a pagar.
+  Notas:
+    - Usa {{#each items}} para iterar los productos.
+    - Total se resalta en amarillo dorado (#F9A825) para llamar la atencion.
+    - Se incluyen instrucciones de recogida / contacto de la tienda.
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pedido {{orderNumber}} confirmado – Variedades DANII</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:Arial,Helvetica,sans-serif;">
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+         style="background-color:#f5f5f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+               style="max-width:600px;background-color:#ffffff;border-radius:8px;
+                      overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- ===== ENCABEZADO ===== -->
+          <tr>
+            <td style="background-color:#D81B60;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;
+                         letter-spacing:1px;">Variedades DANII</h1>
+              <p style="margin:6px 0 0;color:#fce4ec;font-size:13px;">
+                Perfumeria artesanal &bull; Armenia, Quindio
+              </p>
+            </td>
+          </tr>
+
+          <!-- ===== BANNER DE CONFIRMACION ===== -->
+          <tr>
+            <td style="background-color:#fce4ec;padding:20px 32px;text-align:center;
+                       border-bottom:1px solid #f8bbd0;">
+              <p style="margin:0;font-size:18px;color:#880e4f;font-weight:700;">
+                ✅ Pedido <span style="color:#D81B60;">{{orderNumber}}</span> confirmado
+              </p>
+            </td>
+          </tr>
+
+          <!-- ===== CUERPO ===== -->
+          <tr>
+            <td style="padding:32px 32px 24px;">
+
+              <p style="margin:0 0 24px;font-size:15px;color:#424242;line-height:1.6;">
+                ¡Gracias por tu compra! Hemos recibido tu pedido y ya estamos
+                preparando tu pedido con mucho amor. 💖
+              </p>
+
+              <!-- ===== TABLA DE PRODUCTOS ===== -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                     style="border-collapse:collapse;margin-bottom:8px;">
+
+                <!-- Encabezado de la tabla -->
+                <tr style="background-color:#D81B60;">
+                  <td style="padding:10px 12px;color:#ffffff;font-size:13px;
+                             font-weight:700;border-radius:4px 0 0 0;">Producto</td>
+                  <td style="padding:10px 12px;color:#ffffff;font-size:13px;
+                             font-weight:700;text-align:center;">Cant.</td>
+                  <td style="padding:10px 12px;color:#ffffff;font-size:13px;
+                             font-weight:700;text-align:right;border-radius:0 4px 0 0;">
+                    Precio</td>
+                </tr>
+
+                <!-- Filas dinamicas de productos -->
+                {{#each items}}
+                <tr style="border-bottom:1px solid #f5f5f5;">
+                  <td style="padding:10px 12px;font-size:14px;color:#212121;">
+                    {{this.name}}
+                  </td>
+                  <td style="padding:10px 12px;font-size:14px;color:#424242;
+                             text-align:center;">
+                    {{this.qty}}
+                  </td>
+                  <td style="padding:10px 12px;font-size:14px;color:#424242;
+                             text-align:right;">
+                    ${{this.price}}
+                  </td>
+                </tr>
+                {{/each}}
+
+                <!-- Fila de descuentos (solo si hay descuentos) -->
+                {{#if discounts}}
+                <tr style="border-top:1px solid #f8bbd0;">
+                  <td colspan="2" style="padding:10px 12px;font-size:13px;
+                                         color:#757575;font-style:italic;">
+                    Descuentos aplicados
+                  </td>
+                  <td style="padding:10px 12px;font-size:13px;color:#388e3c;
+                             text-align:right;font-weight:700;">
+                    - ${{discounts}}
+                  </td>
+                </tr>
+                {{/if}}
+
+                <!-- Fila de total -->
+                <tr style="background-color:#fff8e1;">
+                  <td colspan="2" style="padding:12px 12px;font-size:15px;
+                                         color:#212121;font-weight:700;">
+                    TOTAL
+                  </td>
+                  <td style="padding:12px 12px;font-size:16px;color:#F9A825;
+                             text-align:right;font-weight:700;">
+                    ${{total}}
+                  </td>
+                </tr>
+
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- ===== INSTRUCCIONES ===== -->
+          <tr>
+            <td style="padding:0 32px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                     style="background-color:#f3e5f5;border-radius:6px;
+                            border-left:4px solid #D81B60;">
+                <tr>
+                  <td style="padding:16px;">
+                    <p style="margin:0 0 8px;font-size:14px;color:#4a148c;
+                               font-weight:700;">📦 Informacion del pedido</p>
+                    <p style="margin:0;font-size:13px;color:#6a1b9a;line-height:1.7;">
+                      Te notificaremos por este correo cuando tu pedido este listo.<br/>
+                      Para consultar el estado escríbenos al <strong>300 383 7442</strong>
+                      o visítanos en C.C. San Andresito Calle 18 #15-26, Armenia Quindio.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ===== PIE DE PAGINA ===== -->
+          <tr>
+            <td style="background-color:#fce4ec;padding:20px 32px;text-align:center;
+                       border-top:1px solid #f8bbd0;">
+              <p style="margin:0 0 4px;font-size:12px;color:#880e4f;font-weight:700;">
+                Variedades DANII Perfumeria
+              </p>
+              <p style="margin:0;font-size:11px;color:#ad1457;">
+                C.C. San Andresito Calle 18 #15-26, Armenia Quindio
+                &bull; 300 383 7442
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

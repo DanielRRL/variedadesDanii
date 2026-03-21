@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<!--
+  Template: loyalty-level-up.hbs
+  Proposito: Celebrar con el cliente su nuevo nivel de fidelizacion.
+  Variables Handlebars:
+    - {{clientName}}  : Nombre del cliente.
+    - {{newLevel}}    : Nombre del nuevo nivel (BASIC | PREFERRED | VIP).
+    - {{discountPct}} : Porcentaje de descuento que aplica el nuevo nivel (numero).
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>¡Subiste de nivel! – Variedades DANII</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:Arial,Helvetica,sans-serif;">
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+         style="background-color:#f5f5f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+               style="max-width:600px;background-color:#ffffff;border-radius:8px;
+                      overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- ===== ENCABEZADO ===== -->
+          <tr>
+            <td style="background-color:#D81B60;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;
+                         letter-spacing:1px;">Variedades DANII</h1>
+              <p style="margin:6px 0 0;color:#fce4ec;font-size:13px;">
+                Perfumeria artesanal &bull; Armenia, Quindio
+              </p>
+            </td>
+          </tr>
+
+          <!-- ===== BANNER DE CELEBRACION ===== -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#fce4ec 0%,#fff9c4 100%);
+                       padding:28px 32px;text-align:center;">
+              <p style="margin:0 0 8px;font-size:48px;line-height:1;">🎉</p>
+              <h2 style="margin:0 0 8px;font-size:22px;color:#880e4f;font-weight:700;">
+                ¡Felicitaciones, {{clientName}}!
+              </h2>
+              <p style="margin:0;font-size:15px;color:#ad1457;line-height:1.5;">
+                Alcanzaste un nuevo nivel de fidelidad
+              </p>
+            </td>
+          </tr>
+
+          <!-- ===== NIVEL ===== -->
+          <tr>
+            <td style="padding:28px 32px 20px;text-align:center;">
+
+              <!-- Badge del nivel -->
+              <div style="display:inline-block;background-color:#D81B60;
+                          border-radius:50px;padding:12px 36px;margin-bottom:20px;">
+                <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;
+                           letter-spacing:2px;text-transform:uppercase;">
+                  ✨ {{newLevel}}
+                </p>
+              </div>
+
+              <!-- Beneficio destacado -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                     style="background-color:#fce4ec;border-radius:8px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px;text-align:center;">
+                    <p style="margin:0 0 6px;font-size:13px;color:#ad1457;
+                               text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                      Tu descuento permanente
+                    </p>
+                    <p style="margin:0;font-size:48px;font-weight:700;color:#D81B60;
+                               line-height:1;">
+                      {{discountPct}}%
+                    </p>
+                    <p style="margin:8px 0 0;font-size:13px;color:#880e4f;">
+                      en todos tus pedidos
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 24px;font-size:15px;color:#424242;line-height:1.6;">
+                Este descuento se aplica automaticamente en tu proxima compra.
+                Sigue acumulando puntos para alcanzar niveles aun mejores.
+              </p>
+
+              <!-- Niveles del programa -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                     style="border:1px solid #f8bbd0;border-radius:6px;overflow:hidden;
+                            margin-bottom:16px;">
+                <tr style="background-color:#fce4ec;">
+                  <td style="padding:8px 12px;font-size:11px;font-weight:700;color:#880e4f;
+                              text-transform:uppercase;">Nivel</td>
+                  <td style="padding:8px 12px;font-size:11px;font-weight:700;color:#880e4f;
+                              text-transform:uppercase;">Descuento</td>
+                </tr>
+                <tr style="background-color:#ffffff;">
+                  <td style="padding:8px 12px;font-size:13px;color:#616161;">⭐ BASIC</td>
+                  <td style="padding:8px 12px;font-size:13px;color:#616161;">3 %</td>
+                </tr>
+                <tr style="background-color:#fafafa;">
+                  <td style="padding:8px 12px;font-size:13px;color:#616161;">⭐⭐ PREFERRED</td>
+                  <td style="padding:8px 12px;font-size:13px;color:#616161;">7 %</td>
+                </tr>
+                <tr style="background-color:#ffffff;">
+                  <td style="padding:8px 12px;font-size:13px;color:#D81B60;font-weight:700;">
+                    ⭐⭐⭐ VIP
+                  </td>
+                  <td style="padding:8px 12px;font-size:13px;color:#D81B60;font-weight:700;">
+                    12 %
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- ===== PIE DE PAGINA ===== -->
+          <tr>
+            <td style="background-color:#fce4ec;padding:20px 32px;text-align:center;
+                       border-top:1px solid #f8bbd0;">
+              <p style="margin:0 0 4px;font-size:12px;color:#880e4f;font-weight:700;">
+                Variedades DANII Perfumeria
+              </p>
+              <p style="margin:0;font-size:11px;color:#ad1457;">
+                C.C. San Andresito Calle 18 #15-26, Armenia Quindio
+                &bull; 300 383 7442
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
