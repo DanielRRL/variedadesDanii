@@ -3,7 +3,7 @@
  * Define una interfaz comun (IPaymentStrategy) y cuatro implementaciones
  * para los metodos de pago colombianos: Nequi, Daviplata, Bancolombia, Efectivo.
  * Cada estrategia genera una referencia unica y queda pendiente de confirmacion.
- * TODO: Integrar con gateways reales (ePayco, Wompi) en produccion.
+ * Bre-B usa la integracion real con Wompi.
  */
 
 /** Resultado del procesamiento de un pago. */
@@ -21,6 +21,9 @@ export interface IPaymentStrategy {
   /** Verifica el estado de un pago por su referencia. */
   verify(gatewayRef: string): Promise<PaymentResult>;
 }
+
+// BrebGateway - Integracion real con Wompi para pagos Bre-B instantaneos.
+import { BrebGateway } from "../../infrastructure/payment-gateways/BrebGateway";
 
 /** Estrategia de pago con Nequi (billetera digital colombiana). */
 export class NequiPayment implements IPaymentStrategy {
@@ -115,6 +118,8 @@ export class PaymentStrategyFactory {
     DAVIPLATA: new DaviplataPayment(),
     BANCOLOMBIA: new BancolombiaPayment(),
     CASH: new CashPayment(),
+    // BREB: Pago instantaneo Bre-B via Wompi (integracion real).
+    BREB: new BrebGateway(),
   };
 
   /** Obtiene la estrategia para un metodo dado. Lanza error si no existe. */

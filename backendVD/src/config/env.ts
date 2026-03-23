@@ -48,4 +48,21 @@ export const env = {
     // Maximo de peticiones permitidas por ventana.
     max: parseInt(process.env.RATE_LIMIT_MAX || "100", 10),
   },
+
+  // Configuracion de Wompi: pasarela de pagos colombiana.
+  // Las claves de sandbox tienen el prefijo "test_"; en produccion usar sin ese prefijo.
+  wompi: {
+    // URL base de la API Wompi (sandbox o produccion segun NODE_ENV).
+    apiUrl: process.env.WOMPI_API_URL || "https://sandbox.wompi.co/v1",
+    // Clave publica (safe para el frontend; identifica el comercio).
+    publicKey: process.env.WOMPI_PUBLIC_KEY || "",
+    // Clave privada (SOLO el servidor; autoriza transacciones y consultas).
+    privateKey: process.env.WOMPI_PRIVATE_KEY || "",
+    // Secreto de eventos: usado para validar la firma HMAC-SHA256 de los webhooks.
+    eventsSecret: process.env.WOMPI_EVENTS_SECRET || "",
+    // Moneda de las transacciones (COP para Colombia).
+    currency: process.env.WOMPI_CURRENCY || "COP",
+    // URL de redireccion post-pago para el cliente.
+    redirectUrl: process.env.WOMPI_REDIRECT_URL || "http://localhost:5173/payment-result",
+  },
 } as const;

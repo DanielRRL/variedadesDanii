@@ -106,6 +106,11 @@ import { createPaymentRoutes } from "./interfaces/routes/paymentRoutes";
 import { createAdminRoutes } from "./interfaces/routes/adminRoutes";
 // createLoyaltyRoutes, createAdminLoyaltyRoutes - Fidelizacion y referidos.
 import { createLoyaltyRoutes, createAdminLoyaltyRoutes } from "./interfaces/routes/loyaltyRoutes";
+// createWebhookRoutes - Webhooks de pasarelas de pago (raw body; debe montarse antes de express.json).
+import { createWebhookRoutes } from "./interfaces/routes/webhookRoutes";
+
+// PaymentWebhookController - Valida y procesa eventos de Wompi.
+import { PaymentWebhookController } from "./interfaces/controllers/PaymentWebhookController";
 
 /**
  * Crea y configura la aplicacion Express completa.
@@ -121,6 +126,18 @@ export function createApp(): express.Application {
 
   // Seguridad: headers HTTP seguros (X-Content-Type-Options, etc)
   app.use(helmet());
+
+  // ---------------------------------------------------------------------------
+  // Webhook routes (ANTES de express.json)
+  // ---------------------------------------------------------------------------
+  // Los webhooks de Wompi necesitan el body RAW (Buffer) para validar la firma
+  // HMAC-SHA256. Si express.json() corre primero, el body es parseado y el
+  // string original se pierde, haciendo imposible recalcular el hash correcto.
+  // Por eso se instancian el repo, controlador y ruta aqui, antes del parser.
+  const _webhookPaymentRepo = new PrismaPaymentRepository();
+  const _webhookOrderRepo   = new PrismaOrderRepository();
+  const webhookController   = new PaymentWebhookController(_webhookPaymentRepo, _webhookOrderRepo);
+  app.use("/api/webhooks", createWebhookRoutes(webhookController));
 
   // CORS: permite requests desde el frontend (origen configurado en .env)
   app.use(
