@@ -63,4 +63,12 @@ export interface IReferralRepository {
    * @param usageId - UUID del ReferralUsage a actualizar.
    */
   markRewardGiven(usageId: string): Promise<void>;
+
+  /**
+   * Busca si un usuario ya ha utilizado algun codigo de referido.
+   * Permite validar que cada nuevo usuario solo puede usar un codigo.
+   * Retorna null si el usuario nunca ha usado un codigo.
+   * @param newUserId - UUID del nuevo usuario a consultar.
+   */
+  findUsageByNewUserId(newUserId: string): Promise<ReferralUsage | null>;
 }

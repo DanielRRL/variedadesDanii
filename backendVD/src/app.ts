@@ -46,6 +46,10 @@ import { PrismaAdminRepository } from "./infrastructure/repositories/PrismaAdmin
 import { PrismaEmailVerificationRepository } from "./infrastructure/repositories/PrismaEmailVerificationRepository";
 // PrismaPasswordResetRepository - Tokens de restablecimiento de contrasena.
 import { PrismaPasswordResetRepository } from "./infrastructure/repositories/PrismaPasswordResetRepository";
+// PrismaLoyaltyRepository - Cuentas y transacciones de fidelizacion.
+import { PrismaLoyaltyRepository } from "./infrastructure/repositories/PrismaLoyaltyRepository";
+// PrismaReferralRepository - Codigos y usos de referidos.
+import { PrismaReferralRepository } from "./infrastructure/repositories/PrismaReferralRepository";
 
 // --- Servicios de aplicacion: logica de negocio reutilizable ---
 // AuthService - Registro y login con JWT y bcrypt.
@@ -58,12 +62,18 @@ import { DiscountService } from "./application/services/DiscountService";
 import { AdminService } from "./application/services/AdminService";
 // EmailService - Envio de correos electronicos (verificacion, reset, pedidos).
 import { EmailService } from "./infrastructure/notifications/EmailService";
+// LoyaltyService - Puntos, niveles y descuentos del programa de fidelizacion.
+import { LoyaltyService } from "./application/services/LoyaltyService";
+// ReferralService - Generacion y aplicacion de codigos de referido.
+import { ReferralService } from "./application/services/ReferralService";
 
 // --- Casos de uso: orquestan la logica de negocio compleja ---
 // CreateOrderUseCase - Crear orden con validacion de stock y descuentos.
 import { CreateOrderUseCase } from "./application/usecases/CreateOrderUseCase";
 // ProcessBottleReturnUseCase - Procesar devolucion de frasco.
 import { ProcessBottleReturnUseCase } from "./application/usecases/ProcessBottleReturnUseCase";
+// EarnPointsAfterOrderUseCase - Acreditar puntos al entregar una orden.
+import { EarnPointsAfterOrderUseCase } from "./application/usecases/EarnPointsAfterOrderUseCase";
 
 // --- Controladores: manejan HTTP y delegan a servicios/casos de uso ---
 import { AuthController } from "./interfaces/controllers/AuthController";
@@ -77,6 +87,8 @@ import { BottleReturnController } from "./interfaces/controllers/BottleReturnCon
 import { PaymentController } from "./interfaces/controllers/PaymentController";
 // AdminController - Dashboard y reportes de negocio.
 import { AdminController } from "./interfaces/controllers/AdminController";
+// LoyaltyController - Puntos del programa de fidelizacion y referidos.
+import { LoyaltyController } from "./interfaces/controllers/LoyaltyController";
 
 // --- Fabricas de rutas: cada una recibe su controlador y retorna un Router ---
 import { createAuthRoutes } from "./interfaces/routes/authRoutes";
@@ -90,6 +102,8 @@ import { createBottleReturnRoutes } from "./interfaces/routes/bottleReturnRoutes
 import { createPaymentRoutes } from "./interfaces/routes/paymentRoutes";
 // createAdminRoutes - Rutas de dashboard y reportes admin.
 import { createAdminRoutes } from "./interfaces/routes/adminRoutes";
+// createLoyaltyRoutes, createAdminLoyaltyRoutes - Fidelizacion y referidos.
+import { createLoyaltyRoutes, createAdminLoyaltyRoutes } from "./interfaces/routes/loyaltyRoutes";
 
 /**
  * Crea y configura la aplicacion Express completa.
@@ -147,6 +161,8 @@ export function createApp(): express.Application {
   const adminRepo = new PrismaAdminRepository();
   const emailVerificationRepo = new PrismaEmailVerificationRepository();
   const passwordResetRepo = new PrismaPasswordResetRepository();
+  const loyaltyRepo = new PrismaLoyaltyRepository();
+  const referralRepo = new PrismaReferralRepository();
 
   // EmailService - Implementacion concreta del contrato IEmailService.
   const emailService = new EmailService();
@@ -161,6 +177,8 @@ export function createApp(): express.Application {
   const inventoryService = new InventoryService(inventoryRepo);
   const discountService = new DiscountService(userRepo, bottleReturnRepo);
   const adminService = new AdminService(adminRepo);
+  const loyaltyService = new LoyaltyService(loyaltyRepo, userRepo, emailService);
+  const referralService = new ReferralService(referralRepo, loyaltyService, userRepo);
 
   // 3. Instanciar casos de uso (inyectando repos y servicios)
   const createOrderUseCase = new CreateOrderUseCase(
@@ -168,12 +186,18 @@ export function createApp(): express.Application {
     productRepo,
     paymentRepo,
     inventoryService,
-    discountService
+    discountService,
+    loyaltyService,
   );
   const processBottleReturnUseCase = new ProcessBottleReturnUseCase(
     bottleReturnRepo,
     bottleRepo,
     inventoryService
+  );
+  const earnPointsAfterOrderUseCase = new EarnPointsAfterOrderUseCase(
+    loyaltyService,
+    orderRepo,
+    userRepo,
   );
 
   // 4. Instanciar controladores (inyectando servicios, casos de uso, repos)
@@ -182,7 +206,7 @@ export function createApp(): express.Application {
   const essenceController = new EssenceController(essenceRepo, inventoryService);
   const bottleController = new BottleController(bottleRepo, inventoryService);
   const productController = new ProductController(productRepo);
-  const orderController = new OrderController(createOrderUseCase, orderRepo);
+  const orderController = new OrderController(createOrderUseCase, orderRepo, earnPointsAfterOrderUseCase);
   const inventoryController = new InventoryController(inventoryService);
   const bottleReturnController = new BottleReturnController(
     processBottleReturnUseCase,
@@ -190,6 +214,7 @@ export function createApp(): express.Application {
   );
   const paymentController = new PaymentController(paymentRepo, orderRepo);
   const adminController = new AdminController(adminService);
+  const loyaltyController = new LoyaltyController(loyaltyService, referralService);
 
   // ---------------------------------------------------------------------------
   // Rutas de la API
@@ -211,6 +236,8 @@ export function createApp(): express.Application {
   app.use("/api/returns", createBottleReturnRoutes(bottleReturnController));
   app.use("/api/payments", createPaymentRoutes(paymentController));
   app.use("/api/admin", createAdminRoutes(adminController));
+  app.use("/api/loyalty", createLoyaltyRoutes(loyaltyController));
+  app.use("/api/admin/loyalty", createAdminLoyaltyRoutes(loyaltyController));
 
   // ---------------------------------------------------------------------------
   // Error Handler (debe ir al final de la cadena de middlewares)

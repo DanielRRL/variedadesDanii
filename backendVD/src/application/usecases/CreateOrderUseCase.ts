@@ -26,6 +26,9 @@ import { InventoryService } from "../services/InventoryService";
 // DiscountService - Para calcular descuentos (devolucion, frecuente, volumen).
 import { DiscountService } from "../services/DiscountService";
 
+// LoyaltyService - Para asegurar que el usuario tenga cuenta de fidelizacion.
+import { LoyaltyService } from "../services/LoyaltyService";
+
 // PaymentStrategyFactory - Factory para obtener la estrategia de pago correcta.
 import { PaymentStrategyFactory } from "../services/PaymentStrategy";
 
@@ -74,7 +77,8 @@ export class CreateOrderUseCase {
     private readonly productRepo: IProductRepository,
     private readonly paymentRepo: IPaymentRepository,
     private readonly inventoryService: InventoryService,
-    private readonly discountService: DiscountService
+    private readonly discountService: DiscountService,
+    private readonly loyaltyService: LoyaltyService
   ) {}
 
   /**
@@ -187,6 +191,9 @@ export class CreateOrderUseCase {
     });
 
     logger.info(`Order created: ${order.id} - Total: $${total} - Method: ${input.paymentMethod}`);
+
+    // -- Paso 5b: Asegurar cuenta de fidelizacion para el usuario --
+    await this.loyaltyService.getOrCreateAccount(input.userId);
 
     return {
       order,

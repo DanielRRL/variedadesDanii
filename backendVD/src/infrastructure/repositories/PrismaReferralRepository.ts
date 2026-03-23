@@ -138,4 +138,14 @@ export class PrismaReferralRepository implements IReferralRepository {
       throw err;
     }
   }
+
+  /**
+   * Busca si un usuario ya ha utilizado algun codigo de referido.
+   * Usa el campo newUserId para la busqueda; retorna null si no existe.
+   * @param newUserId - UUID del nuevo usuario a consultar.
+   */
+  async findUsageByNewUserId(newUserId: string): Promise<ReferralUsage | null> {
+    const r = await prisma.referralUsage.findFirst({ where: { newUserId } });
+    return r ? mapUsage(r) : null;
+  }
 }

@@ -99,9 +99,10 @@ enum AuditEntityType {
 
 // Nivel de fidelizacion del cliente en el programa de puntos.
 enum LoyaltyLevel {
-  BASIC     // 0-99 puntos acumulados; sin descuento adicional
-  PREFERRED // 100-499 puntos; descuento moderado activo
-  VIP       // 500+ puntos; maximo descuento y beneficios exclusivos
+  BASIC     // Nivel inicial; sin descuento adicional
+  PREFERRED // Nivel intermedio; 5% descuento activo
+  VIP       // Nivel alto; 10% descuento activo
+  ELITE     // Nivel maximo; 15% descuento y beneficios exclusivos
 }
 
 // Tipo de movimiento en el historial de puntos de fidelizacion.

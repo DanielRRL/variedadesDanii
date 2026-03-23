@@ -19,10 +19,17 @@ import { AppError } from "../../utils/AppError";
 // param - Helper de Express 5 para extraer params.
 import { param } from "../../utils/param";
 
+// EarnPointsAfterOrderUseCase - Acredita puntos al marcar una orden como entregada.
+import { EarnPointsAfterOrderUseCase } from "../../application/usecases/EarnPointsAfterOrderUseCase";
+
+// logger - Para registrar fallos no bloqueantes en el flujo de fidelizacion.
+import logger from "../../utils/logger";
+
 export class OrderController {
   constructor(
     private readonly createOrderUseCase: CreateOrderUseCase,
-    private readonly orderRepo: IOrderRepository
+    private readonly orderRepo: IOrderRepository,
+    private readonly earnPointsUseCase: EarnPointsAfterOrderUseCase
   ) {}
 
   /** POST /orders - Crea una orden (userId viene del JWT en el middleware). */
@@ -108,6 +115,17 @@ export class OrderController {
         param(req, "id"),
         req.body.status
       );
+      // Acreditar puntos cuando la orden llega a estado DELIVERED
+      if (req.body.status === "DELIVERED") {
+        try {
+          await this.earnPointsUseCase.execute(order.id, order.userId);
+        } catch (loyaltyErr) {
+          logger.warn("Failed to earn loyalty points after delivery", {
+            orderId: order.id,
+            error: loyaltyErr,
+          });
+        }
+      }
       res.json({ success: true, data: order });
     } catch (error) {
       next(error);

@@ -7,9 +7,10 @@
 
 /** Niveles posibles dentro del programa de puntos. */
 export enum LoyaltyLevel {
-  BASIC     = "BASIC",     // Nivel inicial (0-99 puntos).
-  PREFERRED = "PREFERRED", // Nivel intermedio (100-499 puntos).
-  VIP       = "VIP",       // Nivel maximo (500+ puntos).
+  BASIC     = "BASIC",     // Nivel inicial; sin descuento adicional.
+  PREFERRED = "PREFERRED", // Nivel intermedio; 5% de descuento activo.
+  VIP       = "VIP",       // Nivel alto; 10% de descuento activo.
+  ELITE     = "ELITE",     // Nivel maximo; 15% de descuento activo.
 }
 
 /** Tipos de movimiento de puntos. */
