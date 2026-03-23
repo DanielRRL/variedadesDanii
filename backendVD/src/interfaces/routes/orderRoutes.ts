@@ -33,6 +33,7 @@ import { validate } from "../validators/validate";
  * GET /my-orders - Ordenes del usuario actual.
  * GET /:id - Detalle de una orden.
  * GET /user/:userId - Ordenes de un usuario (ADMIN).
+ * GET /:id/history - Historial de estados de una orden (dueno o ADMIN).
  * PATCH /:id/status - Cambiar estado (ADMIN/SELLER).
  */
 export const createOrderRoutes = (
@@ -68,6 +69,11 @@ export const createOrderRoutes = (
     validate,
     orderController.updateStatus
   );
+
+  // Historial de estados: accesible por el dueno del pedido o ADMIN.
+  // La verificacion de propiedad se hace en el controlador (no en el middleware)
+  // porque requiere consultar la BD para obtener el userId del pedido.
+  router.get("/:id/history", orderController.getOrderHistory);
 
   return router;
 };

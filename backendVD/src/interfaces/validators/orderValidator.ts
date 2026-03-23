@@ -56,6 +56,6 @@ export const updateOrderStatusValidator = [
   body("status")
     .notEmpty()
     .withMessage("status is required")
-    .isIn(["PENDING", "PAID", "PREPARING", "SHIPPED", "DELIVERED", "CANCELLED"])
+    .isIn(["PENDING", "PAID", "PREPARING", "READY", "SHIPPED", "DELIVERED", "CANCELLED"])
     .withMessage("Invalid order status"),
 ];

@@ -15,8 +15,9 @@ export enum OrderStatus {
   PENDING = "PENDING",       // Recien creado, esperando pago.
   PAID = "PAID",             // Pago confirmado.
   PREPARING = "PREPARING",   // En preparacion (llenado de frascos).
-  SHIPPED = "SHIPPED",       // Enviado al cliente.
-  DELIVERED = "DELIVERED",   // Entregado exitosamente.
+  READY = "READY",           // Pedido listo para despacho o recogida.
+  SHIPPED = "SHIPPED",       // Enviado (legado; sin transiciones activas).
+  DELIVERED = "DELIVERED",   // Entregado exitosamente al cliente.
   CANCELLED = "CANCELLED",   // Cancelado antes de preparar.
 }
 

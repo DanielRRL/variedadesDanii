@@ -62,12 +62,31 @@ export class PrismaOrderRepository implements IOrderRepository {
   }
 
   /**
-   * Crea una orden completa en una sola transaccion implicita de Prisma.
-   * Incluye creacion anidada de OrderItems y OrderDiscounts.
+   * Crea una orden con numero legible unico en formato VD-YYYYXXXX.
+   *
+   * Estrategia de numeracion atomica con secuencia PostgreSQL:
+   * Se usa nextval('order_number_seq') en lugar de MAX(orderNumber)+1
+   * para evitar la condicion de carrera en la que dos solicitudes
+   * concurrentes leen el mismo MAX y generan el mismo numero siguiente.
+   * nextval() garantiza unicidad incluso bajo alta concurrencia sin
+   * necesidad de transacciones explicitas ni bloqueos a nivel de aplicacion.
+   * Los gaps en la secuencia (por rollbacks) son aceptables.
+   *
+   * Formato: VD-{AÑO}{SEQ con padding de 4 digitos}
+   * Ejemplo:  VD-20260001 = primera orden del año 2026.
    */
   async create(data: CreateOrderData): Promise<any> {
+    // Obtener el siguiente entero de la secuencia atomicamente.
+    // Incluso si la transaccion de la orden falla despues, este valor
+    // NO se reutiliza; los gaps en la secuencia son intencionales y seguros.
+    const seqResult = await prisma.$queryRaw<[{ val: bigint }]>`SELECT nextval('order_number_seq') as val`;
+    const year = new Date().getFullYear();
+    const seq = String(Number(seqResult[0].val)).padStart(4, "0");
+    const orderNumber = `VD-${year}${seq}`;
+
     return prisma.order.create({
       data: {
+        orderNumber,
         userId: data.userId,
         addressId: data.addressId,
         type: data.type as any,

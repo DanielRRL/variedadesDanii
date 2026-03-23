@@ -50,6 +50,8 @@ import { PrismaPasswordResetRepository } from "./infrastructure/repositories/Pri
 import { PrismaLoyaltyRepository } from "./infrastructure/repositories/PrismaLoyaltyRepository";
 // PrismaReferralRepository - Codigos y usos de referidos.
 import { PrismaReferralRepository } from "./infrastructure/repositories/PrismaReferralRepository";
+// PrismaOrderStatusHistoryRepository - Log inmutable de transiciones de estado de pedidos.
+import { PrismaOrderStatusHistoryRepository } from "./infrastructure/repositories/PrismaOrderStatusHistoryRepository";
 
 // --- Servicios de aplicacion: logica de negocio reutilizable ---
 // AuthService - Registro y login con JWT y bcrypt.
@@ -163,6 +165,7 @@ export function createApp(): express.Application {
   const passwordResetRepo = new PrismaPasswordResetRepository();
   const loyaltyRepo = new PrismaLoyaltyRepository();
   const referralRepo = new PrismaReferralRepository();
+  const orderStatusHistoryRepo = new PrismaOrderStatusHistoryRepository();
 
   // EmailService - Implementacion concreta del contrato IEmailService.
   const emailService = new EmailService();
@@ -206,7 +209,7 @@ export function createApp(): express.Application {
   const essenceController = new EssenceController(essenceRepo, inventoryService);
   const bottleController = new BottleController(bottleRepo, inventoryService);
   const productController = new ProductController(productRepo);
-  const orderController = new OrderController(createOrderUseCase, orderRepo, earnPointsAfterOrderUseCase);
+  const orderController = new OrderController(createOrderUseCase, orderRepo, earnPointsAfterOrderUseCase, orderStatusHistoryRepo, emailService);
   const inventoryController = new InventoryController(inventoryService);
   const bottleReturnController = new BottleReturnController(
     processBottleReturnUseCase,
