@@ -51,3 +51,48 @@ export const loginValidator = [
 
   body("password").notEmpty().withMessage("Password is required"),
 ];
+
+/** Validacion de verify-email: token hexadecimal de 64 caracteres. */
+export const verifyEmailValidator = [
+  body("token")
+    .notEmpty()
+    .withMessage("Verification token is required")
+    .isHexadecimal()
+    .withMessage("Invalid token format")
+    .isLength({ min: 64, max: 64 })
+    .withMessage("Invalid token length"),
+];
+
+/** Validacion de resend-verification y forgot-password: email valido. */
+export const emailValidator = [
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email format")
+    .normalizeEmail(),
+];
+
+/** Validacion de reset-password: token, newPassword y confirmPassword. */
+export const resetPasswordValidator = [
+  body("token")
+    .notEmpty()
+    .withMessage("Reset token is required")
+    .isHexadecimal()
+    .withMessage("Invalid token format")
+    .isLength({ min: 64, max: 64 })
+    .withMessage("Invalid token length"),
+
+  body("newPassword")
+    .notEmpty()
+    .withMessage("New password is required")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters")
+    .matches(/[0-9]/)
+    .withMessage("Password must contain at least one number"),
+
+  body("confirmPassword")
+    .notEmpty()
+    .withMessage("Confirm password is required"),
+];
+

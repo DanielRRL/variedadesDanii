@@ -31,6 +31,7 @@ export class PrismaUserRepository implements IUserRepository {
           password: u.password,
           role: u.role as any,
           active: u.active,
+          emailVerified: u.emailVerified,
           createdAt: u.createdAt,
           updatedAt: u.updatedAt,
         })
@@ -49,6 +50,7 @@ export class PrismaUserRepository implements IUserRepository {
       password: u.password,
       role: u.role as any,
       active: u.active,
+      emailVerified: u.emailVerified,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });
@@ -66,6 +68,7 @@ export class PrismaUserRepository implements IUserRepository {
       password: u.password,
       role: u.role as any,
       active: u.active,
+      emailVerified: u.emailVerified,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });
@@ -83,6 +86,7 @@ export class PrismaUserRepository implements IUserRepository {
       password: u.password,
       role: u.role as any,
       active: u.active,
+      emailVerified: u.emailVerified,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });
@@ -108,6 +112,7 @@ export class PrismaUserRepository implements IUserRepository {
       password: u.password,
       role: u.role as any,
       active: u.active,
+      emailVerified: u.emailVerified,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });
@@ -124,6 +129,7 @@ export class PrismaUserRepository implements IUserRepository {
         ...(data.password && { password: data.password }),
         ...(data.role && { role: data.role as any }),
         ...(data.active !== undefined && { active: data.active }),
+        ...(data.emailVerified !== undefined && { emailVerified: data.emailVerified }),
       },
     });
     return new User({
@@ -134,6 +140,7 @@ export class PrismaUserRepository implements IUserRepository {
       password: u.password,
       role: u.role as any,
       active: u.active,
+      emailVerified: u.emailVerified,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });

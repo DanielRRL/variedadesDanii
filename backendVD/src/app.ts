@@ -42,6 +42,10 @@ import { PrismaPaymentRepository } from "./infrastructure/repositories/PrismaPay
 import { PrismaBottleReturnRepository } from "./infrastructure/repositories/PrismaBottleReturnRepository";
 // PrismaAdminRepository - Consultas de reportes y metricas del negocio.
 import { PrismaAdminRepository } from "./infrastructure/repositories/PrismaAdminRepository";
+// PrismaEmailVerificationRepository - Tokens de verificacion de correo.
+import { PrismaEmailVerificationRepository } from "./infrastructure/repositories/PrismaEmailVerificationRepository";
+// PrismaPasswordResetRepository - Tokens de restablecimiento de contrasena.
+import { PrismaPasswordResetRepository } from "./infrastructure/repositories/PrismaPasswordResetRepository";
 
 // --- Servicios de aplicacion: logica de negocio reutilizable ---
 // AuthService - Registro y login con JWT y bcrypt.
@@ -52,6 +56,8 @@ import { InventoryService } from "./application/services/InventoryService";
 import { DiscountService } from "./application/services/DiscountService";
 // AdminService - Reportes y metricas del panel administrativo.
 import { AdminService } from "./application/services/AdminService";
+// EmailService - Envio de correos electronicos (verificacion, reset, pedidos).
+import { EmailService } from "./infrastructure/notifications/EmailService";
 
 // --- Casos de uso: orquestan la logica de negocio compleja ---
 // CreateOrderUseCase - Crear orden con validacion de stock y descuentos.
@@ -139,9 +145,19 @@ export function createApp(): express.Application {
   const paymentRepo = new PrismaPaymentRepository();
   const bottleReturnRepo = new PrismaBottleReturnRepository();
   const adminRepo = new PrismaAdminRepository();
+  const emailVerificationRepo = new PrismaEmailVerificationRepository();
+  const passwordResetRepo = new PrismaPasswordResetRepository();
+
+  // EmailService - Implementacion concreta del contrato IEmailService.
+  const emailService = new EmailService();
 
   // 2. Instanciar servicios (inyectando repositorios)
-  const authService = new AuthService(userRepo);
+  const authService = new AuthService(
+    userRepo,
+    emailVerificationRepo,
+    passwordResetRepo,
+    emailService,
+  );
   const inventoryService = new InventoryService(inventoryRepo);
   const discountService = new DiscountService(userRepo, bottleReturnRepo);
   const adminService = new AdminService(adminRepo);

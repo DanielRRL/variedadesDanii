@@ -6,15 +6,16 @@
 
 /** Propiedades necesarias para construir un Usuario. */
 export interface UserProps {
-  id?: string;        // UUID generado por la BD, opcional al crear.
-  name: string;       // Nombre completo del usuario.
-  phone: string;      // Telefono unico, usado tambien para login.
-  email: string;      // Correo electronico unico.
-  password: string;   // Contrasena hasheada con bcrypt.
-  role: UserRole;     // Rol que determina permisos en el sistema.
-  active: boolean;    // Si la cuenta esta activa o deshabilitada.
-  createdAt?: Date;   // Fecha de creacion, asignada por la BD.
-  updatedAt?: Date;   // Fecha de ultima actualizacion, asignada por la BD.
+  id?: string;           // UUID generado por la BD, opcional al crear.
+  name: string;          // Nombre completo del usuario.
+  phone: string;         // Telefono unico, usado tambien para login.
+  email: string;         // Correo electronico unico.
+  password: string;      // Contrasena hasheada con bcrypt.
+  role: UserRole;        // Rol que determina permisos en el sistema.
+  active: boolean;       // Si la cuenta esta activa o deshabilitada.
+  emailVerified?: boolean; // Si el usuario ya verifico su correo (RF-004).
+  createdAt?: Date;      // Fecha de creacion, asignada por la BD.
+  updatedAt?: Date;      // Fecha de ultima actualizacion, asignada por la BD.
 }
 
 /**
@@ -44,6 +45,7 @@ export class User {
   public password: string;
   public role: UserRole;
   public active: boolean;
+  public emailVerified: boolean;
   public readonly createdAt?: Date;
   public readonly updatedAt?: Date;
 
@@ -56,6 +58,7 @@ export class User {
     this.password = props.password;
     this.role = props.role;
     this.active = props.active;
+    this.emailVerified = props.emailVerified ?? false;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }
