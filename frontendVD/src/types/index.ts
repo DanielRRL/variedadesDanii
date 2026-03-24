@@ -22,8 +22,7 @@ export interface LoyaltyAccount {
   bottleReturnsCount?: number;
 }
 
-/**
- * A single entry in the loyalty transaction history.
+/** A single entry in the loyalty transaction history.
  * Returned by GET /api/loyalty/transactions.
  */
 export interface LoyaltyTransaction {
@@ -35,6 +34,39 @@ export interface LoyaltyTransaction {
   /** Human-readable reason (e.g., 'Order #VD-20260001', 'Bottle return', 'Referral bonus'). */
   description: string;
   /** ISO 8601 timestamp string. */
+  createdAt: string;
+}
+
+/** Order with admin-visible client info. Returned by GET /api/orders (admin view). */
+export interface AdminOrder extends Order {
+  client?: { id: string; name: string; email: string };
+}
+
+/** KPI data returned by GET /api/admin/dashboard. */
+export interface DashboardStats {
+  salesToday: number;
+  salesGoal: number;
+  salesPercent: number;
+  ordersToday: number;
+  ordersTodayVsYesterday?: number;
+  averageTicket: number;
+  newClientsToday: number;
+  topEssences: { name: string; revenue: number; rank: number }[];
+  recentOrders: AdminOrder[];
+  lowStockEssences?: { name: string; stockMl: number; minStockGrams: number }[];
+}
+
+/** DIAN electronic invoice returned by GET /api/admin/invoices. */
+export interface AdminInvoice {
+  id: string;
+  invoiceNumber?: string;
+  orderId: string;
+  orderNumber?: string;
+  clientName?: string;
+  amount: number;
+  status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED';
+  /** CUFE (Código Único de Factura Electrónica) — assigned when DIAN accepts the invoice. */
+  cufe?: string;
   createdAt: string;
 }
 

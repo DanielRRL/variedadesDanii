@@ -44,10 +44,17 @@ const OrdersPage           = lazy(() => import('../pages/OrdersPage'));
 const OrderDetailPage      = lazy(() => import('../pages/OrderDetailPage'));
 const ProfilePage          = lazy(() => import('../pages/ProfilePage'));
 
-const AdminDashboardPage  = lazy(() => import('../pages/admin/AdminDashboardPage'));
-const AdminInventoryPage  = lazy(() => import('../pages/admin/AdminInventoryPage'));
-const AdminOrdersPage     = lazy(() => import('../pages/admin/AdminOrdersPage'));
-const AdminClientsPage    = lazy(() => import('../pages/admin/AdminClientsPage'));
+const AdminDashboardPage   = lazy(() => import('../pages/admin/AdminDashboardPage'));
+const AdminInventoryPage   = lazy(() => import('../pages/admin/AdminInventoryPage'));
+const AdminOrdersPage      = lazy(() => import('../pages/admin/AdminOrdersPage'));
+const AdminClientsPage     = lazy(() => import('../pages/admin/AdminClientsPage'));
+const AdminEssencesPage    = lazy(() => import('../pages/admin/AdminEssencesPage'));
+const AdminLoyaltyPage     = lazy(() => import('../pages/admin/AdminLoyaltyPage'));
+const AdminInvoicesPage    = lazy(() => import('../pages/admin/AdminInvoicesPage'));
+const AdminReportsPage     = lazy(() => import('../pages/admin/AdminReportsPage'));
+const AdminReturnItemsPage = lazy(() => import('../pages/admin/AdminReturnItemsPage'));
+const AdminConfigPage      = lazy(() => import('../pages/admin/AdminConfigPage'));
+const AdminLayout          = lazy(() => import('../pages/admin/AdminLayout'));
 
 // ── Route guard components ────────────────────────────────────────────────────
 
@@ -133,10 +140,21 @@ export const router = createBrowserRouter([
       {
         element: <AdminRoute />,
         children: [
-          { path: '/admin',                 element: <AdminDashboardPage /> },
-          { path: '/admin/inventario',      element: <AdminInventoryPage /> },
-          { path: '/admin/pedidos',         element: <AdminOrdersPage /> },
-          { path: '/admin/clientes',        element: <AdminClientsPage /> },
+          {
+            element: <AdminLayout />,
+            children: [
+              { path: '/admin',                element: <AdminDashboardPage />   },
+              { path: '/admin/inventario',     element: <AdminInventoryPage />   },
+              { path: '/admin/pedidos',        element: <AdminOrdersPage />      },
+              { path: '/admin/esencias',       element: <AdminEssencesPage />    },
+              { path: '/admin/clientes',       element: <AdminClientsPage />     },
+              { path: '/admin/fidelizacion',   element: <AdminLoyaltyPage />     },
+              { path: '/admin/facturas',       element: <AdminInvoicesPage />    },
+              { path: '/admin/reportes',       element: <AdminReportsPage />     },
+              { path: '/admin/devoluciones',   element: <AdminReturnItemsPage /> },
+              { path: '/admin/configuracion',  element: <AdminConfigPage />      },
+            ],
+          },
         ],
       },
     ],

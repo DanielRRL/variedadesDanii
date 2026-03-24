@@ -1,0 +1,151 @@
+/**
+ * AdminLayout.tsx — Persistent sidebar + top bar for all /admin/* routes.
+ *
+ * Use with React Router v6 nested routes: this component renders <Outlet />
+ * in the main content area so child pages (Dashboard, Orders, etc.) fill that space.
+ *
+ * Layout:
+ *  ┌──────────────┬───────────────────────────────────────────────────────────┐
+ *  │  220px       │  top bar (sticky, 56px)                                   │
+ *  │  sidebar     ├───────────────────────────────────────────────────────────┤
+ *  │  (fixed)     │  <Outlet />  (scrollable, p-6)                            │
+ *  └──────────────┴───────────────────────────────────────────────────────────┘
+ */
+
+import { NavLink, Outlet } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  FlaskConical,
+  Users,
+  Trophy,
+  FileText,
+  BarChart2,
+  ArrowLeftRight,
+  Settings,
+  Bell,
+} from 'lucide-react';
+import { useAuthStore } from '../../stores/authStore';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Navigation items
+// ─────────────────────────────────────────────────────────────────────────────
+
+const NAV = [
+  { Icon: LayoutDashboard, label: 'Dashboard',    path: '/admin',               exact: true  },
+  { Icon: Package,         label: 'Inventario',   path: '/admin/inventario',    exact: false },
+  { Icon: ShoppingCart,    label: 'Pedidos',       path: '/admin/pedidos',       exact: false },
+  { Icon: FlaskConical,    label: 'Esencias',      path: '/admin/esencias',      exact: false },
+  { Icon: Users,           label: 'Clientes',      path: '/admin/clientes',      exact: false },
+  { Icon: Trophy,          label: 'Fidelización',  path: '/admin/fidelizacion',  exact: false },
+  { Icon: FileText,        label: 'Facturas',      path: '/admin/facturas',      exact: false },
+  { Icon: BarChart2,       label: 'Reportes',      path: '/admin/reportes',      exact: false },
+  { Icon: ArrowLeftRight,  label: 'Devoluciones',  path: '/admin/devoluciones',  exact: false },
+  { Icon: Settings,        label: 'Configuración', path: '/admin/configuracion', exact: false },
+] as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AdminLayout
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function AdminLayout() {
+  const user = useAuthStore((s) => s.user);
+
+  const initials =
+    user?.name
+      ?.split(' ')
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? '')
+      .join('') ?? 'A';
+
+  const firstName = user?.name?.split(' ')[0] ?? 'Admin';
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      {/* ── Fixed sidebar ────────────────────────────────────────────────────── */}
+      <aside className="fixed top-0 left-0 h-full w-55 bg-white border-r border-border flex flex-col z-40">
+        {/* Brand header */}
+        <div className="px-5 py-4 border-b border-border shrink-0">
+          <p className="font-heading font-bold text-brand-pink text-sm leading-tight">
+            Variedades DANII
+          </p>
+          <p className="text-[10px] text-muted uppercase tracking-widest mt-0.5">
+            Panel de Administración
+          </p>
+        </div>
+
+        {/* Navigation links */}
+        <nav className="flex-1 overflow-y-auto py-2" aria-label="Navegación de administración">
+          {NAV.map(({ Icon, label, path, exact }) => (
+            <NavLink
+              key={path}
+              to={path}
+              end={exact}
+              className={({ isActive }) =>
+                `flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
+                  isActive
+                    ? 'bg-brand-pink/10 text-brand-pink'
+                    : 'text-text-primary hover:bg-gray-50 hover:text-brand-pink'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    size={16}
+                    className={isActive ? 'text-brand-pink' : 'text-muted'}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  {label}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Admin account footer */}
+        <div className="px-4 py-3 border-t border-border flex items-center gap-3 shrink-0">
+          <div className="w-8 h-8 rounded-full bg-brand-pink flex items-center justify-center shrink-0">
+            <span className="text-white text-xs font-bold leading-none">{initials}</span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-text-primary truncate leading-tight">
+              {user?.name ?? 'Admin'}
+            </p>
+            <p className="text-[10px] text-muted">Administrador</p>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Main content ─────────────────────────────────────────────────────── */}
+      <div className="ml-55 flex-1 flex flex-col min-h-screen">
+        {/* Sticky top bar */}
+        <header className="sticky top-0 z-30 bg-white border-b border-border h-14 flex items-center justify-between px-6 shrink-0">
+          <p className="font-body text-sm text-text-primary">
+            Buenos días, <span className="font-semibold">{firstName}</span> 👋
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              className="relative p-2 rounded-lg text-muted hover:bg-gray-50 transition-colors"
+              aria-label="Notificaciones"
+            >
+              <Bell size={18} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-pink pointer-events-none" />
+            </button>
+
+            <div className="w-8 h-8 rounded-full bg-brand-pink flex items-center justify-center">
+              <span className="text-white text-xs font-bold leading-none">{initials}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Child page rendered here */}
+        <main className="flex-1 p-6">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}

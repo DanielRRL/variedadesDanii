@@ -272,4 +272,115 @@ export const redeemPoints = (points: number, orderId: string) =>
 export const createBottleReturn = (data: BottleReturnInput) =>
   api.post('/api/returns', data);
 
-export default api;
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — Dashboard + Reports
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/dashboard
+ * Returns all KPIs: salesToday, salesGoal, ordersToday, averageTicket,
+ *   newClientsToday, topEssences, recentOrders, lowStockEssences.
+ */
+export const getDashboardStats = () =>
+  api.get('/api/admin/dashboard');
+
+/**
+ * GET /api/admin/reports/daily-sales?from=YYYY-MM-DD&to=YYYY-MM-DD
+ * Returns: { labels: string[], values: number[] }
+ */
+export const getDailySales = (params?: { from?: string; to?: string; period?: string }) =>
+  api.get('/api/admin/reports/daily-sales', { params });
+
+/**
+ * GET /api/admin/reports/low-stock?threshold=N
+ * Returns essences with currentStockMl below threshold.
+ */
+export const getLowStockAlerts = (threshold?: number) =>
+  api.get('/api/admin/reports/low-stock', { params: threshold ? { threshold } : undefined });
+
+/**
+ * GET /api/admin/reports/top-products?limit=N
+ */
+export const getTopProducts = (limit = 5) =>
+  api.get('/api/admin/reports/top-products', { params: { limit } });
+
+/**
+ * GET /api/admin/reports/sales/csv
+ * Returns a Blob (CSV file for download).
+ */
+export const downloadSalesCSV = (params?: { from?: string; to?: string }) =>
+  api.get('/api/admin/reports/sales/csv', { params, responseType: 'blob' });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — Orders
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/orders (admin view — all orders, not just own)
+ * Params: status, search, page, limit
+ */
+export const getAdminOrders = (params?: {
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}) => api.get('/api/orders', { params });
+
+/**
+ * PATCH /api/orders/:id/status
+ * Body: { status: OrderStatus, notes?: string }
+ */
+export const updateOrderStatus = (id: string, status: string, notes?: string) =>
+  api.patch(`/api/orders/${id}/status`, { status, ...(notes ? { notes } : {}) });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — Inventory
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/inventory/essence/:essenceId/movements
+ * Body: { type: 'IN'|'OUT', ml: number, reason: string, notes?: string }
+ * Note: 1 oz = 29.5735 ml. Backend InventoryService handles ml↔grams (1g ≈ 1ml for essences).
+ */
+export const registerEssenceMovement = (
+  essenceId: string,
+  data: { type: 'IN' | 'OUT'; ml: number; reason: string; notes?: string },
+) => api.post(`/api/inventory/essence/${essenceId}/movements`, data);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — Loyalty
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/admin/loyalty/adjust
+ * Body: { userId, points (positive=add, negative=deduct), reason }
+ */
+export const adminAdjustPoints = (data: { userId: string; points: number; reason: string }) =>
+  api.post('/api/admin/loyalty/adjust', data);
+
+/**
+ * GET /api/users (admin only — searchable list of all users)
+ */
+export const searchUsers = (params?: { search?: string; page?: number }) =>
+  api.get('/api/users', { params });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — Invoices
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/invoices?status=DRAFT|SENT|ACCEPTED|REJECTED&page=1
+ * Returns: { invoices: AdminInvoice[], total: number }
+ */
+export const getAdminInvoices = (params?: { status?: string; page?: number }) =>
+  api.get('/api/admin/invoices', { params });
+
+/**
+ * POST /api/admin/invoices/:orderId/retry
+ * Retries DIAN invoice submission for a DRAFT invoice.
+ * DRAFT invoices are ones where DIAN stub returned success but real
+ * integration is pending. Admin can manually retry when DIAN real
+ * integration is complete (see docs/DIAN_INTEGRATION.md).
+ */
+export const retryInvoice = (orderId: string) =>
+  api.post(`/api/admin/invoices/${orderId}/retry`);
