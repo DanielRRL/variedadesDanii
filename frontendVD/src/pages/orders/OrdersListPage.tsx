@@ -87,7 +87,7 @@ export default function OrdersListPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <AppBar title="Mis Pedidos" />
+      <AppBar title="Mis Pedidos" showBack />
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-4 pb-24">
         {/* Tabs */}

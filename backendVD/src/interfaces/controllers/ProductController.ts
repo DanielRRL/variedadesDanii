@@ -77,6 +77,7 @@ export class ProductController {
         mlQuantity: category === "PERFUME" ? mlQuantity : undefined,
         price,
         active: true,
+        isPerfume() { return this.category === "PERFUME"; },
       });
 
       res.status(201).json({ success: true, data: product });

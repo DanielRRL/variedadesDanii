@@ -443,8 +443,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* AppBar: no back button (root tab page) */}
-      <AppBar title="Mi Perfil" showBack={false} />
+      <AppBar title="Mi Perfil" showBack />
 
       <main className="px-4 py-4 pb-28 space-y-4">
 

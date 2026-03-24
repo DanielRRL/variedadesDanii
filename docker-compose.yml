@@ -48,7 +48,7 @@ services:
       dockerfile: Dockerfile
     container_name: variedades_danni_api
     # Override: usar db push con --url ya que prisma.config.ts solo define migrate.url
-    command: ["sh", "-c", "npx prisma db push --url \"$$DATABASE_URL\" && node dist/server.js"]
+    command: ["sh", "-c", "npx prisma db push --accept-data-loss --url \"$$DATABASE_URL\" && node dist/server.js"]
     environment:
       NODE_ENV: production
       PORT: 4000

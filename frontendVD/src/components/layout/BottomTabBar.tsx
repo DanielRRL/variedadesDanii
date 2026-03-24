@@ -104,7 +104,7 @@ export function BottomTabBar({ activeOrderCount = 0 }: BottomTabBarProps) {
 
                   {/* Badge bubble — shown only when badge > 0 */}
                   {badge != null && badge > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-brand-pink text-surface text-[10px] font-body font-medium flex items-center justify-center leading-none">
+                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-brand-pink text-surface text-[10px] font-body font-medium flex items-center justify-center leading-none">
                       {badge > 9 ? '9+' : badge}
                     </span>
                   )}

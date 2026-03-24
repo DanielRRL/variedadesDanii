@@ -232,7 +232,7 @@ export default function HomePage() {
     staleTime: 2 * 60 * 1000,
   });
 
-  const essences: Essence[] = essencesData?.data?.essences ?? essencesData?.data ?? [];
+  const essences: Essence[] = essencesData?.data?.data ?? essencesData?.data?.essences ?? [];
 
   // ── Loyalty progress calculation ──────────────────────────────────────────
   const currentPoints  = loyalty?.points ?? 0;
