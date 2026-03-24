@@ -23,7 +23,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { LoyaltyBadge } from '../components/loyalty/LoyaltyBadge';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
-import { formatCOP } from '../components/catalog/EssenceCard';
+import { formatCOP } from '../utils/format';
 import type { Essence } from '../types';
 
 // ─────────────────────────────────────────────────────────────────────────────

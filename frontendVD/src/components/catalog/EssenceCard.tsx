@@ -18,19 +18,7 @@ import { Star } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { Essence } from '../../types';
 import { StockIndicator } from './StockIndicator';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Format a COP amount with dot-separated thousands and a $ prefix.
- * @example formatCOP(9000)  // "$9.000"
- * @example formatCOP(19375) // "$19.375"
- */
-export function formatCOP(amount: number): string {
-  return '$' + Math.round(amount).toLocaleString('es-CO');
-}
+import { formatCOP } from '../../utils/format';
 
 /**
  * Premium brands whose essences earn the "ORIGINAL" badge.

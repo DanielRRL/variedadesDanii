@@ -28,9 +28,9 @@ import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
 import { createOrder, initiatePayment } from '../services/api';
 import type { CartItem, Order } from '../types';
-import { formatCOP } from '../components/catalog/EssenceCard';
+import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
-import BottomTabBar from '../components/layout/BottomTabBar';
+import { BottomTabBar } from '../components/layout/BottomTabBar';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants

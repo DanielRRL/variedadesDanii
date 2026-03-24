@@ -11,7 +11,7 @@
 
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { formatCOP } from '../components/catalog/EssenceCard';
+import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
 
 // ─────────────────────────────────────────────────────────────────────────────

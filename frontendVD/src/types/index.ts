@@ -261,6 +261,15 @@ export interface EssenceFilters {
   limit?: number;
 }
 
+/** Status-history entry for an order (GET /api/orders/:id/history). */
+export interface OrderStatusHistory {
+  id: string;
+  orderId: string;
+  status: Order['status'];
+  notes?: string;
+  createdAt: string; // ISO 8601
+}
+
 /** Payload for POST /api/orders. */
 export interface CreateOrderInput {
   items: { productId: string; quantity: number }[];

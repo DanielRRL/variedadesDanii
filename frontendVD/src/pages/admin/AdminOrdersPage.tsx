@@ -15,7 +15,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Download, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { getAdminOrders, updateOrderStatus, downloadSalesCSV } from '../../services/api';
-import { formatCOP } from '../../components/catalog/EssenceCard';
+import { formatCOP } from '../../utils/format';
 import { STATUS_LABELS, STATUS_COLORS, VALID_TRANSITIONS } from './adminShared';
 import type { AdminOrder } from '../../types';
 

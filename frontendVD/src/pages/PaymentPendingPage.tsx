@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Clock } from 'lucide-react';
 import { getOrderById } from '../services/api';
-import { formatCOP } from '../components/catalog/EssenceCard';
+import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
 
 // ─────────────────────────────────────────────────────────────────────────────

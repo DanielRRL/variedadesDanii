@@ -126,8 +126,8 @@ export const forgotPassword = (email: string) =>
  * Reset password using the token from the reset email.
  * POST /api/auth/reset-password
  */
-export const resetPassword = (token: string, newPassword: string) =>
-  api.post('/api/auth/reset-password', { token, newPassword });
+export const resetPassword = (token: string, newPassword: string, confirmPassword: string) =>
+  api.post('/api/auth/reset-password', { token, newPassword, confirmPassword });
 
 /**
  * Resend the email verification link to the authenticated user's email.
@@ -212,6 +212,14 @@ export const getMyOrders = () =>
 export const getOrderById = (id: string) =>
   api.get(`/api/orders/${id}`);
 
+/**
+ * Fetch status-change history for a single order.
+ * GET /api/orders/:id/history
+ * Returns: { history: OrderStatusHistory[] }
+ */
+export const getOrderHistory = (id: string) =>
+  api.get(`/api/orders/${id}/history`);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PAYMENTS endpoints (Wompi)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -251,6 +259,14 @@ export const getLoyaltyTransactions = (page?: number) =>
  */
 export const getMyReferralCode = () =>
   api.get('/api/loyalty/referral-code');
+
+/**
+ * Apply another user's referral code (validate at registration).
+ * POST /api/loyalty/apply-referral
+ * Body: { code: string }
+ */
+export const applyReferral = (code: string) =>
+  api.post('/api/loyalty/apply-referral', { code });
 
 /**
  * Redeem loyalty points to get a discount on a specific order.

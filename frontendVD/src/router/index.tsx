@@ -4,24 +4,27 @@
  * Route groups:
  *
  *  PUBLIC — accessible without authentication:
- *    /              → HomePage       (landing + hero)
- *    /login         → LoginPage
- *    /register      → RegisterPage
- *    /verify-email  → VerifyEmailPage (token comes in ?token= query param)
- *    /catalogo      → CatalogPage    (essence catalog with filters)
- *    /esencia/:id   → EssenceDetailPage
+ *    /                    → HomePage
+ *    /login               → LoginPage
+ *    /register            → RegisterPage
+ *    /verify-email        → VerifyEmailPage (?token=)
+ *    /verify-email-sent   → VerifyEmailSentPage
+ *    /forgot-password     → ForgotPasswordPage
+ *    /reset-password      → ResetPasswordPage (?token=)
+ *    /catalogo            → CatalogPage
+ *    /esencia/:id         → EssenceDetailPage
  *
  *  PROTECTED — require isAuthenticated === true:
- *    /carrito       → CartPage
- *    /pedidos       → OrdersPage
- *    /pedido/:id    → OrderDetailPage
- *    /perfil        → ProfilePage
+ *    /carrito             → CartPage
+ *    /pedidos             → OrdersListPage
+ *    /pedido/:id          → OrderDetailPage
+ *    /perfil              → ProfilePage
  *
  *  ADMIN — require role === 'ADMIN':
- *    /admin                → AdminDashboardPage
- *    /admin/inventario     → AdminInventoryPage
- *    /admin/pedidos        → AdminOrdersPage
- *    /admin/clientes       → AdminClientsPage
+ *    /admin               → AdminDashboardPage
+ *    /admin/inventario    → AdminInventoryPage
+ *    /admin/pedidos       → AdminOrdersPage
+ *    /admin/clientes      → AdminClientsPage
  */
 
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
@@ -30,18 +33,21 @@ import { useAuthStore } from '../stores/authStore';
 // ── Lazy page imports (code-split per route) ──────────────────────────────────
 import { lazy, Suspense } from 'react';
 
-const HomePage           = lazy(() => import('../pages/HomePage'));
-const LoginPage          = lazy(() => import('../pages/LoginPage'));
-const RegisterPage       = lazy(() => import('../pages/RegisterPage'));
-const VerifyEmailPage    = lazy(() => import('../pages/VerifyEmailPage'));
-const CatalogPage        = lazy(() => import('../pages/CatalogPage'));
-const EssenceDetailPage  = lazy(() => import('../pages/EssenceDetailPage'));
+const HomePage              = lazy(() => import('../pages/HomePage'));
+const LoginPage             = lazy(() => import('../pages/auth/LoginPage'));
+const RegisterPage          = lazy(() => import('../pages/auth/RegisterPage'));
+const VerifyEmailPage       = lazy(() => import('../pages/auth/VerifyEmailPage'));
+const VerifyEmailSentPage   = lazy(() => import('../pages/auth/VerifyEmailSentPage'));
+const ForgotPasswordPage    = lazy(() => import('../pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage     = lazy(() => import('../pages/auth/ResetPasswordPage'));
+const CatalogPage           = lazy(() => import('../pages/CatalogPage'));
+const EssenceDetailPage     = lazy(() => import('../pages/EssenceDetailPage'));
 
 const CartPage             = lazy(() => import('../pages/CartPage'));
 const PaymentPendingPage   = lazy(() => import('../pages/PaymentPendingPage'));
 const OrderSuccessPage     = lazy(() => import('../pages/OrderSuccessPage'));
-const OrdersPage           = lazy(() => import('../pages/OrdersPage'));
-const OrderDetailPage      = lazy(() => import('../pages/OrderDetailPage'));
+const OrdersListPage       = lazy(() => import('../pages/orders/OrdersListPage'));
+const OrderDetailPage      = lazy(() => import('../pages/orders/OrderDetailPage'));
 const ProfilePage          = lazy(() => import('../pages/ProfilePage'));
 
 const AdminDashboardPage   = lazy(() => import('../pages/admin/AdminDashboardPage'));
@@ -111,12 +117,15 @@ export const router = createBrowserRouter([
       </Suspense>
     ),
     children: [
-      { index: true,            element: <HomePage /> },
-      { path: 'login',          element: <LoginPage /> },
-      { path: 'register',       element: <RegisterPage /> },
-      { path: 'verify-email',   element: <VerifyEmailPage /> },
-      { path: 'catalogo',       element: <CatalogPage /> },
-      { path: 'esencia/:id',    element: <EssenceDetailPage /> },
+      { index: true,                 element: <HomePage /> },
+      { path: 'login',               element: <LoginPage /> },
+      { path: 'register',            element: <RegisterPage /> },
+      { path: 'verify-email',        element: <VerifyEmailPage /> },
+      { path: 'verify-email-sent',   element: <VerifyEmailSentPage /> },
+      { path: 'forgot-password',     element: <ForgotPasswordPage /> },
+      { path: 'reset-password',      element: <ResetPasswordPage /> },
+      { path: 'catalogo',            element: <CatalogPage /> },
+      { path: 'esencia/:id',         element: <EssenceDetailPage /> },
     ],
   },
 
@@ -127,7 +136,7 @@ export const router = createBrowserRouter([
       { path: '/carrito',          element: <CartPage /> },
       { path: '/pago-pendiente',    element: <PaymentPendingPage /> },
       { path: '/pedido-exitoso',    element: <OrderSuccessPage /> },
-      { path: '/pedidos',           element: <OrdersPage /> },
+      { path: '/pedidos',           element: <OrdersListPage /> },
       { path: '/pedido/:id',        element: <OrderDetailPage /> },
       { path: '/perfil',            element: <ProfilePage /> },
     ],

@@ -37,7 +37,7 @@ import {
   getLowStockAlerts,
   updateOrderStatus,
 } from '../../services/api';
-import { formatCOP } from '../../components/catalog/EssenceCard';
+import { formatCOP } from '../../utils/format';
 import { STATUS_LABELS, STATUS_COLORS, VALID_TRANSITIONS } from './adminShared';
 import type { AdminOrder } from '../../types';
 

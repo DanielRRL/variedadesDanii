@@ -20,7 +20,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, Heart, Share2, Star,
-  TestTube, Bottle, Trophy,
+  TestTube, FlaskConical, Trophy,
   ShoppingCart, AlertCircle, RefreshCw,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -28,7 +28,7 @@ import { getEssenceById, getBottles } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { StockIndicator } from '../components/catalog/StockIndicator';
-import { formatCOP } from '../components/catalog/EssenceCard';
+import { formatCOP } from '../utils/format';
 import {
   OZ_TO_ML,
   calculateEssencePrice,
@@ -554,7 +554,7 @@ export default function EssenceDetailPage() {
         ════════════════════════════════════════════════════════════════════ */}
         <div className="bg-surface rounded-2xl border border-border p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Bottle size={16} className="text-brand-pink" strokeWidth={2} />
+            <FlaskConical size={16} className="text-brand-pink" strokeWidth={2} />
             <h2 className="font-heading font-semibold text-[15px] text-text-primary">
               Tipo de frasco
             </h2>

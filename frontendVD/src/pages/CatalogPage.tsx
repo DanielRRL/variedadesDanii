@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getEssences, getOlfactiveFamilies } from '../services/api';
-import { EssenceCard, formatCOP } from '../components/catalog/EssenceCard';
+import { EssenceCard } from '../components/catalog/EssenceCard';
+import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
 import type { Essence } from '../types';

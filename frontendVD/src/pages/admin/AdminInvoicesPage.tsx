@@ -13,7 +13,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, RefreshCw, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { getAdminInvoices, retryInvoice } from '../../services/api';
-import { formatCOP } from '../../components/catalog/EssenceCard';
+import { formatCOP } from '../../utils/format';
 import type { AdminInvoice } from '../../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
