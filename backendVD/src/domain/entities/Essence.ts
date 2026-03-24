@@ -13,6 +13,8 @@ export interface EssenceProps {
   name: string;             // Nombre de la esencia.
   description?: string;     // Descripcion opcional del aroma.
   olfactiveFamilyId: string;// FK a la familia olfativa (floral, amaderada, etc.).
+  /** Objeto de relacion incluido cuando el repositorio hace include. */
+  olfactiveFamily?: { id: string; name: string };
   inspirationBrand?: string;// Marca de inspiracion (ej: "Carolina Herrera").
   active: boolean;          // Si esta disponible en el catalogo.
   createdAt?: Date;
@@ -29,6 +31,7 @@ export class Essence {
   public name: string;
   public description?: string;
   public olfactiveFamilyId: string;
+  public olfactiveFamily?: { id: string; name: string };
   public inspirationBrand?: string;
   public active: boolean;
   public readonly createdAt?: Date;
@@ -40,6 +43,7 @@ export class Essence {
     this.name = props.name;
     this.description = props.description;
     this.olfactiveFamilyId = props.olfactiveFamilyId;
+    this.olfactiveFamily = props.olfactiveFamily;
     this.inspirationBrand = props.inspirationBrand;
     this.active = props.active;
     this.createdAt = props.createdAt;

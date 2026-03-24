@@ -27,6 +27,9 @@ export class PrismaEssenceRepository implements IEssenceRepository {
           name: e.name,
           description: e.description ?? undefined,
           olfactiveFamilyId: e.olfactiveFamilyId,
+          olfactiveFamily: e.olfactiveFamily
+            ? { id: e.olfactiveFamily.id, name: e.olfactiveFamily.name }
+            : undefined,
           inspirationBrand: e.inspirationBrand ?? undefined,
           active: e.active,
           createdAt: e.createdAt,
@@ -110,5 +113,10 @@ export class PrismaEssenceRepository implements IEssenceRepository {
   /** Elimina una esencia por UUID (hard delete). */
   async delete(id: string): Promise<void> {
     await prisma.essence.delete({ where: { id } });
+  }
+
+  /** Retorna todas las familias olfativas ordenadas por nombre. */
+  async findAllFamilies(): Promise<{ id: string; name: string }[]> {
+    return prisma.olfactiveFamily.findMany({ orderBy: { name: 'asc' } });
   }
 }

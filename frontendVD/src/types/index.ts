@@ -18,6 +18,24 @@ export interface LoyaltyAccount {
   level: 'BASIC' | 'PREFERRED' | 'VIP';
   /** Recurring percentage discount applied to every order at checkout. */
   discountPct: number;
+  /** Total bottles returned — used for eco-impact gamification on ProfilePage. */
+  bottleReturnsCount?: number;
+}
+
+/**
+ * A single entry in the loyalty transaction history.
+ * Returned by GET /api/loyalty/transactions.
+ */
+export interface LoyaltyTransaction {
+  id: string;
+  /** Points gained (EARN) or spent (REDEEM). Sign is positive; use type to determine direction. */
+  points: number;
+  /** Whether points were earned or redeemed. */
+  type: 'EARN' | 'REDEEM';
+  /** Human-readable reason (e.g., 'Order #VD-20260001', 'Bottle return', 'Referral bonus'). */
+  description: string;
+  /** ISO 8601 timestamp string. */
+  createdAt: string;
 }
 
 /** Authenticated user returned by /api/auth/login and stored in authStore. */
@@ -32,6 +50,16 @@ export interface User {
   role: 'CLIENT' | 'ADMIN' | 'SELLER' | 'DELIVERY';
   /** Included when role === 'CLIENT'. May be absent for other roles. */
   loyaltyAccount?: LoyaltyAccount;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CATALOG — OLFACTIVE FAMILIES
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Olfactive family returned by GET /api/essences/families. */
+export interface OlfactiveFamily {
+  id: string;
+  name: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -186,7 +214,17 @@ export interface EssenceFilters {
   minPrice?: number;
   maxPrice?: number;
   search?: string;
-  orderBy?: 'name' | 'pricePerMl' | 'rating';
+  /**
+   * orderBy values:
+   *   'name'       — alphabetical (backend default)
+   *   'pricePerMl' — by price (backend native field name)
+   *   'rating'     — average rating
+   *   'sales'      — top-sellers (requires backend support; falls back to client-side sort)
+   *   'price_asc'  — cheapest first (client-side fallback)
+   *   'price_desc' — priciest first (client-side fallback)
+   *   'stock'      — most available first (client-side fallback)
+   */
+  orderBy?: 'name' | 'pricePerMl' | 'rating' | 'sales' | 'price_asc' | 'price_desc' | 'stock';
   page?: number;
   limit?: number;
 }
@@ -200,6 +238,8 @@ export interface CreateOrderInput {
   /** Points the customer wants to redeem for a discount. */
   pointsToRedeem?: number;
   referralCode?: string;
+  /** Optional customer notes attached to the order. */
+  notes?: string;
 }
 
 /** Payload for POST /api/payments/initiate (Wompi). */

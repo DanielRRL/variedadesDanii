@@ -37,10 +37,12 @@ const VerifyEmailPage    = lazy(() => import('../pages/VerifyEmailPage'));
 const CatalogPage        = lazy(() => import('../pages/CatalogPage'));
 const EssenceDetailPage  = lazy(() => import('../pages/EssenceDetailPage'));
 
-const CartPage           = lazy(() => import('../pages/CartPage'));
-const OrdersPage         = lazy(() => import('../pages/OrdersPage'));
-const OrderDetailPage    = lazy(() => import('../pages/OrderDetailPage'));
-const ProfilePage        = lazy(() => import('../pages/ProfilePage'));
+const CartPage             = lazy(() => import('../pages/CartPage'));
+const PaymentPendingPage   = lazy(() => import('../pages/PaymentPendingPage'));
+const OrderSuccessPage     = lazy(() => import('../pages/OrderSuccessPage'));
+const OrdersPage           = lazy(() => import('../pages/OrdersPage'));
+const OrderDetailPage      = lazy(() => import('../pages/OrderDetailPage'));
+const ProfilePage          = lazy(() => import('../pages/ProfilePage'));
 
 const AdminDashboardPage  = lazy(() => import('../pages/admin/AdminDashboardPage'));
 const AdminInventoryPage  = lazy(() => import('../pages/admin/AdminInventoryPage'));
@@ -115,10 +117,12 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
-      { path: '/carrito',       element: <CartPage /> },
-      { path: '/pedidos',       element: <OrdersPage /> },
-      { path: '/pedido/:id',    element: <OrderDetailPage /> },
-      { path: '/perfil',        element: <ProfilePage /> },
+      { path: '/carrito',          element: <CartPage /> },
+      { path: '/pago-pendiente',    element: <PaymentPendingPage /> },
+      { path: '/pedido-exitoso',    element: <OrderSuccessPage /> },
+      { path: '/pedidos',           element: <OrdersPage /> },
+      { path: '/pedido/:id',        element: <OrderDetailPage /> },
+      { path: '/perfil',            element: <ProfilePage /> },
     ],
   },
 

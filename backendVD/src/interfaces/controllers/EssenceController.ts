@@ -25,6 +25,20 @@ export class EssenceController {
     private readonly inventoryService: InventoryService
   ) {}
 
+  /** GET /essences/families - Lista todas las familias olfativas. */
+  getFamilies = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const families = await this.essenceRepo.findAllFamilies();
+      res.json({ success: true, data: families });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   /** GET /essences - Lista todas con stock actual en ml. */
   getAll = async (
     _req: Request,
@@ -33,11 +47,12 @@ export class EssenceController {
   ): Promise<void> => {
     try {
       const essences = await this.essenceRepo.findAll();
-      // Agregar stockMl a cada esencia en paralelo
+      // Agregar currentStockMl a cada esencia en paralelo.
+      // currentStockMl es el campo que espera el frontend (Essence.currentStockMl).
       const withStock = await Promise.all(
         essences.map(async (e) => ({
           ...e,
-          stockMl: await this.inventoryService.getEssenceStock(e.id!),
+          currentStockMl: await this.inventoryService.getEssenceStock(e.id!),
         }))
       );
       res.json({ success: true, data: withStock });
@@ -58,7 +73,7 @@ export class EssenceController {
         throw AppError.notFound("Essence not found");
       }
       const stock = await this.inventoryService.getEssenceStock(essence.id!);
-      res.json({ success: true, data: { ...essence, stockMl: stock } });
+      res.json({ success: true, data: { ...essence, currentStockMl: stock } });
     } catch (error) {
       next(error);
     }

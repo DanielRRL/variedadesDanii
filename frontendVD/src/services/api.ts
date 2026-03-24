@@ -129,9 +129,37 @@ export const forgotPassword = (email: string) =>
 export const resetPassword = (token: string, newPassword: string) =>
   api.post('/api/auth/reset-password', { token, newPassword });
 
+/**
+ * Resend the email verification link to the authenticated user's email.
+ * POST /api/auth/resend-verification
+ * Returns: { message: string }
+ */
+export const resendVerification = () =>
+  api.post('/api/auth/resend-verification');
+
+/**
+ * Update the authenticated user's own profile (name + phone).
+ * PUT /api/users/:id
+ * Returns: { user: User }
+ * Note: Email change is not allowed self-service to prevent account takeover.
+ */
+export const updateMyProfile = (userId: string, data: { name: string; phone: string }) =>
+  api.put(`/api/users/${userId}`, data);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ESSENCES CATALOG endpoints
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch all active bottles (used in the EssenceDetailPage bottle selector).
+ * GET /api/bottles
+ * Returns: { success: true, data: Bottle[] }
+ * Note: The backend Bottle model does not expose a price field — prices are
+ * resolved on the Product table. The frontend uses hardcoded fallback prices
+ * (STANDARD: 8,000 COP | LUXURY: 15,000 COP) until the API is extended.
+ */
+export const getBottles = () =>
+  api.get('/api/bottles');
 
 /**
  * Fetch the paginated, filterable list of active essences.
@@ -140,6 +168,14 @@ export const resetPassword = (token: string, newPassword: string) =>
  */
 export const getEssences = (params?: EssenceFilters) =>
   api.get('/api/essences', { params });
+
+/**
+ * Fetch all olfactive families for filter chips.
+ * GET /api/essences/families
+ * Returns: { success: true, data: { id: string; name: string }[] }
+ */
+export const getOlfactiveFamilies = () =>
+  api.get('/api/essences/families');
 
 /**
  * Fetch a single essence by its UUID, including stock data.

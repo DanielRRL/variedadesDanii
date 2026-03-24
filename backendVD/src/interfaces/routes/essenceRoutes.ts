@@ -32,6 +32,8 @@ export const createEssenceRoutes = (
 
   // Rutas publicas: cualquiera puede ver esencias
   router.get("/", essenceController.getAll);
+  // /families MUST be registered before /:id to avoid being captured as an id param.
+  router.get("/families", essenceController.getFamilies);
   router.get("/:id", essenceController.getById);
 
   // A partir de aqui, se requiere autenticacion

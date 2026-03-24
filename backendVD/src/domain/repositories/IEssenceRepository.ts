@@ -11,6 +11,9 @@ export interface IEssenceRepository {
   /** Obtiene todas las esencias con su familia olfativa. */
   findAll(): Promise<Essence[]>;
 
+  /** Retorna todas las familias olfativas ordenadas por nombre. */
+  findAllFamilies(): Promise<{ id: string; name: string }[]>;
+
   /** Busca una esencia por UUID. Retorna null si no existe. */
   findById(id: string): Promise<Essence | null>;
 
