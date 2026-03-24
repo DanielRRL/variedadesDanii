@@ -53,5 +53,21 @@ export const createAdminRoutes = (
   router.get("/reports/top-products", adminController.getTopProducts);
   router.get("/reports/low-stock", adminController.getLowStock);
 
+  // Descargas de reportes
+  router.get(
+    "/reports/sales/csv",
+    dailySalesValidator,
+    validate,
+    adminController.downloadSalesCSV
+  );
+  router.get(
+    "/reports/sales/pdf",
+    dailySalesValidator,
+    validate,
+    adminController.downloadSalesPDF
+  );
+  router.get("/reports/inventory/csv", adminController.downloadInventoryCSV);
+  router.get("/reports/clients/csv",   adminController.downloadClientsCSV);
+
   return router;
 };

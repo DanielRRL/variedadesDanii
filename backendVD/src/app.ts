@@ -72,6 +72,8 @@ import { LoyaltyService } from "./application/services/LoyaltyService";
 import { ReferralService } from "./application/services/ReferralService";
 // InvoiceService - Ciclo de vida de facturas electronicas DIAN.
 import { InvoiceService } from "./application/services/InvoiceService";
+// ReportService - Genera reportes CSV y PDF descargables para el panel admin.
+import { ReportService } from "./application/services/ReportService";
 
 // --- Casos de uso: orquestan la logica de negocio compleja ---
 // CreateOrderUseCase - Crear orden con validacion de stock y descuentos.
@@ -225,6 +227,7 @@ export function createApp(): express.Application {
   const inventoryService = new InventoryService(inventoryRepo);
   const discountService = new DiscountService(userRepo, bottleReturnRepo);
   const adminService = new AdminService(adminRepo);
+  const reportService = new ReportService();
   const loyaltyService = new LoyaltyService(loyaltyRepo, userRepo, emailService);
   const referralService = new ReferralService(referralRepo, loyaltyService, userRepo);
   const dianClient = new DianSoapClient();
@@ -264,7 +267,7 @@ export function createApp(): express.Application {
     bottleReturnRepo
   );
   const paymentController = new PaymentController(paymentRepo, orderRepo);
-  const adminController = new AdminController(adminService);
+  const adminController = new AdminController(adminService, reportService);
   const loyaltyController = new LoyaltyController(loyaltyService, referralService);
   const invoiceController = new InvoiceController(invoiceService, invoiceRepo);
 
