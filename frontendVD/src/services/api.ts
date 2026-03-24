@@ -1,0 +1,239 @@
+/**
+ * api.ts — Axios client for the Variedades DANII backend.
+ *
+ * Responsibilities:
+ *  - Creates a single Axios instance pointing to VITE_API_URL.
+ *  - Request interceptor: injects the Bearer token from Zustand authStore.
+ *  - Response interceptor: on 401 clears auth state and redirects to /login.
+ *  - Exports one typed function per backend endpoint (see groups below).
+ *
+ * All functions return the Axios promise; callers can await .data directly
+ * or let React Query handle loading/error states.
+ */
+
+import axios from 'axios';
+import type {
+  RegisterData,
+  EssenceFilters,
+  CreateOrderInput,
+  PaymentInitInput,
+  BottleReturnInput,
+} from '../types';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Axios instance
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Singleton Axios instance.
+ * Base URL is injected by Vite from the .env file (VITE_API_URL).
+ * If the env var is missing, falls back to the Docker Compose service URL.
+ */
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 15_000,
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Interceptors
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * REQUEST interceptor — injects Authorization header.
+ *
+ * The token is read lazily from localStorage on every request so that a
+ * token set after the module was first imported is always picked up.
+ * We read directly from localStorage (not from the Zustand store) to avoid
+ * a circular import with authStore.ts (which imports from this file).
+ */
+api.interceptors.request.use((config) => {
+  // 'danii_auth' is the localStorage key used by authStore (zustand persist).
+  const raw = localStorage.getItem('danii_auth');
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as { state?: { token?: string } };
+      const token = parsed?.state?.token;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {
+      // Malformed JSON in localStorage — ignore silently.
+    }
+  }
+  return config;
+});
+
+/**
+ * RESPONSE interceptor — handles global 401 (expired / invalid token).
+ *
+ * Clears the persisted auth state and redirects the user to /login so
+ * they can re-authenticate. Uses window.location.replace to avoid leaving
+ * the protected page in browser history.
+ */
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      // Remove persisted auth so the next page load starts unauthenticated.
+      localStorage.removeItem('danii_auth');
+      // Only redirect if we are not already on the login page to avoid loops.
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.replace('/login');
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Login with email and password.
+ * POST /api/auth/login
+ * Returns: { user: User, token: string }
+ */
+export const login = (email: string, password: string) =>
+  api.post('/api/auth/login', { email, password });
+
+/**
+ * Register a new CLIENT account.
+ * POST /api/auth/register
+ * Returns: { message: string }
+ */
+export const register = (data: RegisterData) =>
+  api.post('/api/auth/register', data);
+
+/**
+ * Verify email address using the token from the verification email link.
+ * POST /api/auth/verify-email
+ * Returns: { message: string }
+ */
+export const verifyEmail = (token: string) =>
+  api.post('/api/auth/verify-email', { token });
+
+/**
+ * Request a password reset email.
+ * POST /api/auth/forgot-password
+ * Always returns 200 (anti-enumeration: same response whether email exists or not).
+ */
+export const forgotPassword = (email: string) =>
+  api.post('/api/auth/forgot-password', { email });
+
+/**
+ * Reset password using the token from the reset email.
+ * POST /api/auth/reset-password
+ */
+export const resetPassword = (token: string, newPassword: string) =>
+  api.post('/api/auth/reset-password', { token, newPassword });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ESSENCES CATALOG endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch the paginated, filterable list of active essences.
+ * GET /api/essences
+ * Supports: search, olfactiveFamily, inspirationBrand, minPrice, maxPrice, orderBy, page, limit
+ */
+export const getEssences = (params?: EssenceFilters) =>
+  api.get('/api/essences', { params });
+
+/**
+ * Fetch a single essence by its UUID, including stock data.
+ * GET /api/essences/:id
+ */
+export const getEssenceById = (id: string) =>
+  api.get(`/api/essences/${id}`);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ORDERS endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Create a new order for the authenticated CLIENT.
+ * POST /api/orders
+ * Returns: { order: Order }
+ */
+export const createOrder = (data: CreateOrderInput) =>
+  api.post('/api/orders', data);
+
+/**
+ * List all orders belonging to the authenticated user.
+ * GET /api/orders
+ * Returns: { orders: Order[] }
+ */
+export const getMyOrders = () =>
+  api.get('/api/orders');
+
+/**
+ * Fetch a single order by its UUID.
+ * GET /api/orders/:id
+ * Returns: { order: Order }
+ */
+export const getOrderById = (id: string) =>
+  api.get(`/api/orders/${id}`);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYMENTS endpoints (Wompi)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Initiate a Wompi payment for an existing order.
+ * POST /api/payments/initiate
+ * Returns: { paymentUrl: string } — redirect the customer to this URL.
+ */
+export const initiatePayment = (data: PaymentInitInput) =>
+  api.post('/api/payments/initiate', data);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOYALTY endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get the current authenticated user's loyalty account (level, points, discount).
+ * GET /api/loyalty/account
+ * Returns: { account: LoyaltyAccount }
+ */
+export const getLoyaltyAccount = () =>
+  api.get('/api/loyalty/account');
+
+/**
+ * Get paginated loyalty transaction history for the authenticated user.
+ * GET /api/loyalty/transactions?page=1
+ * Returns: { transactions: LoyaltyTransaction[], total: number }
+ */
+export const getLoyaltyTransactions = (page?: number) =>
+  api.get('/api/loyalty/transactions', { params: { page } });
+
+/**
+ * Get the authenticated user's personal referral code.
+ * GET /api/loyalty/referral-code
+ * Returns: { code: string, usages: number }
+ */
+export const getMyReferralCode = () =>
+  api.get('/api/loyalty/referral-code');
+
+/**
+ * Redeem loyalty points to get a discount on a specific order.
+ * POST /api/loyalty/redeem
+ * Returns: { discountApplied: number, remainingPoints: number }
+ */
+export const redeemPoints = (points: number, orderId: string) =>
+  api.post('/api/loyalty/redeem', { points, orderId });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOTTLE RETURNS endpoint
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Register a bottle return to credit loyalty points.
+ * POST /api/returns
+ * Returns: { pointsEarned: number }
+ */
+export const createBottleReturn = (data: BottleReturnInput) =>
+  api.post('/api/returns', data);
+
+export default api;

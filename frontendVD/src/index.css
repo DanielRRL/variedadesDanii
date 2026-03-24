@@ -1,68 +1,65 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* ── Google Fonts — must be first @import ────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500&display=swap');
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+/* ── Tailwind v4 — import base styles ─────────────────────────────────────── */
+@import "tailwindcss";
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+/* ── Brand design system tokens ───────────────────────────────────────────── */
+/* All values from the brand spec. Use these tokens everywhere via Tailwind    */
+/* utility classes: bg-brand-pink, text-brand-gold, border-border, etc.        */
+@theme {
+  /* Brand colors */
+  --color-brand-pink:      #D81B60;
+  --color-brand-pink-dark: #880E4F;
+  --color-brand-blue:      #1565C0;
+  --color-brand-gold:      #F9A825;
+
+  /* Semantic colors */
+  --color-background: #FAFAFA;
+  --color-surface:    #FFFFFF;
+  --color-text-primary: #212121;
+  --color-muted:      #757575;
+  --color-success:    #2E7D32;
+  --color-warning:    #E65100;
+  --color-border:     #E0E0E0;
+
+  /* Typography */
+  --font-heading: 'Poppins', sans-serif;
+  --font-body:    'Inter', sans-serif;
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.08);
+
+  /* Border radius */
+  --radius-card:  12px;
+  --radius-input: 8px;
+  --radius-pill:  9999px;
+}
+
+/* ── Base styles ──────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
   min-height: 100vh;
+  line-height: 1.5;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
+/* ── Google Fonts import ──────────────────────────────────────────────────── */
