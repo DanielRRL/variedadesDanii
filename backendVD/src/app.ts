@@ -52,6 +52,8 @@ import { PrismaLoyaltyRepository } from "./infrastructure/repositories/PrismaLoy
 import { PrismaReferralRepository } from "./infrastructure/repositories/PrismaReferralRepository";
 // PrismaOrderStatusHistoryRepository - Log inmutable de transiciones de estado de pedidos.
 import { PrismaOrderStatusHistoryRepository } from "./infrastructure/repositories/PrismaOrderStatusHistoryRepository";
+// PrismaInvoiceRepository - Facturas electronicas DIAN.
+import { PrismaInvoiceRepository } from "./infrastructure/repositories/PrismaInvoiceRepository";
 
 // --- Servicios de aplicacion: logica de negocio reutilizable ---
 // AuthService - Registro y login con JWT y bcrypt.
@@ -68,6 +70,8 @@ import { EmailService } from "./infrastructure/notifications/EmailService";
 import { LoyaltyService } from "./application/services/LoyaltyService";
 // ReferralService - Generacion y aplicacion de codigos de referido.
 import { ReferralService } from "./application/services/ReferralService";
+// InvoiceService - Ciclo de vida de facturas electronicas DIAN.
+import { InvoiceService } from "./application/services/InvoiceService";
 
 // --- Casos de uso: orquestan la logica de negocio compleja ---
 // CreateOrderUseCase - Crear orden con validacion de stock y descuentos.
@@ -76,6 +80,8 @@ import { CreateOrderUseCase } from "./application/usecases/CreateOrderUseCase";
 import { ProcessBottleReturnUseCase } from "./application/usecases/ProcessBottleReturnUseCase";
 // EarnPointsAfterOrderUseCase - Acreditar puntos al entregar una orden.
 import { EarnPointsAfterOrderUseCase } from "./application/usecases/EarnPointsAfterOrderUseCase";
+// GenerateInvoiceUseCase - Generar factura electronica tras pago confirmado.
+import { GenerateInvoiceUseCase } from "./application/usecases/GenerateInvoiceUseCase";
 
 // --- Controladores: manejan HTTP y delegan a servicios/casos de uso ---
 import { AuthController } from "./interfaces/controllers/AuthController";
@@ -91,6 +97,10 @@ import { PaymentController } from "./interfaces/controllers/PaymentController";
 import { AdminController } from "./interfaces/controllers/AdminController";
 // LoyaltyController - Puntos del programa de fidelizacion y referidos.
 import { LoyaltyController } from "./interfaces/controllers/LoyaltyController";
+// InvoiceController - Consulta y gestion de facturas electronicas.
+import { InvoiceController } from "./interfaces/controllers/InvoiceController";
+// DianSoapClient - Gateway de facturacion (STUB hasta completar habilitacion DIAN).
+import { DianSoapClient } from "./infrastructure/invoice/DianSoapClient";
 
 // --- Fabricas de rutas: cada una recibe su controlador y retorna un Router ---
 import { createAuthRoutes } from "./interfaces/routes/authRoutes";
@@ -108,6 +118,8 @@ import { createAdminRoutes } from "./interfaces/routes/adminRoutes";
 import { createLoyaltyRoutes, createAdminLoyaltyRoutes } from "./interfaces/routes/loyaltyRoutes";
 // createWebhookRoutes - Webhooks de pasarelas de pago (raw body; debe montarse antes de express.json).
 import { createWebhookRoutes } from "./interfaces/routes/webhookRoutes";
+// createInvoiceRoutes, createAdminInvoiceRoutes - Facturas electronicas DIAN.
+import { createInvoiceRoutes, createAdminInvoiceRoutes } from "./interfaces/routes/invoiceRoutes";
 
 // PaymentWebhookController - Valida y procesa eventos de Wompi.
 import { PaymentWebhookController } from "./interfaces/controllers/PaymentWebhookController";
@@ -134,9 +146,24 @@ export function createApp(): express.Application {
   // HMAC-SHA256. Si express.json() corre primero, el body es parseado y el
   // string original se pierde, haciendo imposible recalcular el hash correcto.
   // Por eso se instancian el repo, controlador y ruta aqui, antes del parser.
-  const _webhookPaymentRepo = new PrismaPaymentRepository();
-  const _webhookOrderRepo   = new PrismaOrderRepository();
-  const webhookController   = new PaymentWebhookController(_webhookPaymentRepo, _webhookOrderRepo);
+  // Repos minimos para el webhook (instanciados temprano, antes de express.json).
+  const _webhookPaymentRepo  = new PrismaPaymentRepository();
+  const _webhookOrderRepo    = new PrismaOrderRepository();
+  const _webhookInvoiceRepo  = new PrismaInvoiceRepository();
+  const _webhookEmailService = new EmailService();
+  const _webhookDianClient   = new DianSoapClient();
+  const _webhookInvoiceService = new InvoiceService(
+    _webhookInvoiceRepo,
+    _webhookOrderRepo,
+    _webhookDianClient,
+    _webhookEmailService,
+  );
+  const _webhookGenerateInvoice = new GenerateInvoiceUseCase(_webhookInvoiceService);
+  const webhookController = new PaymentWebhookController(
+    _webhookPaymentRepo,
+    _webhookOrderRepo,
+    _webhookGenerateInvoice,
+  );
   app.use("/api/webhooks", createWebhookRoutes(webhookController));
 
   // CORS: permite requests desde el frontend (origen configurado en .env)
@@ -183,6 +210,7 @@ export function createApp(): express.Application {
   const loyaltyRepo = new PrismaLoyaltyRepository();
   const referralRepo = new PrismaReferralRepository();
   const orderStatusHistoryRepo = new PrismaOrderStatusHistoryRepository();
+  const invoiceRepo = new PrismaInvoiceRepository();
 
   // EmailService - Implementacion concreta del contrato IEmailService.
   const emailService = new EmailService();
@@ -199,6 +227,8 @@ export function createApp(): express.Application {
   const adminService = new AdminService(adminRepo);
   const loyaltyService = new LoyaltyService(loyaltyRepo, userRepo, emailService);
   const referralService = new ReferralService(referralRepo, loyaltyService, userRepo);
+  const dianClient = new DianSoapClient();
+  const invoiceService = new InvoiceService(invoiceRepo, orderRepo, dianClient, emailService);
 
   // 3. Instanciar casos de uso (inyectando repos y servicios)
   const createOrderUseCase = new CreateOrderUseCase(
@@ -214,6 +244,7 @@ export function createApp(): express.Application {
     bottleRepo,
     inventoryService
   );
+  const generateInvoiceUseCase = new GenerateInvoiceUseCase(invoiceService);
   const earnPointsAfterOrderUseCase = new EarnPointsAfterOrderUseCase(
     loyaltyService,
     orderRepo,
@@ -235,6 +266,7 @@ export function createApp(): express.Application {
   const paymentController = new PaymentController(paymentRepo, orderRepo);
   const adminController = new AdminController(adminService);
   const loyaltyController = new LoyaltyController(loyaltyService, referralService);
+  const invoiceController = new InvoiceController(invoiceService, invoiceRepo);
 
   // ---------------------------------------------------------------------------
   // Rutas de la API
@@ -258,6 +290,8 @@ export function createApp(): express.Application {
   app.use("/api/admin", createAdminRoutes(adminController));
   app.use("/api/loyalty", createLoyaltyRoutes(loyaltyController));
   app.use("/api/admin/loyalty", createAdminLoyaltyRoutes(loyaltyController));
+  app.use("/api/invoices", createInvoiceRoutes(invoiceController));
+  app.use("/api/admin/invoices", createAdminInvoiceRoutes(invoiceController));
 
   // ---------------------------------------------------------------------------
   // Error Handler (debe ir al final de la cadena de middlewares)

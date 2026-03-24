@@ -65,4 +65,43 @@ export const env = {
     // URL de redireccion post-pago para el cliente.
     redirectUrl: process.env.WOMPI_REDIRECT_URL || "http://localhost:5173/payment-result",
   },
+
+  // Configuracion de la DIAN: facturacion electronica Colombia.
+  // Valores solo necesarios cuando se reemplace el STUB (ver docs/DIAN_INTEGRATION.md).
+  dian: {
+    // Ambiente: "test" = habilitador DIAN, "production" = produccion.
+    env: process.env.DIAN_ENV || "test",
+    // URL del servicio SOAP de la DIAN.
+    apiUrl: process.env.DIAN_API_URL || "https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc",
+    // NIT del emisor (sin digito de verificacion).
+    nit: process.env.DIAN_NIT || "",
+    // Digito de verificacion del NIT.
+    nitCheckDigit: process.env.DIAN_NIT_CHECK_DIGIT || "0",
+    // Razon social del emisor.
+    companyName: process.env.DIAN_COMPANY_NAME || "Variedades Danni",
+    // Correo de facturacion del emisor.
+    email: process.env.DIAN_EMAIL || "facturas@variedadesdanni.co",
+    // Telefono del emisor.
+    phone: process.env.DIAN_PHONE || "",
+    // Direccion fisica del emisor.
+    address: process.env.DIAN_ADDRESS || "",
+    // Codigo DANE del municipio (Armenia, Quindio = 63001).
+    cityCode: process.env.DIAN_CITY_CODE || "63001",
+    // Nombre del municipio.
+    cityName: process.env.DIAN_CITY_NAME || "Armenia",
+    // Codigo DANE del departamento (Quindio = 63).
+    departmentCode: process.env.DIAN_DEPARTMENT_CODE || "63",
+    // Nombre del departamento.
+    departmentName: process.env.DIAN_DEPARTMENT_NAME || "Quindio",
+    // Regimen tributario ("48" = No responsable de IVA).
+    taxRegime: process.env.DIAN_TAX_REGIME || "48",
+    // ID del software registrado en Muisca.
+    softwareId: process.env.DIAN_SOFTWARE_ID || "",
+    // PIN del software registrado en Muisca.
+    softwarePin: process.env.DIAN_SOFTWARE_PIN || "",
+    // Ruta al certificado digital .PFX.
+    certPath: process.env.DIAN_CERT_PATH || "./certs/certificado.pfx",
+    // Contrasena del certificado .PFX.
+    certPassword: process.env.DIAN_CERT_PASSWORD || "",
+  },
 } as const;

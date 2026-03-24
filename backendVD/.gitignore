@@ -4,3 +4,7 @@ logs/
 .env
 *.log
 .DS_Store
+
+# Certificado digital DIAN — NUNCA commitear al repositorio.
+# Contiene la clave privada del contribuyente; su exposicion es una brecha de seguridad grave.
+certs/

@@ -32,6 +32,9 @@ import { IPaymentRepository } from "../../domain/repositories/IPaymentRepository
 // IOrderRepository - Para avanzar el estado de la orden a PAID o CANCELLED.
 import { IOrderRepository } from "../../domain/repositories/IOrderRepository";
 
+// GenerateInvoiceUseCase - Dispara la generacion de factura electronica tras pago aprobado.
+import { GenerateInvoiceUseCase } from "../../application/usecases/GenerateInvoiceUseCase";
+
 // logger - Para auditoria y alertas operacionales.
 import logger from "../../utils/logger";
 
@@ -40,7 +43,8 @@ export class PaymentWebhookController {
 
   constructor(
     private readonly paymentRepo: IPaymentRepository,
-    private readonly orderRepo: IOrderRepository
+    private readonly orderRepo: IOrderRepository,
+    private readonly generateInvoiceUseCase: GenerateInvoiceUseCase,
   ) {
     this.validator = new WebhookValidator();
   }
@@ -176,12 +180,10 @@ export class PaymentWebhookController {
           transactionId,
         });
 
-        // STUB: Generacion de factura electronica (se implementara en Parte 7).
-        // La factura se dispara aqui, cuando el pago es definitivamente aprobado.
-        logger.info("Invoice generation stub: APPROVED transaction triggers invoice", {
-          orderId,
-          transactionId,
-        });
+        // Disparar la generacion de factura electronica (fire-and-forget).
+        // GenerateInvoiceUseCase captura internamente cualquier error para que
+        // un fallo en facturacion nunca afecte la respuesta 200 a Wompi.
+        void this.generateInvoiceUseCase.execute(orderId);
 
       } else if (wompiStatus === "DECLINED" || wompiStatus === "VOIDED" || wompiStatus === "ERROR") {
         // ---------------------------------------------------------------------------
