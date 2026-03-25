@@ -22,6 +22,7 @@ import nodemailer, { Transporter } from "nodemailer";
 import Handlebars from "handlebars";
 
 import { IEmailService, OrderItemEmailData } from "../../application/services/IEmailService";
+import { env } from "../../config/env";
 import logger from "../../utils/logger";
 
 // ---------------------------------------------------------------------------
@@ -56,24 +57,31 @@ export class EmailService implements IEmailService {
   private readonly transporter: Transporter;
   private readonly from: string;
   private readonly baseUrl: string;
+  private readonly frontendUrl: string;
 
   constructor() {
-    const host     = process.env.EMAIL_HOST     || "smtp-relay.brevo.com";
-    const port     = parseInt(process.env.EMAIL_PORT || "587", 10);
-    const user     = process.env.EMAIL_USER     || "";
-    const pass     = process.env.EMAIL_PASS     || "";
-    const fromAddr = process.env.EMAIL_FROM     || "no-reply@variedadesdanii.com";
-    const fromName = process.env.EMAIL_FROM_NAME || "Variedades DANII Perfumeria";
+    const host     = env.email.host;
+    const port     = env.email.port;
+    const user     = env.email.user;
+    const pass     = env.email.pass;
+    const fromAddr = env.email.from;
+    const fromName = env.email.fromName;
 
     this.from    = `"${fromName}" <${fromAddr}>`;
-    this.baseUrl = (process.env.BASE_URL || "http://localhost:4000").replace(/\/$/, "");
+    this.baseUrl = `http://localhost:${env.port}`;
+
+    // URL del frontend para enlaces de verificacion y reset de contrasena
+    this.frontendUrl = env.frontendUrl.replace(/\/$/, "");
+
+    // Solo requerir TLS cuando hay credenciales SMTP configuradas
+    const hasCredentials = Boolean(user && pass);
 
     this.transporter = nodemailer.createTransport({
       host,
       port,
       secure: false,   // STARTTLS (no SSL directo en el puerto 587)
-      requireTLS: true,
-      auth: { user, pass },
+      requireTLS: hasCredentials,
+      auth: hasCredentials ? { user, pass } : undefined,
     });
   }
 
@@ -142,7 +150,7 @@ export class EmailService implements IEmailService {
 
   /** Envia el correo de verificacion de cuenta recien registrada. */
   async sendVerificationEmail(to: string, token: string, name: string): Promise<void> {
-    const verificationUrl = `${this.baseUrl}/auth/verify-email?token=${encodeURIComponent(token)}`;
+    const verificationUrl = `${this.frontendUrl}/auth/verify-email?token=${encodeURIComponent(token)}`;
     const html = this.renderTemplate("verification", { name, verificationUrl });
     await this.sendMail({
       to,
@@ -153,7 +161,7 @@ export class EmailService implements IEmailService {
 
   /** Envia el enlace de recuperacion de contrasena, valido 1 hora. */
   async sendPasswordResetEmail(to: string, token: string, name: string): Promise<void> {
-    const resetUrl = `${this.baseUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
+    const resetUrl = `${this.frontendUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
     const html = this.renderTemplate("password-reset", { name, resetUrl });
     await this.sendMail({
       to,

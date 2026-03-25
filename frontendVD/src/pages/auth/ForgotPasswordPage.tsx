@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { forgotPassword } from '../../services/api';
 
 export default function ForgotPasswordPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -23,6 +25,16 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
+        {/* Back to login */}
+        <button
+          onClick={() => navigate('/login')}
+          className="flex items-center gap-1 text-sm text-muted hover:text-text-primary mb-4 transition-colors"
+          aria-label="Volver a login"
+        >
+          <ArrowLeft size={16} />
+          Iniciar sesion
+        </button>
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-brand-pink">Variedades DANII</h1>
           <p className="text-muted text-sm mt-1">Recuperar contraseña</p>

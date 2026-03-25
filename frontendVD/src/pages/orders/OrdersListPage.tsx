@@ -72,7 +72,7 @@ function OrderCard({ order }: { order: Order }) {
 export default function OrdersListPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('all');
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['my-orders'],
     queryFn: async () => {
       const res = await getMyOrders();
@@ -114,9 +114,17 @@ export default function OrdersListPage() {
         )}
 
         {isError && (
-          <p className="text-center text-muted py-12 text-sm">
-            No se pudieron cargar tus pedidos. Intenta más tarde.
-          </p>
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <p className="text-muted text-sm">
+              No se pudieron cargar tus pedidos.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="bg-brand-pink text-white text-sm font-semibold px-5 py-2 rounded-xl"
+            >
+              Reintentar
+            </button>
+          </div>
         )}
 
         {!isLoading && !isError && filtered.length === 0 && (

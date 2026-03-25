@@ -1,107 +1,154 @@
 /**
- * Configuracion de variables de entorno.
- * Carga las variables desde el archivo .env usando dotenv y las expone
- * de forma tipada para que el resto de la aplicacion las consuma
- * sin acceder directamente a process.env.
+ * Configuracion de variables de entorno con validacion Zod.
+ * Carga las variables desde el archivo .env usando dotenv y las valida
+ * con un schema Zod al arrancar. Si faltan variables criticas el proceso
+ * termina con un mensaje claro indicando que falta.
  */
 
-// dotenv - Lee el archivo .env de la raiz del proyecto y carga
-// las variables en process.env para que esten disponibles en runtime.
 import dotenv from "dotenv";
+import { z } from "zod";
 
-// Ejecuta la carga del .env antes de exportar las variables.
+// Cargar .env antes de validar
 dotenv.config();
 
+// Helpers para transformar strings de env a numeros con defaults
+const numericString = (fallback: number) =>
+  z.string().optional().transform((v) => parseInt(v || String(fallback), 10));
+
+// Schema de validacion: las vars criticas (DATABASE_URL, JWT_SECRET) son requeridas.
+// Las opcionales tienen defaults seguros para desarrollo local.
+const envSchema = z.object({
+  PORT: numericString(4000),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL es obligatoria"),
+  JWT_SECRET: z.string().min(1, "JWT_SECRET es obligatoria"),
+  JWT_EXPIRES_IN: z.string().default("7d"),
+  CORS_ORIGIN: z.string().default("http://localhost:5173"),
+  FRONTEND_URL: z.string().default("http://localhost:5173"),
+  RATE_LIMIT_WINDOW_MS: numericString(900000),
+  RATE_LIMIT_MAX: numericString(100),
+
+  // Wompi (pasarela de pagos) — opcionales en desarrollo
+  WOMPI_API_URL: z.string().default("https://sandbox.wompi.co/v1"),
+  WOMPI_PUBLIC_KEY: z.string().default(""),
+  WOMPI_PRIVATE_KEY: z.string().default(""),
+  WOMPI_EVENTS_SECRET: z.string().default(""),
+  WOMPI_CURRENCY: z.string().default("COP"),
+  WOMPI_REDIRECT_URL: z.string().default("http://localhost:5173/payment-result"),
+
+  // DIAN (facturacion electronica) — opcionales
+  DIAN_ENV: z.string().default("test"),
+  DIAN_API_URL: z.string().default("https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc"),
+  DIAN_NIT: z.string().default(""),
+  DIAN_NIT_CHECK_DIGIT: z.string().default("0"),
+  DIAN_COMPANY_NAME: z.string().default("Variedades Danni"),
+  DIAN_EMAIL: z.string().default("facturas@variedadesdanni.co"),
+  DIAN_PHONE: z.string().default(""),
+  DIAN_ADDRESS: z.string().default(""),
+  DIAN_CITY_CODE: z.string().default("63001"),
+  DIAN_CITY_NAME: z.string().default("Armenia"),
+  DIAN_DEPARTMENT_CODE: z.string().default("63"),
+  DIAN_DEPARTMENT_NAME: z.string().default("Quindio"),
+  DIAN_TAX_REGIME: z.string().default("48"),
+  DIAN_SOFTWARE_ID: z.string().default(""),
+  DIAN_SOFTWARE_PIN: z.string().default(""),
+  DIAN_CERT_PATH: z.string().default("./certs/certificado.pfx"),
+  DIAN_CERT_PASSWORD: z.string().default(""),
+
+  // Email (SMTP) — opcionales, el servicio maneja la ausencia gracefully
+  EMAIL_HOST: z.string().default("smtp-relay.brevo.com"),
+  EMAIL_PORT: numericString(587),
+  EMAIL_USER: z.string().default(""),
+  EMAIL_PASS: z.string().default(""),
+  EMAIL_FROM: z.string().default("no-reply@variedadesdanii.com"),
+  EMAIL_FROM_NAME: z.string().default("Variedades DANII Perfumeria"),
+
+  // Admin seed
+  ADMIN_EMAIL: z.string().default("admin@variedadesdanii.com"),
+  ADMIN_PASSWORD: z.string().default("Admin1234#"),
+  ADMIN_NAME: z.string().default("Administrador"),
+  ADMIN_PHONE: z.string().default("+573000000000"),
+});
+
+// Validar y parsear al arrancar. Si falla, loguear errores y detener el proceso.
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error("Variables de entorno invalidas:");
+  for (const issue of parsed.error.issues) {
+    console.error(`  ${issue.path.join(".")}: ${issue.message}`);
+  }
+  process.exit(1);
+}
+
+const v = parsed.data;
+
 /**
- * Objeto inmutable con todas las variables de entorno de la aplicacion.
- * Usa "as const" para que TypeScript infiera los tipos literales
- * y evite mutaciones accidentales.
+ * Objeto inmutable con todas las variables de entorno validadas.
+ * Cada modulo importa este objeto en vez de leer process.env directamente.
  */
 export const env = {
-  // Puerto donde escucha el servidor Express.
-  port: parseInt(process.env.PORT || "4000", 10),
+  port: v.PORT,
+  nodeEnv: v.NODE_ENV,
+  databaseUrl: v.DATABASE_URL,
+  frontendUrl: v.FRONTEND_URL,
 
-  // Entorno de ejecucion: development | production | test.
-  nodeEnv: process.env.NODE_ENV || "development",
-
-  // URL de conexion a PostgreSQL usada por Prisma.
-  databaseUrl: process.env.DATABASE_URL || "",
-
-  // Configuracion de JSON Web Token para autenticacion.
   jwt: {
-    // Clave secreta para firmar y verificar tokens.
-    secret: process.env.JWT_SECRET || "",
-    // Tiempo de expiracion del token (ej: "7d" = 7 dias).
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    secret: v.JWT_SECRET,
+    expiresIn: v.JWT_EXPIRES_IN,
   },
 
-  // Configuracion de CORS (Cross-Origin Resource Sharing).
   cors: {
-    // Origen permitido para peticiones del frontend.
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: v.CORS_ORIGIN,
   },
 
-  // Configuracion del rate limiter para proteger contra abuso.
   rateLimit: {
-    // Ventana de tiempo en milisegundos (15 minutos por defecto).
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000", 10),
-    // Maximo de peticiones permitidas por ventana.
-    max: parseInt(process.env.RATE_LIMIT_MAX || "100", 10),
+    windowMs: v.RATE_LIMIT_WINDOW_MS,
+    max: v.RATE_LIMIT_MAX,
   },
 
-  // Configuracion de Wompi: pasarela de pagos colombiana.
-  // Las claves de sandbox tienen el prefijo "test_"; en produccion usar sin ese prefijo.
   wompi: {
-    // URL base de la API Wompi (sandbox o produccion segun NODE_ENV).
-    apiUrl: process.env.WOMPI_API_URL || "https://sandbox.wompi.co/v1",
-    // Clave publica (safe para el frontend; identifica el comercio).
-    publicKey: process.env.WOMPI_PUBLIC_KEY || "",
-    // Clave privada (SOLO el servidor; autoriza transacciones y consultas).
-    privateKey: process.env.WOMPI_PRIVATE_KEY || "",
-    // Secreto de eventos: usado para validar la firma HMAC-SHA256 de los webhooks.
-    eventsSecret: process.env.WOMPI_EVENTS_SECRET || "",
-    // Moneda de las transacciones (COP para Colombia).
-    currency: process.env.WOMPI_CURRENCY || "COP",
-    // URL de redireccion post-pago para el cliente.
-    redirectUrl: process.env.WOMPI_REDIRECT_URL || "http://localhost:5173/payment-result",
+    apiUrl: v.WOMPI_API_URL,
+    publicKey: v.WOMPI_PUBLIC_KEY,
+    privateKey: v.WOMPI_PRIVATE_KEY,
+    eventsSecret: v.WOMPI_EVENTS_SECRET,
+    currency: v.WOMPI_CURRENCY,
+    redirectUrl: v.WOMPI_REDIRECT_URL,
   },
 
-  // Configuracion de la DIAN: facturacion electronica Colombia.
-  // Valores solo necesarios cuando se reemplace el STUB (ver docs/DIAN_INTEGRATION.md).
   dian: {
-    // Ambiente: "test" = habilitador DIAN, "production" = produccion.
-    env: process.env.DIAN_ENV || "test",
-    // URL del servicio SOAP de la DIAN.
-    apiUrl: process.env.DIAN_API_URL || "https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc",
-    // NIT del emisor (sin digito de verificacion).
-    nit: process.env.DIAN_NIT || "",
-    // Digito de verificacion del NIT.
-    nitCheckDigit: process.env.DIAN_NIT_CHECK_DIGIT || "0",
-    // Razon social del emisor.
-    companyName: process.env.DIAN_COMPANY_NAME || "Variedades Danni",
-    // Correo de facturacion del emisor.
-    email: process.env.DIAN_EMAIL || "facturas@variedadesdanni.co",
-    // Telefono del emisor.
-    phone: process.env.DIAN_PHONE || "",
-    // Direccion fisica del emisor.
-    address: process.env.DIAN_ADDRESS || "",
-    // Codigo DANE del municipio (Armenia, Quindio = 63001).
-    cityCode: process.env.DIAN_CITY_CODE || "63001",
-    // Nombre del municipio.
-    cityName: process.env.DIAN_CITY_NAME || "Armenia",
-    // Codigo DANE del departamento (Quindio = 63).
-    departmentCode: process.env.DIAN_DEPARTMENT_CODE || "63",
-    // Nombre del departamento.
-    departmentName: process.env.DIAN_DEPARTMENT_NAME || "Quindio",
-    // Regimen tributario ("48" = No responsable de IVA).
-    taxRegime: process.env.DIAN_TAX_REGIME || "48",
-    // ID del software registrado en Muisca.
-    softwareId: process.env.DIAN_SOFTWARE_ID || "",
-    // PIN del software registrado en Muisca.
-    softwarePin: process.env.DIAN_SOFTWARE_PIN || "",
-    // Ruta al certificado digital .PFX.
-    certPath: process.env.DIAN_CERT_PATH || "./certs/certificado.pfx",
-    // Contrasena del certificado .PFX.
-    certPassword: process.env.DIAN_CERT_PASSWORD || "",
+    env: v.DIAN_ENV,
+    apiUrl: v.DIAN_API_URL,
+    nit: v.DIAN_NIT,
+    nitCheckDigit: v.DIAN_NIT_CHECK_DIGIT,
+    companyName: v.DIAN_COMPANY_NAME,
+    email: v.DIAN_EMAIL,
+    phone: v.DIAN_PHONE,
+    address: v.DIAN_ADDRESS,
+    cityCode: v.DIAN_CITY_CODE,
+    cityName: v.DIAN_CITY_NAME,
+    departmentCode: v.DIAN_DEPARTMENT_CODE,
+    departmentName: v.DIAN_DEPARTMENT_NAME,
+    taxRegime: v.DIAN_TAX_REGIME,
+    softwareId: v.DIAN_SOFTWARE_ID,
+    softwarePin: v.DIAN_SOFTWARE_PIN,
+    certPath: v.DIAN_CERT_PATH,
+    certPassword: v.DIAN_CERT_PASSWORD,
+  },
+
+  email: {
+    host: v.EMAIL_HOST,
+    port: v.EMAIL_PORT,
+    user: v.EMAIL_USER,
+    pass: v.EMAIL_PASS,
+    from: v.EMAIL_FROM,
+    fromName: v.EMAIL_FROM_NAME,
+  },
+
+  admin: {
+    email: v.ADMIN_EMAIL,
+    password: v.ADMIN_PASSWORD,
+    name: v.ADMIN_NAME,
+    phone: v.ADMIN_PHONE,
   },
 } as const;

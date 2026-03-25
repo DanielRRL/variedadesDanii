@@ -28,6 +28,7 @@ import { getEssenceById, getBottles } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { StockIndicator } from '../components/catalog/StockIndicator';
+import { BottomTabBar } from '../components/layout/BottomTabBar';
 import { formatCOP } from '../utils/format';
 import {
   OZ_TO_ML,
@@ -767,6 +768,8 @@ export default function EssenceDetailPage() {
           )}
         </div>
       )}
+
+      <BottomTabBar />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Eye, EyeOff, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { register, applyReferral } from '../../services/api';
 import { useToastStore } from '../../stores/toastStore';
@@ -16,6 +16,7 @@ function PasswordRequirement({ met, label }: { met: boolean; label: string }) {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const addToast = useToastStore((s) => s.addToast);
 
   const [name, setName] = useState('');
@@ -23,14 +24,21 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [referralCode, setReferralCode] = useState('');
+
+  // Referral code: auto-fill from URL param ?ref=CODE, collapsible section
+  const refFromUrl = searchParams.get('ref') ?? '';
+  const [referralCode, setReferralCode] = useState(refFromUrl);
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
+  const [showReferral, setShowReferral] = useState(!!refFromUrl);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const hasLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
   const hasNumber = /\d/.test(password);
+  const hasSpecial = /[#@%$*]/.test(password);
 
   async function handleReferralBlur() {
     if (!referralCode.trim()) return;
@@ -44,7 +52,7 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!hasLength || !hasNumber) {
+    if (!hasLength || !hasUpper || !hasNumber || !hasSpecial) {
       addToast('La contraseña no cumple los requisitos mínimos.', 'warning');
       return;
     }
@@ -73,6 +81,16 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
+        {/* Back to home */}
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-1 text-sm text-muted hover:text-text-primary mb-4 transition-colors"
+          aria-label="Volver al inicio"
+        >
+          <ArrowLeft size={16} />
+          Inicio
+        </button>
+
         {/* Brand header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-brand-pink">Variedades DANII</h1>
@@ -162,9 +180,11 @@ export default function RegisterPage() {
               </button>
             </div>
             {password.length > 0 && (
-              <div className="flex gap-3 mt-1">
-                <PasswordRequirement met={hasLength} label="Mín. 8 caracteres" />
-                <PasswordRequirement met={hasNumber} label="Contiene número" />
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                <PasswordRequirement met={hasLength} label="Min. 8 caracteres" />
+                <PasswordRequirement met={hasUpper} label="Una mayuscula" />
+                <PasswordRequirement met={hasNumber} label="Un numero" />
+                <PasswordRequirement met={hasSpecial} label="Un especial (#@%$*)" />
               </div>
             )}
           </div>
@@ -199,37 +219,46 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Referral code */}
+          {/* Referral code — collapsible, clearly optional */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700" htmlFor="referral">
-              Código de referido{' '}
-              <span className="font-normal text-muted">(opcional)</span>
-            </label>
-            <input
-              id="referral"
-              type="text"
-              value={referralCode}
-              onChange={(e) => {
-                setReferralCode(e.target.value.toUpperCase());
-                setReferralValid(null);
-              }}
-              onBlur={handleReferralBlur}
-              className={`border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 transition-colors uppercase tracking-widest ${
-                referralValid === true
-                  ? 'border-green-400 bg-green-50'
-                  : referralValid === false
-                  ? 'border-red-400 bg-red-50'
-                  : 'border-border focus:border-brand-pink'
-              }`}
-              placeholder="XXXXXX"
-            />
-            {referralValid === true && (
-              <span className="text-xs text-green-600">
-                ¡Código válido! Tu amigo te recomienda 🎉
-              </span>
-            )}
-            {referralValid === false && (
-              <span className="text-xs text-red-500">Código de referido inválido.</span>
+            <button
+              type="button"
+              onClick={() => setShowReferral(!showReferral)}
+              className="flex items-center gap-1 text-sm text-brand-pink font-medium self-start"
+            >
+              {showReferral ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              Tengo un codigo de referido
+            </button>
+
+            {showReferral && (
+              <>
+                <input
+                  id="referral"
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => {
+                    setReferralCode(e.target.value.toUpperCase());
+                    setReferralValid(null);
+                  }}
+                  onBlur={handleReferralBlur}
+                  className={`border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 transition-colors uppercase tracking-widest ${
+                    referralValid === true
+                      ? 'border-green-400 bg-green-50'
+                      : referralValid === false
+                      ? 'border-red-400 bg-red-50'
+                      : 'border-border focus:border-brand-pink'
+                  }`}
+                  placeholder="XXXXXX"
+                />
+                {referralValid === true && (
+                  <span className="text-xs text-green-600">
+                    Codigo valido. Ambos recibiran puntos de bonificacion.
+                  </span>
+                )}
+                {referralValid === false && (
+                  <span className="text-xs text-red-500">Codigo de referido invalido.</span>
+                )}
+              </>
             )}
           </div>
 

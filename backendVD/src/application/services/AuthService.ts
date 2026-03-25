@@ -129,10 +129,18 @@ export class AuthService {
       expiresAt,
     });
 
-    // Enviar correo de activacion al usuario registrado
-    await this.emailService.sendVerificationEmail(user.email, verificationToken, user.name);
-
-    logger.info("User registered, verification email sent", { userId: user.id });
+    // Enviar correo de activacion al usuario registrado.
+    // Si el envio falla (ej: SMTP no configurado), el registro continua
+    // y el usuario puede solicitar reenvio desde la pantalla de login.
+    try {
+      await this.emailService.sendVerificationEmail(user.email, verificationToken, user.name);
+      logger.info("User registered, verification email sent", { userId: user.id });
+    } catch (emailError) {
+      logger.warn("User registered but verification email failed", {
+        userId: user.id,
+        error: emailError,
+      });
+    }
 
     // Firmar JWT con id y rol del usuario
     const token = this.generateToken(user.id!, user.role);

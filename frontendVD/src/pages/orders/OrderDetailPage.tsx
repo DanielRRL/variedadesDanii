@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle, Clock, Package, Truck, Star, XCircle } from 'lucide-react';
 import { AppBar } from '../../components/layout/AppBar';
+import { BottomTabBar } from '../../components/layout/BottomTabBar';
 import { getOrderById, getOrderHistory } from '../../services/api';
 import { STATUS_LABELS, STATUS_COLORS } from '../admin/adminShared';
 import type { Order, OrderStatusHistory } from '../../types';
@@ -131,7 +132,7 @@ function StatusTimeline({
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  const { data: order, isLoading: loadingOrder, isError: errOrder } = useQuery({
+  const { data: order, isLoading: loadingOrder, isError: errOrder, refetch: refetchOrder } = useQuery({
     queryKey: ['order', id],
     queryFn: async () => {
       const res = await getOrderById(id!);
@@ -153,7 +154,7 @@ export default function OrderDetailPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <AppBar title="Detalle del pedido" showBack />
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-4 pb-8">
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-4 pb-24">
         {loadingOrder && (
           <div className="flex justify-center py-16">
             <div className="w-6 h-6 rounded-full border-2 border-brand-pink border-t-transparent animate-spin" />
@@ -161,9 +162,15 @@ export default function OrderDetailPage() {
         )}
 
         {errOrder && (
-          <div className="text-center py-16">
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
             <p className="text-muted text-sm">No se pudo cargar el pedido.</p>
-            <Link to="/pedidos" className="text-brand-pink text-sm hover:underline mt-2 block">
+            <button
+              onClick={() => refetchOrder()}
+              className="bg-brand-pink text-white text-sm font-semibold px-5 py-2 rounded-xl"
+            >
+              Reintentar
+            </button>
+            <Link to="/pedidos" className="text-brand-pink text-sm hover:underline">
               ← Mis pedidos
             </Link>
           </div>
@@ -275,6 +282,7 @@ export default function OrderDetailPage() {
           </div>
         )}
       </main>
+      <BottomTabBar />
     </div>
   );
 }

@@ -5,12 +5,13 @@
 
 import bcrypt from "bcrypt";
 import prisma from "./database";
+import { env } from "./env";
 import logger from "../utils/logger";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "danielramon379@gmail.com";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Drrl2468#";
-const ADMIN_NAME = process.env.ADMIN_NAME || "Administrador";
-const ADMIN_PHONE = process.env.ADMIN_PHONE || "+573232943624";
+const ADMIN_EMAIL    = env.admin.email;
+const ADMIN_PASSWORD = env.admin.password;
+const ADMIN_NAME     = env.admin.name;
+const ADMIN_PHONE    = env.admin.phone;
 
 /**
  * Crea el usuario administrador si no existe en la base de datos.
@@ -37,6 +38,7 @@ export async function seedAdminUser(): Promise<void> {
         password: hashedPassword,
         role: "ADMIN",
         active: true,
+        emailVerified: true,
       },
     });
 

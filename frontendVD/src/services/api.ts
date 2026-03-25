@@ -19,6 +19,7 @@ import type {
   PaymentInitInput,
   BottleReturnInput,
 } from '../types';
+import { useToastStore } from '../stores/toastStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Axios instance
@@ -30,7 +31,7 @@ import type {
  * If the env var is missing, falls back to the Docker Compose service URL.
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:4000',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
 });
@@ -79,6 +80,7 @@ api.interceptors.response.use(
       localStorage.removeItem('danii_auth');
       // Only redirect if we are not already on the login page to avoid loops.
       if (!window.location.pathname.startsWith('/login')) {
+        useToastStore.getState().addToast('Sesion expirada. Inicia sesion nuevamente.', 'warning');
         window.location.replace('/login');
       }
     }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { login, resendVerification } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -58,10 +58,20 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
+        {/* Back to home */}
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-1 text-sm text-muted hover:text-text-primary mb-4 transition-colors"
+          aria-label="Volver al inicio"
+        >
+          <ArrowLeft size={16} />
+          Inicio
+        </button>
+
         {/* Brand header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-brand-pink">Variedades DANII</h1>
-          <p className="text-muted text-sm mt-1">Inicia sesión en tu cuenta</p>
+          <p className="text-muted text-sm mt-1">Inicia sesion en tu cuenta</p>
         </div>
 
         {/* Unverified banner */}
