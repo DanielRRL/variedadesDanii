@@ -136,7 +136,7 @@ export default function OrderDetailPage() {
     queryKey: ['order', id],
     queryFn: async () => {
       const res = await getOrderById(id!);
-      return res.data.order as Order;
+      return (res.data?.order ?? res.data) as Order;
     },
     enabled: !!id,
   });
@@ -145,7 +145,8 @@ export default function OrderDetailPage() {
     queryKey: ['order-history', id],
     queryFn: async () => {
       const res = await getOrderHistory(id!);
-      return (res.data.history ?? []) as OrderStatusHistory[];
+      const body = res.data;
+      return (Array.isArray(body) ? body : (body?.history ?? [])) as OrderStatusHistory[];
     },
     enabled: !!id,
   });

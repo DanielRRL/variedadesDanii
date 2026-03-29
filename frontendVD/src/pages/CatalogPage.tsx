@@ -139,7 +139,7 @@ export default function CatalogPage() {
   // ── SECTION 1 — Search debounce (400 ms) ───────────────────────────────
   // GET /api/essences?search=term — backend searches in essence name and
   // inspirationBrand fields.
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const handleSearchChange = (value: string) => {
     setLocalSearch(value);
     clearTimeout(searchTimerRef.current);
@@ -173,7 +173,7 @@ export default function CatalogPage() {
     staleTime: 10 * 60 * 1000, // families rarely change
   });
   const families: { id: string; name: string }[] =
-    familiesRes?.data?.data ?? [];
+    Array.isArray(familiesRes?.data) ? familiesRes.data : [];
 
   // ── SECTION 5 data — GET /api/essences (paginated, filtered) ───────────
   // Params: search, olfactiveFamily, minPrice (COP/ml), maxPrice (COP/ml).
@@ -197,9 +197,8 @@ export default function CatalogPage() {
   // Extract the array from the Axios response shape:
   // axiosResponse.data = { success: true, data: Essence[] }
   const allFromApi: Essence[] = useMemo(() => {
-    const body = essencesRes?.data; // { success: true, data: [...] }
-    const list = Array.isArray(body) ? body : (body?.data ?? []);
-    return Array.isArray(list) ? list : [];
+    const body = essencesRes?.data;
+    return Array.isArray(body) ? body : (body?.essences ?? []);
   }, [essencesRes]);
 
   // Apply client-side sort (fallback for orderBy options the backend doesn't support).

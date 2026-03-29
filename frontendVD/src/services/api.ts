@@ -66,22 +66,40 @@ api.interceptors.request.use((config) => {
 });
 
 /**
- * RESPONSE interceptor — handles global 401 (expired / invalid token).
+ * RESPONSE interceptor — two responsibilities:
  *
- * Clears the persisted auth state and redirects the user to /login so
- * they can re-authenticate. Uses window.location.replace to avoid leaving
- * the protected page in browser history.
+ * 1. SUCCESS: Unwraps the backend's standard { success, data } envelope so
+ *    callers can access `res.data.user` instead of `res.data.data.user`.
+ *
+ * 2. ERROR (401): Clears persisted auth and redirects to /login when a
+ *    protected endpoint rejects the token (expired / invalid).
+ *    Auth endpoints (/api/auth/*) are excluded because a 401 there means
+ *    wrong credentials, not an expired session.
  */
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Unwrap { success: true, data: { ... } } -> data becomes the inner object
+    if (
+      response.data &&
+      typeof response.data === 'object' &&
+      'success' in response.data &&
+      'data' in response.data
+    ) {
+      response.data = response.data.data;
+    }
+    return response;
+  },
   (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      // Remove persisted auth so the next page load starts unauthenticated.
-      localStorage.removeItem('danii_auth');
-      // Only redirect if we are not already on the login page to avoid loops.
-      if (!window.location.pathname.startsWith('/login')) {
-        useToastStore.getState().addToast('Sesion expirada. Inicia sesion nuevamente.', 'warning');
-        window.location.replace('/login');
+      // Ignore 401 from auth endpoints (login, register, etc.) — those are
+      // credential errors, not session expiration.
+      const url = error.config?.url ?? '';
+      if (!url.includes('/api/auth/')) {
+        localStorage.removeItem('danii_auth');
+        if (!window.location.pathname.startsWith('/login')) {
+          useToastStore.getState().addToast('Sesion expirada. Inicia sesion nuevamente.', 'warning');
+          window.location.replace('/login');
+        }
       }
     }
     return Promise.reject(error);

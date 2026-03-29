@@ -76,7 +76,8 @@ export default function OrdersListPage() {
     queryKey: ['my-orders'],
     queryFn: async () => {
       const res = await getMyOrders();
-      return (res.data.orders ?? []) as Order[];
+      const body = res.data;
+      return (Array.isArray(body) ? body : (body?.orders ?? [])) as Order[];
     },
   });
 

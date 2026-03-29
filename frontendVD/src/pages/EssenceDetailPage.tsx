@@ -187,8 +187,7 @@ export default function EssenceDetailPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Extract essence from Axios response: axiosRes.data.data
-  const essence: Essence | null = essenceRes?.data?.data ?? null;
+  const essence: Essence | null = essenceRes?.data ?? null;
 
   // ── Fetch bottles: GET /api/bottles ─────────────────────────────────────
   // Used to get the real bottleId to pass to cartStore.addItem.
@@ -200,7 +199,7 @@ export default function EssenceDetailPage() {
     staleTime: 10 * 60 * 1000,
   });
   const bottlesList: Array<{ id: string; type: string; name: string }> =
-    bottlesRes?.data?.data ?? [];
+    Array.isArray(bottlesRes?.data) ? bottlesRes.data : [];
 
   const resolvedBottleId = useMemo(() => {
     if (bottleChoice === 'own') return null;
