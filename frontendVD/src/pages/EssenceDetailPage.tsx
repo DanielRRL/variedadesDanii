@@ -35,7 +35,6 @@ import {
   calculateEssencePrice,
   calculateOzOptions,
   calculateLineTotal,
-  calculatePointsPreview,
 } from '../utils/priceCalculator';
 import type { Essence } from '../types';
 
@@ -230,8 +229,6 @@ export default function EssenceDetailPage() {
     // Return discount only applies when a paid bottle is selected AND user opts in.
     bottleChoice !== 'own' && returnsBottle,
   );
-
-  const pointsPreview = calculatePointsPreview(lineTotal);
 
   const ozOptions = essence ? calculateOzOptions(essence.pricePerMl) : [];
 
@@ -657,9 +654,7 @@ export default function EssenceDetailPage() {
           >
             <Trophy size={18} className="text-brand-gold flex-none" strokeWidth={1.8} />
             <p className="font-heading font-medium text-[13px] text-brand-gold leading-snug">
-              Ganarás{' '}
-              <strong>{pointsPreview.toLocaleString('es-CO')} puntos</strong>{' '}
-              con esta compra
+              Ganarás <strong>+1g</strong> y una <strong>ficha de juego</strong> con esta compra
             </p>
           </div>
         )}

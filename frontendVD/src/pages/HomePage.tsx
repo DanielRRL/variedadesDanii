@@ -13,18 +13,18 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ShoppingBag, Star, Recycle, CreditCard,
+  ShoppingBag, Star, Gamepad2, CreditCard,
   Package, Trophy, Sparkles, ChevronRight,
-  AlertCircle, RefreshCw, User, Crown,
+  AlertCircle, RefreshCw, User, Scale,
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getEssences } from '../services/api';
+import { getEssences, getMyGramAccount } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
-import { LoyaltyBadge } from '../components/loyalty/LoyaltyBadge';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
 import { formatCOP } from '../utils/format';
-import type { Essence } from '../types';
+import { GRAMS_PER_OZ, gramProgress } from '../utils/priceCalculator';
+import type { Essence, GramAccount } from '../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -36,10 +36,6 @@ import type { Essence } from '../types';
  */
 const WA_NUMBER = '573003837442';
 const WA_GREETING = encodeURIComponent('Hola, quiero información sobre las esencias');
-
-/** Points thresholds that match the backend LoyaltyService. */
-const PREFERRED_THRESHOLD = 5_000;
-const VIP_THRESHOLD        = 15_000;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-components
@@ -54,7 +50,6 @@ function HeroTopBar() {
   const user       = useAuthStore((s) => s.user);
   const cartItems  = useCartStore((s) => s.items);
   const cartCount  = cartItems.length;
-  const level      = user?.loyaltyAccount?.level;
   const initials   = user?.name
     ? user.name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
     : null;
@@ -82,7 +77,7 @@ function HeroTopBar() {
           )}
         </button>
 
-        {/* User avatar + loyalty indicator */}
+        {/* User avatar */}
         {user ? (
           <button
             onClick={() => navigate('/perfil')}
@@ -93,21 +88,7 @@ function HeroTopBar() {
               <span className="font-heading font-bold text-[11px] text-surface leading-none">
                 {initials}
               </span>
-              {level === 'VIP' && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center">
-                  <Crown size={9} className="text-surface" strokeWidth={2.5} />
-                </span>
-              )}
-              {level === 'PREFERRED' && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center">
-                  <Star size={9} className="text-surface" strokeWidth={2.5} />
-                </span>
-              )}
             </div>
-            {/* Loyalty badge next to avatar — only for elevated tiers */}
-            {level && level !== 'BASIC' && (
-              <LoyaltyBadge level={level} size="sm" />
-            )}
           </button>
         ) : (
           <button
@@ -216,8 +197,6 @@ export default function HomePage() {
   const navigate        = useNavigate();
   const user            = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const loyalty         = user?.loyaltyAccount;
-
   // ── Section 2 data — GET /api/essences?orderBy=sales&limit=6 ─────────────
   // Backend must support orderBy=sales to return top-selling essences.
   const {
@@ -228,20 +207,21 @@ export default function HomePage() {
   } = useQuery({
     queryKey: ['essences', 'featured'],
     queryFn:  () => getEssences({ orderBy: 'name', limit: 6 }),
-    // Keep stale data visible while revalidating in the background.
     staleTime: 2 * 60 * 1000,
   });
 
   const essences: Essence[] = Array.isArray(essencesData?.data) ? essencesData.data : (essencesData?.data?.essences ?? []);
 
-  // ── Loyalty progress calculation ──────────────────────────────────────────
-  const currentPoints  = loyalty?.points ?? 0;
-  const currentLevel   = loyalty?.level  ?? 'BASIC';
-  const nextThreshold  = currentLevel === 'BASIC' ? PREFERRED_THRESHOLD : VIP_THRESHOLD;
-  const progressPct    = currentLevel === 'VIP'
-    ? 100
-    : Math.min(100, Math.round((currentPoints / nextThreshold) * 100));
-  const nextLevelLabel = currentLevel === 'BASIC' ? 'Preferencial' : 'VIP';
+  // ── Gram account query (only when authenticated) ──────────────────────────
+  const { data: gramRes } = useQuery({
+    queryKey: ['gramAccount', 'home'],
+    queryFn: getMyGramAccount,
+    enabled: isAuthenticated,
+    staleTime: 2 * 60_000,
+  });
+  const gram = (gramRes?.data?.account ?? gramRes?.data) as GramAccount | undefined;
+  const currentGrams = gram?.currentGrams ?? 0;
+  const pct = gramProgress(currentGrams);
 
   return (
     <div className="min-h-screen bg-background pb-20 font-body">
@@ -371,9 +351,9 @@ export default function HomePage() {
         <div className="flex flex-col gap-3">
           {[
             {
-              Icon: Recycle,
-              title: 'Devuelve el frasco, obtén descuento',
-              desc:  'Retorna tu frasco vacío y acumula puntos adicionales.',
+              Icon: Gamepad2,
+              title: 'Juega y gana gramos',
+              desc:  'Cada compra te da una ficha de juego. Gira la ruleta y gana gramos extra.',
             },
             {
               Icon: CreditCard,
@@ -387,8 +367,8 @@ export default function HomePage() {
             },
             {
               Icon: Trophy,
-              title: 'Programa de puntos y nivel VIP',
-              desc:  'Cada compra te acerca a descuentos exclusivos.',
+              title: 'Acumula 13g y gana 1 oz de esencia',
+              desc:  'Cada compra suma gramos. Al llegar a 13 canjeas una onza gratis.',
             },
           ].map(({ Icon, title, desc }) => (
             <div
@@ -413,35 +393,49 @@ export default function HomePage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SECTION 4 — Loyalty teaser
-          If NOT authenticated: show registration CTA with level icons.
-          If authenticated: show points balance + progress to next level
-            (data from authStore.user.loyaltyAccount — no extra API call needed).
+          SECTION 4 — Gram wallet teaser
+          If NOT authenticated: show registration CTA with gram-earning methods.
+          If authenticated: show gram balance + progress bar toward next free oz.
       ════════════════════════════════════════════════════════════════════════ */}
-      <section className="mt-8 px-4 mb-4" aria-labelledby="loyalty-heading">
+      <section className="mt-8 px-4 mb-4" aria-labelledby="gram-heading">
         {!isAuthenticated ? (
           /* ── Unauthenticated: invite to register ── */
           <div className="bg-surface rounded-2xl shadow-card border border-border p-5 flex flex-col items-center text-center gap-4">
             <Sparkles size={28} className="text-brand-gold" strokeWidth={1.5} />
             <div>
               <h2
-                id="loyalty-heading"
+                id="gram-heading"
                 className="font-heading font-semibold text-[18px] text-text-primary"
               >
-                Acumula puntos en cada compra
+                Acumula gramos y gana esencias gratis
               </h2>
               <p className="font-body text-[13px] text-muted mt-1 max-w-xs">
-                Sube de nivel y desbloquea descuentos exclusivos con cada fragancia.
+                Cada compra te da 1g + una ficha de juego. Al llegar a {GRAMS_PER_OZ}g canjeas 1 oz de esencia.
               </p>
             </div>
 
-            {/* Level progression preview */}
-            <div className="flex items-center justify-center gap-2 w-full">
-              <LoyaltyBadge level="BASIC"     size="sm" />
+            {/* How to earn grams */}
+            <div className="flex items-center justify-center gap-4 w-full">
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-full bg-brand-gold/10 flex items-center justify-center">
+                  <Scale size={18} className="text-brand-gold" />
+                </div>
+                <span className="text-[10px] text-muted">Compra</span>
+              </div>
               <ChevronRight size={14} className="text-border flex-none" />
-              <LoyaltyBadge level="PREFERRED" size="sm" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-full bg-brand-pink/10 flex items-center justify-center">
+                  <Gamepad2 size={18} className="text-brand-pink" />
+                </div>
+                <span className="text-[10px] text-muted">Juega</span>
+              </div>
               <ChevronRight size={14} className="text-border flex-none" />
-              <LoyaltyBadge level="VIP"       size="sm" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-full bg-brand-gold/10 flex items-center justify-center">
+                  <Trophy size={18} className="text-brand-gold" />
+                </div>
+                <span className="text-[10px] text-muted">Canjea</span>
+              </div>
             </div>
 
             <Link
@@ -452,66 +446,51 @@ export default function HomePage() {
             </Link>
           </div>
         ) : (
-          /* ── Authenticated: loyalty summary card ── */
-          <div className="bg-surface rounded-2xl shadow-card border border-border p-5">
+          /* ── Authenticated: gram wallet summary ── */
+          <div className="bg-surface rounded-2xl shadow-card border border-brand-gold/30 p-5">
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h2
-                  id="loyalty-heading"
+                  id="gram-heading"
                   className="font-heading font-semibold text-[16px] text-text-primary"
                 >
-                  Mis puntos
+                  Mis gramos
                 </h2>
                 <p className="font-body text-[12px] text-muted">
                   {user?.name?.split(' ')[0]}
                 </p>
               </div>
-              {loyalty && <LoyaltyBadge level={currentLevel} size="sm" />}
+              <Scale size={22} className="text-brand-gold" />
             </div>
 
-            {/* Points balance */}
-            <p className="font-heading font-bold text-[32px] text-brand-gold leading-none mb-1">
-              {currentPoints.toLocaleString('es-CO')}
-            </p>
-            <p className="font-body text-[12px] text-muted mb-4">
-              puntos acumulados
-            </p>
-
-            {/* Progress bar to next level */}
-            {currentLevel !== 'VIP' && (
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="font-body text-[11px] text-muted">
-                    Hacia nivel {nextLevelLabel}
-                  </span>
-                  <span className="font-body text-[11px] text-brand-gold font-medium">
-                    {progressPct}%
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-border rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-brand-gold rounded-full transition-all duration-500"
-                    style={{ width: `${progressPct}%` }}
-                  />
-                </div>
-                <p className="font-body text-[11px] text-muted mt-1">
-                  Te faltan {Math.max(0, nextThreshold - currentPoints).toLocaleString('es-CO')} puntos
-                </p>
-              </div>
-            )}
-
-            {currentLevel === 'VIP' && (
-              <p className="font-body text-[13px] text-brand-gold font-medium flex items-center gap-1">
-                <Trophy size={14} strokeWidth={2} />
-                ¡Eres cliente VIP! Disfruta tus beneficios exclusivos.
+            {/* Gram balance */}
+            <div className="flex items-end gap-1 mb-1">
+              <p className="font-heading font-bold text-[32px] text-brand-gold leading-none">
+                {currentGrams}
               </p>
-            )}
+              <p className="font-body text-[14px] text-muted mb-1">
+                / {GRAMS_PER_OZ}g
+              </p>
+            </div>
+            <p className="font-body text-[12px] text-muted mb-4">
+              {currentGrams >= GRAMS_PER_OZ
+                ? '¡Puedes canjear 1 oz de esencia gratis!'
+                : `${GRAMS_PER_OZ - currentGrams}g más para tu próxima oz gratis`}
+            </p>
+
+            {/* Progress bar */}
+            <div className="w-full h-2.5 bg-border rounded-full overflow-hidden mb-4">
+              <div
+                className="h-full bg-brand-gold rounded-full transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
 
             <Link
-              to="/perfil"
-              className="mt-4 flex items-center justify-center gap-1 text-brand-blue font-body text-[13px] font-medium"
+              to="/mis-gramos"
+              className="flex items-center justify-center gap-1 text-brand-blue font-body text-[13px] font-medium"
             >
-              Ver mi historial de puntos <ChevronRight size={14} strokeWidth={2} />
+              Ver mi billetera de gramos <ChevronRight size={14} strokeWidth={2} />
             </Link>
           </div>
         )}

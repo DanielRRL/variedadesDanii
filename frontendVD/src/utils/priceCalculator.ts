@@ -74,21 +74,40 @@ export function calculateLineTotal(
   return essencePrice + bottlePrice - (returnsBottle ? returnDiscount : 0);
 }
 
-/**
- * Preview how many loyalty points the customer will earn for this order.
- *
- * The loyalty program awards 1 point per COP $1 spent.
- * This is a client-side estimate; the server calculates the real amount
- * after applying all discounts.
- *
- * calculatePointsPreview shows the user how many points they will earn
- * before confirming — it is a gamification hook visible on the checkout screen.
- *
- * @param orderTotal - Grand total of the order in COP.
- * @returns Estimated loyalty points to be earned.
- *
- * @example calculatePointsPreview(15464) // 15464 points
- */
-export function calculatePointsPreview(orderTotal: number): number {
-  return Math.floor(orderTotal);
+// ─────────────────────────────────────────────────────────────────────────────
+// Gram gamification utilities
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 13 grams converts to 1 free ounce of essence. */
+export const GRAMS_PER_OZ = 13;
+
+/** Progress percentage toward the next free ounce (0–100). */
+export function gramProgress(currentGrams: number): number {
+  return Math.min(100, Math.round((currentGrams / GRAMS_PER_OZ) * 100));
+}
+
+/** How many full ounces can be redeemed from grams. */
+export function gramsToOz(grams: number): number {
+  return Math.floor(grams / GRAMS_PER_OZ);
+}
+
+/** Convert ounces back to grams. */
+export function ozToGrams(oz: number): number {
+  return oz * GRAMS_PER_OZ;
+}
+
+/** Grams remaining until the next full ounce. */
+export function gramsUntilNextOz(currentGrams: number): number {
+  const remainder = currentGrams % GRAMS_PER_OZ;
+  return remainder === 0 && currentGrams > 0 ? 0 : GRAMS_PER_OZ - remainder;
+}
+
+/** Apply a referral discount percentage to a subtotal. */
+export function calculateReferralDiscount(subtotal: number, discountPct: number): number {
+  return Math.round(subtotal * (discountPct / 100));
+}
+
+/** Calculate delivery fee based on delivery type. */
+export function calculateDeliveryFee(deliveryType: 'PICKUP' | 'DELIVERY'): number {
+  return deliveryType === 'PICKUP' ? 0 : 5_000;
 }

@@ -20,7 +20,11 @@
 
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Search, Gamepad2, Package, User } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
+import { getMyGameTokens } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
+import type { GameToken } from '../../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -55,11 +59,29 @@ interface BottomTabBarProps {
  */
 export function BottomTabBar({ activeOrderCount = 0, pendingGameTokens = 0 }: BottomTabBarProps) {
   const location = useLocation();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  // Auto-fetch pending game tokens when authenticated
+  const { data: tokensRes } = useQuery({
+    queryKey: ['gameTokens', 'bottom-bar'],
+    queryFn: getMyGameTokens,
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
+  const fetchedPending = isAuthenticated
+    ? ((tokensRes?.data?.pendingTokens ?? tokensRes?.data ?? []) as GameToken[])
+        .filter((t) => t.status === 'PENDING').length
+    : 0;
+
+  // Merge: prop overrides if passed explicitly, else use fetched value
+  const effectiveTokens = pendingGameTokens > 0 ? pendingGameTokens : fetchedPending;
 
   const tabs: Tab[] = [
     { label: 'Inicio',    route: '/',         Icon: Home     },
     { label: 'Catálogo',  route: '/catalogo',  Icon: Search   },
-    { label: 'Juegos',    route: '/juegos',    Icon: Gamepad2, badge: pendingGameTokens },
+    { label: 'Juegos',    route: '/juegos',    Icon: Gamepad2, badge: effectiveTokens },
     { label: 'Pedidos',   route: '/pedidos',   Icon: Package,  badge: activeOrderCount },
     { label: 'Perfil',    route: '/perfil',    Icon: User     },
   ];

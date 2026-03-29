@@ -1,13 +1,13 @@
 /**
- * ProfilePage.tsx — User profile, loyalty summary, referral code, and settings.
+ * ProfilePage.tsx — User profile, gram wallet, referral code, and settings.
  *
  * Route: /perfil (ProtectedRoute — requires authentication)
  * Backend:
- *   GET  /api/loyalty/account        — live loyalty account data
- *   GET  /api/loyalty/transactions   — paginated points history
- *   GET  /api/loyalty/referral-code  — personal referral code
+ *   GET  /api/grams/account           — gram wallet data
+ *   GET  /api/game-tokens/my          — pending game tokens
+ *   GET  /api/loyalty/referral-code   — personal referral code
  *   POST /api/auth/resend-verification
- *   PUT  /api/users/:id              — profile update
+ *   PUT  /api/users/:id               — profile update
  */
 
 import { useState } from 'react';
@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ChevronRight,
-  Trophy,
+  Scale,
   Share2,
   Copy,
   Check,
@@ -25,153 +25,24 @@ import {
   LogOut,
   Package,
   MapPin,
+  Gamepad2,
   Bell,
-  Recycle,
-  RotateCcw,
   X,
   Loader2,
 } from 'lucide-react';
 
 import { useAuthStore }         from '../stores/authStore';
 import {
-  getLoyaltyAccount,
-  getLoyaltyTransactions,
+  getMyGramAccount,
+  getMyGameTokens,
   getMyReferralCode,
   resendVerification,
   updateMyProfile,
 }                               from '../services/api';
-import type { LoyaltyTransaction } from '../types';
-import { LoyaltyBadge }         from '../components/loyalty/LoyaltyBadge';
+import type { GramAccount, GameToken } from '../types';
+import { GRAMS_PER_OZ, gramProgress } from '../utils/priceCalculator';
 import { AppBar }               from '../components/layout/AppBar';
 import { BottomTabBar }         from '../components/layout/BottomTabBar';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Progress bar fill% per loyalty level */
-const LEVEL_PROGRESS: Record<string, number> = {
-  BASIC: 15,
-  PREFERRED: 55,
-  VIP: 100,
-};
-
-/** Next-level hint text shown under the progress bar */
-function levelHint(level: string, points: number): string {
-  if (level === 'VIP') return '¡Eres nuestro cliente VIP. Gracias!';
-  if (level === 'PREFERRED') {
-    const needed = Math.max(0, 500 - (points % 500));
-    return `Solo ${needed} puntos para nivel VIP`;
-  }
-  return 'Realiza 5 compras para nivel Preferencial';
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Sub-component: PointsHistoryModal
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Bottom-sheet modal showing paginated loyalty transaction history.
- * GET /api/loyalty/transactions returns paginated history sorted by createdAt DESC.
- */
-function PointsHistoryModal({ onClose }: { onClose: () => void }) {
-  const [page, setPage] = useState(1);
-
-  const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['loyalty-transactions', page],
-    queryFn: () => getLoyaltyTransactions(page),
-    staleTime: 60_000,
-  });
-
-  // Each page appended onto accumulated list
-  const transactions: LoyaltyTransaction[] =
-    data?.data?.transactions ?? data?.data ?? [];
-
-  const total: number = data?.data?.total ?? transactions.length;
-  const hasMore = transactions.length < total;
-
-  const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('es-CO', {
-      day: '2-digit', month: 'short', year: 'numeric',
-    });
-
-  return (
-    /* Overlay */
-    <div
-      className="fixed inset-0 z-50 flex items-end"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Historial de puntos"
-    >
-      <div
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      {/* Sheet */}
-      <div className="relative w-full max-h-[80vh] bg-surface rounded-t-3xl flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Trophy size={18} className="text-brand-gold" />
-            <h2 className="font-heading font-bold text-text-primary text-base">
-              Historial de Puntos
-            </h2>
-          </div>
-          <button onClick={onClose} aria-label="Cerrar" className="p-1 text-muted hover:text-text-primary">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Transaction list */}
-        <div className="flex-1 overflow-y-auto px-5 divide-y divide-border">
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <Loader2 size={28} className="animate-spin text-brand-pink" />
-            </div>
-          ) : transactions.length === 0 ? (
-            <p className="text-muted text-sm text-center py-10">
-              Aún no tienes movimientos de puntos.
-            </p>
-          ) : (
-            transactions.map((tx) => (
-              <div key={tx.id} className="flex items-start justify-between py-3 gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-text-primary leading-tight truncate">
-                    {tx.description}
-                  </p>
-                  <p className="text-xs text-muted mt-0.5">{formatDate(tx.createdAt)}</p>
-                </div>
-                <span
-                  className={`font-heading font-bold text-sm shrink-0 ${
-                    tx.type === 'EARN' ? 'text-green-600' : 'text-red-500'
-                  }`}
-                >
-                  {tx.type === 'EARN' ? '+' : '-'}{tx.points} pts
-                </span>
-              </div>
-            ))
-          )}
-
-          {/* Load more */}
-          {hasMore && (
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={isFetching}
-              className="w-full py-3 text-brand-blue text-sm font-medium flex items-center justify-center gap-2"
-            >
-              {isFetching ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                'Cargar más'
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-component: EditProfileModal
@@ -359,7 +230,6 @@ export default function ProfilePage() {
   const clearAuth  = useAuthStore((s) => s.clearAuth);
 
   // ── UI state ───────────────────────────────────────────────────────────────
-  const [showHistoryModal, setShowHistoryModal]   = useState(false);
   const [showEditModal, setShowEditModal]         = useState(false);
   const [showLogoutDialog, setShowLogoutDialog]   = useState(false);
   const [codeCopied, setCodeCopied]               = useState(false);
@@ -368,10 +238,16 @@ export default function ProfilePage() {
   const [resendError, setResendError]             = useState('');
 
   // ── Queries ────────────────────────────────────────────────────────────────
-  const { data: loyaltyRes } = useQuery({
-    queryKey: ['loyalty'],
-    queryFn: getLoyaltyAccount,
+  const { data: gramRes } = useQuery({
+    queryKey: ['gramAccount'],
+    queryFn: getMyGramAccount,
     staleTime: 2 * 60_000,
+  });
+
+  const { data: tokensRes } = useQuery({
+    queryKey: ['gameTokens', 'profile'],
+    queryFn: getMyGameTokens,
+    staleTime: 60_000,
   });
 
   const { data: referralRes } = useQuery({
@@ -381,13 +257,15 @@ export default function ProfilePage() {
   });
 
   // Normalise response shapes
-  const loyalty = loyaltyRes?.data?.account ?? loyaltyRes?.data;
+  const gram = (gramRes?.data?.account ?? gramRes?.data) as GramAccount | undefined;
   const referral = referralRes?.data;
+  const allTokens: GameToken[] = tokensRes?.data?.pendingTokens ?? tokensRes?.data ?? [];
+  const pendingTokens = allTokens.filter((t) => t.status === 'PENDING');
 
-  const currentLevel: 'BASIC' | 'PREFERRED' | 'VIP' =
-    loyalty?.level ?? user?.loyaltyAccount?.level ?? 'BASIC';
-  const points = loyalty?.points ?? user?.loyaltyAccount?.points ?? 0;
-  const bottleReturnsCount = loyalty?.bottleReturnsCount ?? 0;
+  const currentGrams  = gram?.currentGrams  ?? 0;
+  const totalEarned   = gram?.totalEarned   ?? 0;
+  const totalRedeemed = gram?.totalRedeemed ?? 0;
+  const pct           = gramProgress(currentGrams);
 
   // ── Avatar initials ────────────────────────────────────────────────────────
   const initials = user?.name
@@ -429,15 +307,13 @@ export default function ProfilePage() {
   // ── Menu items ─────────────────────────────────────────────────────────────
 
   const menuItems = [
-    { icon: Package, label: 'Mis pedidos',          action: () => navigate('/pedidos'),                  },
-    { icon: MapPin,  label: 'Mis direcciones',       action: () => navigate('/perfil/direcciones'),       },
-    { icon: Trophy,  label: 'Historial de puntos',   action: () => setShowHistoryModal(true),             },
-    { icon: Bell,    label: 'Notificaciones',        action: () => navigate('/perfil/notificaciones'),    },
-    { icon: LogOut,  label: 'Cerrar sesión',         action: () => setShowLogoutDialog(true), danger: true },
+    { icon: Package,  label: 'Mis pedidos',     action: () => navigate('/pedidos')               },
+    { icon: Scale,    label: 'Mis gramos',       action: () => navigate('/mis-gramos')            },
+    { icon: Gamepad2, label: 'Juegos',           action: () => navigate('/juegos')                },
+    { icon: MapPin,   label: 'Mis direcciones',  action: () => navigate('/perfil/direcciones')    },
+    { icon: Bell,     label: 'Notificaciones',   action: () => navigate('/perfil/notificaciones') },
+    { icon: LogOut,   label: 'Cerrar sesión',    action: () => setShowLogoutDialog(true), danger: true },
   ];
-
-  // ── Progress bar ───────────────────────────────────────────────────────────
-  const progressPct = LEVEL_PROGRESS[currentLevel] ?? 15;
 
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -519,75 +395,78 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* ── SECTION 3: Loyalty card ───────────────────────────────────────── */}
+        {/* ── SECTION 3: Gram wallet card ───────────────────────────────── */}
         <div className="bg-surface rounded-2xl border border-brand-gold/30 shadow-card p-4 space-y-4">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Trophy size={18} className="text-brand-gold" />
-              <span className="font-heading font-semibold text-text-primary text-sm">
-                Tu nivel de fidelización
-              </span>
-            </div>
-            <LoyaltyBadge level={currentLevel} size="md" />
+          <div className="flex items-center gap-2">
+            <Scale size={18} className="text-brand-gold" />
+            <span className="font-heading font-semibold text-text-primary text-sm">
+              Mi billetera de gramos
+            </span>
           </div>
 
-          {/* Points */}
+          {/* Current grams */}
           <div className="flex items-end gap-2">
             <span className="font-heading font-bold text-brand-gold text-4xl leading-none">
-              {points.toLocaleString('es-CO')}
+              {currentGrams}
             </span>
-            <span className="font-body font-medium text-muted text-base mb-0.5">puntos</span>
+            <span className="font-body font-medium text-muted text-base mb-0.5">
+              / {GRAMS_PER_OZ}g
+            </span>
           </div>
 
-          {/* Progress bar */}
+          {/* Progress bar toward next oz */}
           <div>
             <div className="flex justify-between text-[10px] font-semibold text-muted mb-1.5 uppercase tracking-wide">
-              <span>Básico</span>
-              <span>Preferencial</span>
-              <span>VIP</span>
+              <span>0g</span>
+              <span>{GRAMS_PER_OZ}g = 1 oz gratis</span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-brand-pink rounded-full transition-all duration-700"
-                style={{ width: `${progressPct}%` }}
+                className="h-full bg-brand-gold rounded-full transition-all duration-700"
+                style={{ width: `${pct}%` }}
               />
             </div>
-            <p className="text-xs text-muted mt-2">{levelHint(currentLevel, points)}</p>
+            <p className="text-xs text-muted mt-2">
+              {currentGrams >= GRAMS_PER_OZ
+                ? '¡Puedes canjear 1 oz de esencia gratis!'
+                : `Te faltan ${GRAMS_PER_OZ - currentGrams}g para canjear`}
+            </p>
           </div>
 
-          {/* Benefit pills */}
-          <div className="flex gap-2 flex-wrap">
-            {(['BASIC', 'PREFERRED', 'VIP'] as const).map((tier, idx) => {
-              const labels = ['5% desc.', '8% desc.', 'Envío gratis'];
-              const unlocked =
-                (currentLevel === 'VIP') ||
-                (currentLevel === 'PREFERRED' && idx <= 1) ||
-                (currentLevel === 'BASIC' && idx === 0);
-
-              return (
-                <span
-                  key={tier + idx}
-                  className={`text-xs px-3 py-1 rounded-full font-medium border ${
-                    unlocked
-                      ? 'bg-brand-gold/10 border-brand-gold/40 text-brand-gold'
-                      : 'bg-gray-100 border-gray-200 text-gray-400'
-                  }`}
-                >
-                  {unlocked ? '✓ ' : '🔒 '}{labels[idx]}
-                </span>
-              );
-            })}
+          {/* Stats row */}
+          <div className="flex gap-3">
+            <div className="flex-1 bg-brand-gold/5 rounded-xl p-3 text-center">
+              <p className="font-heading font-bold text-brand-gold text-lg leading-none">
+                {totalEarned}g
+              </p>
+              <p className="text-[10px] text-muted mt-1">Total ganado</p>
+            </div>
+            <div className="flex-1 bg-brand-pink/5 rounded-xl p-3 text-center">
+              <p className="font-heading font-bold text-brand-pink text-lg leading-none">
+                {totalRedeemed}g
+              </p>
+              <p className="text-[10px] text-muted mt-1">Total canjeado</p>
+            </div>
           </div>
 
-          {/* History link */}
-          <button
-            onClick={() => setShowHistoryModal(true)}
-            className="text-brand-blue text-sm font-medium underline underline-offset-2 flex items-center gap-1"
-          >
-            <RotateCcw size={13} />
-            Ver historial de puntos
-          </button>
+          {/* CTA: redeem or view history */}
+          {gram?.canRedeem && currentGrams >= GRAMS_PER_OZ ? (
+            <button
+              onClick={() => navigate('/mis-gramos')}
+              className="w-full bg-brand-gold text-white font-heading font-bold text-sm py-3 rounded-full shadow-md active:scale-95 transition-transform"
+            >
+              Canjear mi oz gratis
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/mis-gramos')}
+              className="text-brand-blue text-sm font-medium underline underline-offset-2 flex items-center gap-1"
+            >
+              <ChevronRight size={13} />
+              Ver historial de gramos
+            </button>
+          )}
         </div>
 
         {/* ── SECTION 4: Referral card ──────────────────────────────────────── */}
@@ -629,53 +508,58 @@ export default function ProfilePage() {
 
           <p className="text-xs text-muted leading-relaxed">
             Gana{' '}
-            <span className="font-semibold text-brand-blue">200 puntos</span> por cada amigo
-            que compre su primera fragancia.
+            <span className="font-semibold text-brand-blue">+2g</span> por cada amigo
+            que haga su primera compra.
           </p>
         </div>
 
-        {/* ── SECTION 5: Eco impact ─────────────────────────────────────────── */}
-        {/*
-          Eco-gamification element. Each returned bottle saves $2.000 COP and
-          grants +200 loyalty points. Bottle return count from loyalty account.
-        */}
-        {bottleReturnsCount >= 0 && (
-          <div className="bg-surface rounded-xl shadow-card p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Recycle size={18} className="text-green-600" />
-              <span className="font-heading font-semibold text-text-primary text-sm">
-                Impacto Eco
-              </span>
-            </div>
-
-            <p className="text-sm text-text-primary mb-2">
-              Frascos devueltos:{' '}
-              <span className="font-bold text-green-700">{bottleReturnsCount}</span>
-            </p>
-
-            {/* Leaf icons: max 10 visible, then "+N más" */}
-            <div className="flex flex-wrap gap-1 mb-2">
-              {Array.from({ length: Math.min(bottleReturnsCount, 10) }).map((_, i) => (
-                <span key={i} className="text-green-600 text-base" aria-hidden>🍃</span>
-              ))}
-              {bottleReturnsCount > 10 && (
-                <span className="text-xs text-green-600 font-semibold self-center">
-                  +{bottleReturnsCount - 10} más
-                </span>
-              )}
-            </div>
-
-            <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-3 py-1.5">
-              <span className="text-xs text-green-700 font-medium">
-                Has ahorrado{' '}
-                <span className="font-bold">
-                  ${(bottleReturnsCount * 2_000).toLocaleString('es-CO')}
-                </span>{' '}
-                y ayudado al planeta
-              </span>
-            </div>
+        {/* ── SECTION 5: Game tokens summary ─────────────────────────────── */}
+        <div className="bg-surface rounded-xl shadow-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Gamepad2 size={18} className="text-brand-pink" />
+            <span className="font-heading font-semibold text-text-primary text-sm">
+              Fichas de juego
+            </span>
           </div>
-        )}
+
+          {pendingTokens.length > 0 ? (
+            <>
+              <p className="text-sm text-text-primary mb-3">
+                Tienes{' '}
+                <span className="font-bold text-brand-pink">{pendingTokens.length}</span>{' '}
+                {pendingTokens.length === 1 ? 'ficha pendiente' : 'fichas pendientes'} por jugar
+              </p>
+
+              {/* Token pills preview — max 5 */}
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {pendingTokens.slice(0, 5).map((t) => (
+                  <span
+                    key={t.id}
+                    className="text-xs bg-brand-pink/10 text-brand-pink px-2.5 py-1 rounded-full font-medium"
+                  >
+                    🎮 Ficha
+                  </span>
+                ))}
+                {pendingTokens.length > 5 && (
+                  <span className="text-xs text-muted self-center">
+                    +{pendingTokens.length - 5} más
+                  </span>
+                )}
+              </div>
+
+              <button
+                onClick={() => navigate('/juegos')}
+                className="w-full bg-brand-pink text-white font-heading font-bold text-sm py-3 rounded-full shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2"
+              >
+                <Gamepad2 size={16} /> Jugar ahora
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-muted">
+              No tienes fichas pendientes. ¡Haz una compra para recibir una ficha!
+            </p>
+          )}
+        </div>
 
         {/* ── SECTION 6: Menu options ───────────────────────────────────────── */}
         <div className="bg-surface rounded-xl shadow-card overflow-hidden divide-y divide-border">
@@ -706,9 +590,6 @@ export default function ProfilePage() {
       <BottomTabBar />
 
       {/* ── Modals ───────────────────────────────────────────────────────────── */}
-      {showHistoryModal && (
-        <PointsHistoryModal onClose={() => setShowHistoryModal(false)} />
-      )}
       {showEditModal && (
         <EditProfileModal onClose={() => setShowEditModal(false)} />
       )}
