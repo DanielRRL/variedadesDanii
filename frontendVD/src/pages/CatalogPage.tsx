@@ -82,7 +82,7 @@ function sortProducts(list: Product[], orderBy: SortOption): Product[] {
 function ProductCardSkeleton() {
   return (
     <div className="bg-surface rounded-[12px] border border-border overflow-hidden animate-pulse">
-      <div className="aspect-[4/3] bg-border" />
+      <div className="aspect-4/3 bg-border" />
       <div className="p-3 space-y-2">
         <div className="h-4 bg-border rounded-md w-3/4" />
         <div className="h-3 bg-border rounded-md w-1/2" />
@@ -124,7 +124,7 @@ function ProductCard({ product }: { product: Product }) {
       aria-label={product.name}
     >
       {/* Photo */}
-      <div className="relative aspect-[4/3] bg-brand-pink/5">
+      <div className="relative aspect-4/3 bg-brand-pink/5">
         {product.photoUrl ? (
           <img
             src={product.photoUrl}

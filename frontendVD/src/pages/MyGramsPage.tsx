@@ -14,7 +14,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ShoppingBag, Gamepad2, Trophy, Star, Lock,
@@ -85,7 +85,7 @@ function RedeemModal({ currentGrams, onClose, onSuccess }: RedeemModalProps) {
 
   const { data: essRes } = useQuery({
     queryKey: ['essences-active'],
-    queryFn: () => getEssences({ active: true }),
+    queryFn: () => getEssences(),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -191,7 +191,7 @@ function RedeemModal({ currentGrams, onClose, onSuccess }: RedeemModalProps) {
               {/* Essence selector */}
               <div>
                 <p className="font-body font-medium text-sm text-text-primary mb-2">Elige tu esencia:</p>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-50 overflow-y-auto pr-1">
                   {essences.length === 0 && (
                     <p className="text-sm text-muted text-center py-3">Cargando esencias...</p>
                   )}
@@ -301,7 +301,6 @@ function formatDate(iso: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function MyGramsPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // ── Data ────────────────────────────────────────────────────────────────
@@ -349,7 +348,7 @@ export default function MyGramsPage() {
       <AppBar title="Mis Gramos" showBack />
 
       {/* ── SECTION 1 — Gram balance hero ──────────────────────────────── */}
-      <div className="bg-gradient-to-br from-brand-pink to-brand-pink/80 px-6 pt-8 pb-10 text-center">
+      <div className="bg-linear-to-br from-brand-pink to-brand-pink/80 px-6 pt-8 pb-10 text-center">
         {accountLoading ? (
           <div className="h-32 flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
@@ -548,7 +547,7 @@ export default function MyGramsPage() {
 
             <div className={clsx(
               'overflow-hidden transition-all duration-300',
-              redemptionsExpanded ? 'max-h-[600px]' : 'max-h-0',
+              redemptionsExpanded ? 'max-h-150' : 'max-h-0',
             )}>
               <div className="px-4 pb-4 space-y-3">
                 {redemptions.map((r) => (

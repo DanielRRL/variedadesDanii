@@ -73,10 +73,10 @@ function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
         <img
           src={item.photoUrl}
           alt={item.name}
-          className="w-[60px] h-[60px] rounded-lg object-cover flex-none"
+          className="w-15 h-15 rounded-lg object-cover flex-none"
         />
       ) : (
-        <div className="w-[60px] h-[60px] rounded-lg bg-brand-pink/5 flex items-center justify-center flex-none">
+        <div className="w-15 h-15 rounded-lg bg-brand-pink/5 flex items-center justify-center flex-none">
           <span className="font-heading font-bold text-lg text-brand-pink/30">
             {item.name.charAt(0)}
           </span>

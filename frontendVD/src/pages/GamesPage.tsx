@@ -85,7 +85,7 @@ function ResultModal({ gramsWon, newBalance, ozCompleted, onClose, onGoToGrams }
         </p>
 
         {/* Progress bar */}
-        <div className="mt-5 bg-white/20 rounded-full h-3 overflow-hidden mx-auto max-w-[240px]">
+        <div className="mt-5 bg-white/20 rounded-full h-3 overflow-hidden mx-auto max-w-60">
           <div
             className="h-full rounded-full bg-brand-gold transition-all duration-700"
             style={{ width: `${Math.min(100, (newBalance / 13) * 100)}%` }}
@@ -232,7 +232,7 @@ export default function GamesPage() {
               <p className="font-body text-muted text-base mt-1">
                 ficha{pendingTokens.length !== 1 ? 's' : ''} disponible{pendingTokens.length !== 1 ? 's' : ''}
               </p>
-              <p className="font-body text-muted text-sm mt-1.5 max-w-[260px] mx-auto">
+              <p className="font-body text-muted text-sm mt-1.5 max-w-65 mx-auto">
                 Ganaste estas fichas por tus compras. ¡Juega para ganar gramos!
               </p>
             </>
