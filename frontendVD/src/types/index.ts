@@ -85,6 +85,110 @@ export interface User {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GAMIFICATION — GRAMS, TOKENS, REDEMPTIONS, CHALLENGES
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** GramAccount — billetera de gramos del sistema de gamificacion.
+ * Cada compra genera 1g. Al llegar a 13g se puede canjear por 1 oz de esencia.
+ */
+export interface GramAccount {
+  id: string;
+  /** Gramos actuales (0-13). Al llegar a 13 se convierte automaticamente en 1 oz de esencia. */
+  currentGrams: number;
+  /** Total historico ganado (nunca decrece). */
+  totalEarned: number;
+  /** Total historico canjeado. */
+  totalRedeemed: number;
+  /** Compras confirmadas. Canje habilitado desde 5. */
+  totalPurchases: number;
+  /** true cuando totalPurchases >= 5 */
+  canRedeem: boolean;
+  /** Canjes pendientes de entrega — incluidos solo en getMyGramAccount. */
+  pendingRedemptions?: EssenceRedemption[];
+}
+
+/** GramTransaction — movimiento individual en la billetera de gramos.
+ * sourceType indica el origen: compra, juego, canje, etc.
+ */
+export interface GramTransaction {
+  id: string;
+  /** Tipo de fuente que genero esta transaccion. */
+  sourceType: 'PRODUCT_PURCHASE' | 'ESSENCE_OZ_BONUS' | 'GAME_ROULETTE' | 'GAME_PUZZLE' |
+              'WEEKLY_CHALLENGE' | 'MONTHLY_RANKING' | 'ADMIN_ADJUSTMENT' | 'REDEMPTION';
+  /** Positivo = ganancia, negativo = canje. */
+  gramsDelta: number;
+  /** Descripcion legible del movimiento. */
+  description: string;
+  /** ISO 8601 timestamp. */
+  createdAt: string;
+}
+
+/** GameToken — ficha de juego entregada tras compra confirmada.
+ * El usuario juega ruleta o puzzle para ganar gramos extra.
+ */
+export interface GameToken {
+  id: string;
+  /** PENDING = sin usar, USED = ya jugado, EXPIRED = venció sin usar. */
+  status: 'PENDING' | 'USED' | 'EXPIRED';
+  /** Tipo de juego elegido al jugar la ficha. Solo presente cuando status !== PENDING. */
+  gameType?: 'ROULETTE' | 'PUZZLE';
+  /** Gramos ganados al jugar (0 si perdio). */
+  gramsWon: number;
+  /** ISO string — el frontend muestra cuenta regresiva hasta esta fecha. */
+  expiresAt: string;
+  /** ISO string del momento en que se jugo. */
+  playedAt?: string;
+  /** ISO string de creacion. */
+  createdAt: string;
+  /** Horas restantes antes de expirar — calculado client-side desde expiresAt. */
+  hoursLeft?: number;
+}
+
+/** EssenceRedemption — canje de 13 gramos por 1 oz de esencia.
+ * El admin marca cuando entrega fisicamente la esencia al cliente.
+ */
+export interface EssenceRedemption {
+  id: string;
+  /** Gramos consumidos en este canje. */
+  gramsUsed: number;
+  /** Onzas canjeadas (normalmente 1). */
+  ozRedeemed: number;
+  /** Nombre de la esencia elegida. */
+  essenceName: string;
+  /** UUID de la esencia del catalogo (opcional si fue texto libre). */
+  essenceId?: string;
+  /** PENDING_DELIVERY = esperando entrega, DELIVERED = entregado, CANCELLED = cancelado con reembolso. */
+  status: 'PENDING_DELIVERY' | 'DELIVERED' | 'CANCELLED';
+  /** Notas del admin (motivo de cancelacion, observaciones). */
+  adminNotes?: string;
+  /** ISO string del momento de entrega. */
+  deliveredAt?: string;
+  /** ISO string de creacion. */
+  createdAt: string;
+}
+
+/** WeeklyChallenge — desafio semanal que otorga gramos bonus al completar X compras.
+ * El admin crea uno por semana; los clientes ven su progreso en la app.
+ */
+export interface WeeklyChallenge {
+  id: string;
+  /** Descripcion del desafio (e.g., "Compra 3 productos esta semana"). */
+  description: string;
+  /** Gramos de recompensa al completar el desafio. */
+  gramReward: number;
+  /** Compras requeridas para completar. */
+  requiredPurchases: number;
+  /** ISO string — inicio de la semana del desafio. */
+  weekStart: string;
+  /** ISO string — fin de la semana del desafio. */
+  weekEnd: string;
+  /** Si el desafio esta activo. */
+  active: boolean;
+  /** Progreso del usuario autenticado — solo incluido cuando hay sesion activa. */
+  myProgress?: { purchasesCount: number; completed: boolean };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CATALOG — OLFACTIVE FAMILIES
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -145,21 +249,29 @@ export interface Bottle {
 // CATALOG — PRODUCTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Sellable product. A PERFUME product links an essence + bottle at a fixed ml. */
+/** Sellable product — now supports lotions, creams, etc. via productType. */
 export interface Product {
   id: string;
   name: string;
-  /** PERFUME = essence+bottle combo; ACCESSORY = non-essence item; GENERAL = other. */
+  description?: string;
+  /** Product classification for the updated catalog (lotions, creams, splashes, etc.). */
+  productType: 'LOTION' | 'CREAM' | 'SHAMPOO' | 'MAKEUP' | 'SPLASH' | 'ACCESSORY' | 'ESSENCE_CATALOG';
+  /** Legacy category kept for backwards compatibility with existing pages. */
   category: 'PERFUME' | 'ACCESSORY' | 'GENERAL';
-  /** Only present when category === 'PERFUME'. */
+  /** Only present when productType links to an essence. */
   essence?: Essence;
-  /** Only present when category === 'PERFUME'. */
+  /** Only present when the product ships in a specific bottle. */
   bottle?: Bottle;
-  /** Milliliters of essence filled into the bottle. Only for PERFUME. */
+  /** Milliliters of product in the container. */
   mlQuantity?: number;
-  /** Final selling price in COP (essence cost + bottle cost). */
+  /** Final selling price in COP. */
   price: number;
   active: boolean;
+  /** Available units in warehouse. */
+  stockUnits: number;
+  photoUrl?: string;
+  /** When true, purchasing this product earns the customer 1 gram. Shows "Gana 1g" badge on card. */
+  generatesGram: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -168,28 +280,22 @@ export interface Product {
 
 /**
  * A single line in the shopping cart.
- * Computed client-side from the selected essence, oz/ml, bottle, and return intent.
+ * Now product-based (lotions, creams, etc.) — no more oz/ml/bottle selection.
  */
 export interface CartItem {
   productId: string;
   name: string;
-  essenceName: string;
-  /** Ounces selected by the customer (drives ml calculation). */
-  oz: number;
-  /** Milliliters = oz * 29.5735 (rounded). */
-  ml: number;
-  bottleType: string;
-  /** Bottle price in COP. */
-  bottlePrice: number;
-  /** Essence cost portion of the line total (ml * pricePerMl). */
-  essenceSubtotal: number;
-  /** Whether the customer will return the bottle for the discount. */
-  returnsBottle: boolean;
-  /** Discount in COP applied when returnsBottle is true. */
-  returnDiscount: number;
-  /** Final line total: bottlePrice + essenceSubtotal - returnDiscount (if returning). */
+  /** Product classification — used for display grouping and gram preview. */
+  productType: Product['productType'];
+  /** Units of this product in the cart. */
+  quantity: number;
+  /** Price per unit in COP. */
+  unitPrice: number;
+  /** Line total = quantity * unitPrice. */
   lineTotal: number;
   photoUrl?: string;
+  /** When true, each unit earns 1g — used to show gram preview in cart summary. */
+  generatesGram: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

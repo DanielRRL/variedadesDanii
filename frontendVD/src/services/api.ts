@@ -18,6 +18,8 @@ import type {
   CreateOrderInput,
   PaymentInitInput,
   BottleReturnInput,
+  Product,
+  WeeklyChallenge,
 } from '../types';
 import { useToastStore } from '../stores/toastStore';
 
@@ -420,3 +422,175 @@ export const getAdminInvoices = (params?: { status?: string; page?: number }) =>
  */
 export const retryInvoice = (orderId: string) =>
   api.post(`/api/admin/invoices/${orderId}/retry`);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GRAMS endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get the authenticated user's gram account (balance, canRedeem, pending redemptions).
+ * GET /api/grams/account
+ * Returns: { account: GramAccount, canRedeem, pendingRedemptions, history }
+ */
+export const getMyGramAccount = () =>
+  api.get('/api/grams/account');
+
+/**
+ * Redeem grams for an essence (13g = 1 oz).
+ * POST /api/grams/redeem
+ * Body: { gramsToRedeem, essenceName, essenceId? }
+ */
+export const redeemGrams = (data: { gramsToRedeem: number; essenceName: string; essenceId?: string }) =>
+  api.post('/api/grams/redeem', data);
+
+/**
+ * Get paginated gram transaction history.
+ * GET /api/grams/history?page=1&limit=20
+ */
+export const getGramHistory = (page = 1) =>
+  api.get('/api/grams/history', { params: { page, limit: 20 } });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME TOKENS endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get the authenticated user's pending game tokens.
+ * GET /api/game-tokens/my
+ * Returns: { pendingTokens: GameToken[], pendingCount: number }
+ */
+export const getMyGameTokens = () =>
+  api.get('/api/game-tokens/my');
+
+/**
+ * Play a game with a pending token (roulette or puzzle).
+ * POST /api/game-tokens/:tokenId/play
+ * Body: { gameType: 'ROULETTE' | 'PUZZLE' }
+ * Returns: { gramsWon, newGramBalance, ozCompleted, message }
+ */
+export const playGame = (tokenId: string, gameType: 'ROULETTE' | 'PUZZLE') =>
+  api.post(`/api/game-tokens/${tokenId}/play`, { gameType });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ESSENCE REDEMPTIONS endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get all redemptions for the authenticated user.
+ * GET /api/redemptions/my
+ * Returns: { redemptions: EssenceRedemption[] }
+ */
+export const getMyRedemptions = () =>
+  api.get('/api/redemptions/my');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHALLENGES endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get the current weekly challenge. Public — optional auth adds user progress.
+ * GET /api/challenges/current
+ * Returns: { challenge: WeeklyChallenge | null }
+ */
+export const getCurrentChallenge = () =>
+  api.get('/api/challenges/current');
+
+/**
+ * Get the authenticated user's progress on the current weekly challenge.
+ * GET /api/challenges/my-progress
+ * Returns: { progress: { purchasesCount, completed }, challenge }
+ */
+export const getMyChallengeProgress = () =>
+  api.get('/api/challenges/my-progress');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — Products CRUD
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/products?page&type&active
+ * Paginated product list with filters for admin panel.
+ */
+export const adminGetProducts = (params?: { page?: number; type?: string; active?: boolean }) =>
+  api.get('/api/admin/products', { params });
+
+/**
+ * POST /api/admin/products
+ * Create a new product. Accepts FormData (for photo upload) or JSON.
+ */
+export const adminCreateProduct = (data: FormData | Record<string, unknown>) =>
+  api.post('/api/admin/products', data);
+
+/**
+ * PUT /api/admin/products/:id
+ * Partial update of a product.
+ */
+export const adminUpdateProduct = (id: string, data: Partial<Product>) =>
+  api.put(`/api/admin/products/${id}`, data);
+
+/**
+ * PATCH /api/admin/products/:id/toggle
+ * Toggle active/inactive state of a product.
+ */
+export const adminToggleProduct = (id: string) =>
+  api.patch(`/api/admin/products/${id}/toggle`);
+
+/**
+ * POST /api/admin/products/:id/stock
+ * Add stock units to a product with optional notes.
+ */
+export const adminAddProductStock = (id: string, quantity: number, notes?: string) =>
+  api.post(`/api/admin/products/${id}/stock`, { quantity, notes });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — Gamification
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/gamification/stats
+ * Aggregate gamification stats: tokens issued, grams earned/redeemed, top players.
+ */
+export const getGamificationStats = () =>
+  api.get('/api/admin/gamification/stats');
+
+/**
+ * GET /api/admin/redemptions?page&limit
+ * Paginated list of pending essence redemptions for admin fulfillment.
+ */
+export const adminGetPendingRedemptions = (page = 1) =>
+  api.get('/api/admin/redemptions', { params: { page, limit: 20 } });
+
+/**
+ * PATCH /api/admin/redemptions/:id/deliver
+ * Mark a redemption as delivered with optional notes.
+ */
+export const adminMarkRedemptionDelivered = (id: string, notes?: string) =>
+  api.patch(`/api/admin/redemptions/${id}/deliver`, { notes });
+
+/**
+ * POST /api/admin/grams/adjust
+ * Admin manual adjustment of a user's gram balance.
+ */
+export const adminAdjustGrams = (data: { userId: string; delta: number; reason: string }) =>
+  api.post('/api/admin/grams/adjust', data);
+
+/**
+ * POST /api/admin/challenges
+ * Create a new weekly challenge.
+ */
+export const adminCreateChallenge = (data: Omit<WeeklyChallenge, 'id' | 'active' | 'myProgress'>) =>
+  api.post('/api/admin/challenges', data);
+
+/**
+ * GET /api/admin/clients/:userId/history
+ * Full client history: orders, gram account, redemptions, game tokens.
+ */
+export const getClientHistory = (userId: string) =>
+  api.get(`/api/admin/clients/${userId}/history`);
+
+/**
+ * GET /api/admin/reports/sales-by-type?from&to
+ * Sales grouped by product type within a date range.
+ */
+export const getSalesByProductType = (params?: { from?: string; to?: string }) =>
+  api.get('/api/admin/reports/sales-by-type', { params });

@@ -49,6 +49,8 @@ const OrderSuccessPage     = lazy(() => import('../pages/OrderSuccessPage'));
 const OrdersListPage       = lazy(() => import('../pages/orders/OrdersListPage'));
 const OrderDetailPage      = lazy(() => import('../pages/orders/OrderDetailPage'));
 const ProfilePage          = lazy(() => import('../pages/ProfilePage'));
+const GamesPage            = lazy(() => import('../pages/GamesPage'));
+const MyGramsPage          = lazy(() => import('../pages/MyGramsPage'));
 
 const AdminDashboardPage   = lazy(() => import('../pages/admin/AdminDashboardPage'));
 const AdminInventoryPage   = lazy(() => import('../pages/admin/AdminInventoryPage'));
@@ -60,6 +62,9 @@ const AdminInvoicesPage    = lazy(() => import('../pages/admin/AdminInvoicesPage
 const AdminReportsPage     = lazy(() => import('../pages/admin/AdminReportsPage'));
 const AdminReturnItemsPage = lazy(() => import('../pages/admin/AdminReturnItemsPage'));
 const AdminConfigPage      = lazy(() => import('../pages/admin/AdminConfigPage'));
+const AdminProductsPage    = lazy(() => import('../pages/admin/AdminProductsPage'));
+const AdminGamificationPage = lazy(() => import('../pages/admin/AdminGamificationPage'));
+const AdminRedemptionsPage = lazy(() => import('../pages/admin/AdminRedemptionsPage'));
 const AdminLayout          = lazy(() => import('../pages/admin/AdminLayout'));
 
 // ── Route guard components ────────────────────────────────────────────────────
@@ -139,6 +144,8 @@ export const router = createBrowserRouter([
       { path: '/pedidos',           element: <OrdersListPage /> },
       { path: '/pedido/:id',        element: <OrderDetailPage /> },
       { path: '/perfil',            element: <ProfilePage /> },
+      { path: '/juegos',            element: <GamesPage /> },
+      { path: '/mis-gramos',        element: <MyGramsPage /> },
     ],
   },
 
@@ -162,6 +169,9 @@ export const router = createBrowserRouter([
               { path: '/admin/reportes',       element: <AdminReportsPage />     },
               { path: '/admin/devoluciones',   element: <AdminReturnItemsPage /> },
               { path: '/admin/configuracion',  element: <AdminConfigPage />      },
+              { path: '/admin/productos',      element: <AdminProductsPage />    },
+              { path: '/admin/gamificacion',   element: <AdminGamificationPage /> },
+              { path: '/admin/canjes',         element: <AdminRedemptionsPage /> },
             ],
           },
         ],

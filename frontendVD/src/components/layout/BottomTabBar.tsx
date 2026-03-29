@@ -19,7 +19,7 @@
  */
 
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Search, Package, User } from 'lucide-react';
+import { Home, Search, Gamepad2, Package, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -38,6 +38,8 @@ interface Tab {
 interface BottomTabBarProps {
   /** Active orders count — drives the badge on the Pedidos tab. Pass 0 to hide. */
   activeOrderCount?: number;
+  /** Number of unused game tokens — drives the badge on the Juegos tab. Pass 0 to hide. */
+  pendingGameTokens?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,14 +53,15 @@ interface BottomTabBarProps {
  *   PREPARING, READY). Passed by the page that renders this bar, typically fetched
  *   via React Query from GET /api/orders filtered client-side.
  */
-export function BottomTabBar({ activeOrderCount = 0 }: BottomTabBarProps) {
+export function BottomTabBar({ activeOrderCount = 0, pendingGameTokens = 0 }: BottomTabBarProps) {
   const location = useLocation();
 
   const tabs: Tab[] = [
-    { label: 'Inicio',    route: '/',         Icon: Home    },
-    { label: 'Catálogo',  route: '/catalogo',  Icon: Search  },
-    { label: 'Pedidos',   route: '/pedidos',   Icon: Package, badge: activeOrderCount },
-    { label: 'Perfil',    route: '/perfil',    Icon: User    },
+    { label: 'Inicio',    route: '/',         Icon: Home     },
+    { label: 'Catálogo',  route: '/catalogo',  Icon: Search   },
+    { label: 'Juegos',    route: '/juegos',    Icon: Gamepad2, badge: pendingGameTokens },
+    { label: 'Pedidos',   route: '/pedidos',   Icon: Package,  badge: activeOrderCount },
+    { label: 'Perfil',    route: '/perfil',    Icon: User     },
   ];
 
   return (
