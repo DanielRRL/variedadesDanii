@@ -207,6 +207,25 @@ export const getEssenceById = (id: string) =>
   api.get(`/api/essences/${id}`);
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PRODUCTS endpoints (public catalog)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch all active products (lotions, creams, shampoos, etc.).
+ * GET /api/products
+ * Returns: Product[]
+ */
+export const getProducts = () =>
+  api.get('/api/products');
+
+/**
+ * Fetch a single product by UUID with relations.
+ * GET /api/products/:id
+ */
+export const getProductById = (id: string) =>
+  api.get(`/api/products/${id}`);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ORDERS endpoints
 // ─────────────────────────────────────────────────────────────────────────────
 

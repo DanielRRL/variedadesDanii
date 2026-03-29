@@ -1,87 +1,203 @@
 /**
- * CatalogPage — Filterable, searchable essence catalog.
+ * CatalogPage — Product catalog for lotions, creams, splashes, and accessories.
  * Route: /catalogo (public)
  *
  * Sections:
- *  1. Search bar (sticky)         — GET /api/essences?search=term
- *  2. Olfactive family chips      — GET /api/essences/families
- *                                   + GET /api/essences?olfactiveFamily=id
- *  3. Price slider (dual min/max) — GET /api/essences?minPrice=X&maxPrice=Y (COP/ml)
- *  4. Sort + results count        — client-side sort fallback when backend lacks orderBy
- *  5. Essence list                — client-side pagination (10 items, "Ver más")
- *  6. Active filter pills         — visual feedback for applied filters
+ *  1. AppBar — "Catálogo" + cart icon
+ *  2. Sticky search bar — 500 ms debounce, role="search"
+ *  3. Product type filter chips — horizontal scroll
+ *  4. Sort selector + results count
+ *  5. Product grid — 2 cols mobile, 3 cols ≥640 px, with ProductCard
+ *  6. "Ver más" progressive loading (10 per batch)
+ *  7. Weekly challenge teaser — trophy + progress bar → /juegos
  *  BottomTabBar
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Search, X, ChevronDown, AlertCircle,
-  RefreshCw, Package,
+  RefreshCw, SearchX, Trophy, ShoppingCart, Check,
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getEssences, getOlfactiveFamilies } from '../services/api';
-import { EssenceCard } from '../components/catalog/EssenceCard';
+import { getProducts, getCurrentChallenge } from '../services/api';
+import { useCartStore } from '../stores/cartStore';
+import { useAuthStore } from '../stores/authStore';
 import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
-import type { Essence } from '../types';
+import type { Product } from '../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** 1 fluid ounce in millilitres. */
-const OZ_TO_ML = 29.5735;
-
-/** Maximum slider value in COP/oz — covers the highest-end essences. */
-const PRICE_MAX_OZ = 50_000;
-
-/** How many essences to show before the "Ver más" button. */
 const PAGE_SIZE = 10;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+const PRODUCT_TYPE_LABELS: Record<string, string> = {
+  LOTION: 'Lociones',
+  CREAM: 'Cremas',
+  SHAMPOO: 'Shampoo',
+  MAKEUP: 'Maquillaje',
+  SPLASH: 'Splash',
+  ACCESSORY: 'Accesorios',
+};
 
-type SortOption = 'name' | 'sales' | 'price_asc' | 'price_desc' | 'rating' | 'stock';
+const TYPE_CHIPS: { value: string; label: string }[] = [
+  { value: 'ALL', label: 'Todos' },
+  { value: 'LOTION', label: 'Lociones' },
+  { value: 'CREAM', label: 'Cremas' },
+  { value: 'SHAMPOO', label: 'Shampoo' },
+  { value: 'MAKEUP', label: 'Maquillaje' },
+  { value: 'SPLASH', label: 'Splash' },
+  { value: 'ACCESSORY', label: 'Accesorios' },
+];
+
+type SortOption = 'name' | 'price_asc' | 'price_desc';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Client-side sort fallback.
- * Comment: orderBy=sales requires backend support. If not available, implement
- * client-side sort as fallback.
- */
-function sortEssences(list: Essence[], orderBy: SortOption): Essence[] {
-  const arr = [...list];
-  switch (orderBy) {
-    case 'price_asc':  return arr.sort((a, b) => a.pricePerMl - b.pricePerMl);
-    case 'price_desc': return arr.sort((a, b) => b.pricePerMl - a.pricePerMl);
-    case 'rating':     return arr.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-    case 'stock':      return arr.sort((a, b) => (b.currentStockMl ?? 0) - (a.currentStockMl ?? 0));
-    // 'sales' has no client-side total-sales metric — keep server order.
-    default:           return arr;
-  }
+function sortProducts(list: Product[], orderBy: SortOption): Product[] {
+  const inStock = list.filter((p) => p.stockUnits > 0);
+  const outStock = list.filter((p) => p.stockUnits <= 0);
+
+  const sorter = (a: Product, b: Product) => {
+    switch (orderBy) {
+      case 'price_asc':  return a.price - b.price;
+      case 'price_desc': return b.price - a.price;
+      default:           return a.name.localeCompare(b.name, 'es');
+    }
+  };
+
+  return [...inStock.sort(sorter), ...outStock.sort(sorter)];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Skeleton placeholder while essence cards are loading (×3). */
-function EssenceCardSkeleton() {
+function ProductCardSkeleton() {
   return (
-    <div className="bg-surface rounded-[12px] border border-border flex gap-3 p-3 w-full animate-pulse">
-      <div className="w-24 h-24 rounded-lg bg-border flex-none" />
-      <div className="flex-1 flex flex-col gap-2 py-1">
+    <div className="bg-surface rounded-[12px] border border-border overflow-hidden animate-pulse">
+      <div className="aspect-[4/3] bg-border" />
+      <div className="p-3 space-y-2">
         <div className="h-4 bg-border rounded-md w-3/4" />
         <div className="h-3 bg-border rounded-md w-1/2" />
-        <div className="h-3 bg-border rounded-md w-2/5" />
-        <div className="h-5 bg-border rounded-md w-1/3 mt-auto" />
+        <div className="h-5 bg-border rounded-md w-1/3" />
+        <div className="h-9 bg-border rounded-full w-full mt-2" />
+      </div>
+    </div>
+  );
+}
+
+function ProductCard({ product }: { product: Product }) {
+  const navigate = useNavigate();
+  const addItem = useCartStore((s) => s.addItem);
+  const [justAdded, setJustAdded] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const outOfStock = product.stockUnits <= 0;
+  const lowStock = product.stockUnits > 0 && product.stockUnits <= 5;
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (outOfStock) return;
+    addItem(product, 1);
+    setJustAdded(true);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setJustAdded(false), 1500);
+  };
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  return (
+    <div
+      onClick={() => navigate(`/productos/${product.id}`)}
+      className={clsx(
+        'bg-surface rounded-[12px] border border-border overflow-hidden cursor-pointer transition-shadow hover:shadow-md',
+        outOfStock && 'opacity-50'
+      )}
+      role="article"
+      aria-label={product.name}
+    >
+      {/* Photo */}
+      <div className="relative aspect-[4/3] bg-brand-pink/5">
+        {product.photoUrl ? (
+          <img
+            src={product.photoUrl}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ShoppingCart size={32} className="text-brand-pink/30" strokeWidth={1.5} />
+          </div>
+        )}
+
+        {/* Type badge — top left */}
+        <span className="absolute top-2 left-2 bg-surface/90 backdrop-blur-sm text-[10px] font-body font-medium text-muted px-2 py-0.5 rounded-full border border-border">
+          {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
+        </span>
+
+        {/* "Gana 1g" pill — top right */}
+        {product.generatesGram && (
+          <span className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-body font-semibold px-2 py-0.5 rounded-full">
+            Gana 1g
+          </span>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="p-3 space-y-1.5">
+        <h3 className="font-heading font-semibold text-[14px] text-text-primary leading-tight line-clamp-2">
+          {product.name}
+        </h3>
+
+        <p className="font-heading font-bold text-[15px] text-brand-gold">
+          {formatCOP(product.price)}
+        </p>
+
+        {/* Stock indicator */}
+        <div className="flex items-center gap-1.5">
+          <span
+            className={clsx(
+              'w-2 h-2 rounded-full flex-none',
+              outOfStock ? 'bg-red-400' : lowStock ? 'bg-orange-400' : 'bg-emerald-400'
+            )}
+          />
+          <span className="font-body text-[11px] text-muted">
+            {outOfStock ? 'Agotado' : lowStock ? `Quedan ${product.stockUnits}` : 'Disponible'}
+          </span>
+        </div>
+
+        {/* Add to cart */}
+        <button
+          onClick={handleAdd}
+          disabled={outOfStock}
+          className={clsx(
+            'w-full mt-1.5 py-2 rounded-full text-[13px] font-body font-medium transition-colors flex items-center justify-center gap-1.5',
+            outOfStock
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              : justAdded
+                ? 'bg-emerald-500 text-white'
+                : 'bg-brand-pink text-white active:bg-brand-pink/80'
+          )}
+        >
+          {outOfStock ? (
+            'Sin stock'
+          ) : justAdded ? (
+            <>
+              <Check size={14} strokeWidth={2.5} />
+              Agregado
+            </>
+          ) : (
+            'Agregar'
+          )}
+        </button>
       </div>
     </div>
   );
@@ -93,163 +209,84 @@ function EssenceCardSkeleton() {
 
 export default function CatalogPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  // ── Derive current filter values from URL params ────────────────────────
-  // Each URL param corresponds to a query param in GET /api/essences.
-  const urlSearch  = searchParams.get('search')   ?? '';
-  const urlFamily  = searchParams.get('family')   ?? '';
-  const urlMinOz   = Number(searchParams.get('minPrice') ?? '0');
-  const urlMaxOz   = Number(searchParams.get('maxPrice') ?? String(PRICE_MAX_OZ));
-  const urlOrderBy = (searchParams.get('orderBy') ?? 'name') as SortOption;
-
-  // Local state for inputs that need debouncing or drag-end commits.
-  const [localSearch, setLocalSearch] = useState(urlSearch);
-  const [localMinOz,  setLocalMinOz]  = useState(urlMinOz);
-  const [localMaxOz,  setLocalMaxOz]  = useState(urlMaxOz);
+  // ── Local state ─────────────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedType, setSelectedType] = useState('ALL');
+  const [sortBy, setSortBy] = useState<SortOption>('name');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Keep local search in sync when browser back/forward changes URL.
-  useEffect(() => { setLocalSearch(urlSearch); }, [urlSearch]);
-
-  // Reset slider when family or search change externally.
-  useEffect(() => {
-    setLocalMinOz(urlMinOz);
-    setLocalMaxOz(urlMaxOz);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlFamily, urlSearch]);
-
-  // Reset visible count whenever any filter changes.
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [urlSearch, urlFamily, urlMinOz, urlMaxOz, urlOrderBy]);
-
-  // ── URL param helper ────────────────────────────────────────────────────
-  const setParam = (key: string, value: string | null) =>
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (value) next.set(key, value);
-        else next.delete(key);
-        return next;
-      },
-      { replace: true }
-    );
-
-  // ── SECTION 1 — Search debounce (400 ms) ───────────────────────────────
-  // GET /api/essences?search=term — backend searches in essence name and
-  // inspirationBrand fields.
+  // ── Search debounce (500 ms) ────────────────────────────────────────────
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const handleSearchChange = (value: string) => {
-    setLocalSearch(value);
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
     clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => {
-      setParam('search', value || null);
-    }, 400);
-  };
+    searchTimerRef.current = setTimeout(() => setDebouncedSearch(value), 500);
+  }, []);
   useEffect(() => () => clearTimeout(searchTimerRef.current), []);
 
-  // ── SECTION 3 — Price slider commit (on drag end) ───────────────────────
-  // GET /api/essences?minPrice=X — backend filters by pricePerMl.
-  // Frontend shows COP/oz; we divide by OZ_TO_ML (29.5735) when sending to API.
-  const commitPrices = () =>
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (localMinOz > 0)          next.set('minPrice', String(localMinOz));
-        else                         next.delete('minPrice');
-        if (localMaxOz < PRICE_MAX_OZ) next.set('maxPrice', String(localMaxOz));
-        else                           next.delete('maxPrice');
-        return next;
-      },
-      { replace: true }
-    );
+  // Reset visible count on filter change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [debouncedSearch, selectedType, sortBy]);
 
-  // ── SECTION 2 data — GET /api/essences/families ─────────────────────────
-  // Returns all olfactive families for the filter chip row.
-  const { data: familiesRes } = useQuery({
-    queryKey: ['families'],
-    queryFn: getOlfactiveFamilies,
-    staleTime: 10 * 60 * 1000, // families rarely change
-  });
-  const families: { id: string; name: string }[] =
-    Array.isArray(familiesRes?.data) ? familiesRes.data : [];
-
-  // ── SECTION 5 data — GET /api/essences (paginated, filtered) ───────────
-  // Params: search, olfactiveFamily, minPrice (COP/ml), maxPrice (COP/ml).
-  // GET /api/essences returns paginated results. Use ?page=N&limit=10.
-  // Currently the backend returns all results; client-side slicing used for
-  // "Ver más" until the backend supports pagination natively.
-  const { data: essencesRes, isLoading, isError, refetch } = useQuery({
-    queryKey: ['essences', 'catalog', urlSearch, urlFamily, urlMinOz, urlMaxOz],
-    queryFn: () =>
-      getEssences({
-        search:          urlSearch || undefined,
-        // GET /api/essences?olfactiveFamily=id — filter by olfactiveFamily.id
-        olfactiveFamily: urlFamily || undefined,
-        // Convert COP/oz → COP/ml before sending to backend
-        minPrice: urlMinOz > 0            ? urlMinOz / OZ_TO_ML : undefined,
-        maxPrice: urlMaxOz < PRICE_MAX_OZ ? urlMaxOz / OZ_TO_ML : undefined,
-      }),
+  // ── Data — GET /api/products ────────────────────────────────────────────
+  const { data: productsRes, isLoading, isError, refetch } = useQuery({
+    queryKey: ['products'],
+    queryFn: getProducts,
     staleTime: 2 * 60 * 1000,
   });
 
-  // Extract the array from the Axios response shape:
-  // axiosResponse.data = { success: true, data: Essence[] }
-  const allFromApi: Essence[] = useMemo(() => {
-    const body = essencesRes?.data;
-    return Array.isArray(body) ? body : (body?.essences ?? []);
-  }, [essencesRes]);
+  const allProducts: Product[] = useMemo(() => {
+    const body = productsRes?.data;
+    return Array.isArray(body) ? body : (body?.products ?? []);
+  }, [productsRes]);
 
-  // Apply client-side sort (fallback for orderBy options the backend doesn't support).
-  const sortedEssences = useMemo(
-    () => sortEssences(allFromApi, urlOrderBy),
-    [allFromApi, urlOrderBy]
-  );
-
-  const visibleEssences = sortedEssences.slice(0, visibleCount);
-  const hasMore         = visibleCount < sortedEssences.length;
-  const totalCount      = sortedEssences.length;
-
-  // ── SECTION 6 — Active filter pills ────────────────────────────────────
-  // Visual feedback for active filters. Improves UX especially on mobile.
-  const activeFamily    = families.find((f) => f.id === urlFamily);
-  const hasPriceFilter  = urlMinOz > 0 || urlMaxOz < PRICE_MAX_OZ;
-  const activeFilters: { key: string; label: string; onRemove: () => void }[] = [];
-
-  if (urlSearch) activeFilters.push({
-    key: 'search',
-    label: `"${urlSearch}"`,
-    onRemove: () => { setLocalSearch(''); setParam('search', null); },
+  // ── Data — Weekly challenge (only if logged in) ─────────────────────────
+  const { data: challengeRes } = useQuery({
+    queryKey: ['weekly-challenge'],
+    queryFn: getCurrentChallenge,
+    staleTime: 5 * 60 * 1000,
+    enabled: isAuthenticated,
   });
-  if (activeFamily) activeFilters.push({
-    key: 'family',
-    label: activeFamily.name,
-    onRemove: () => setParam('family', null),
-  });
-  if (hasPriceFilter) activeFilters.push({
-    key: 'price',
-    label: `${formatCOP(urlMinOz)} – ${formatCOP(urlMaxOz)}/oz`,
-    onRemove: () => {
-      setLocalMinOz(0);
-      setLocalMaxOz(PRICE_MAX_OZ);
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete('minPrice');
-          next.delete('maxPrice');
-          return next;
-        },
-        { replace: true }
+
+  const challenge = useMemo(() => {
+    const body = challengeRes?.data;
+    if (body && typeof body === 'object' && 'id' in body) return body;
+    return null;
+  }, [challengeRes]);
+
+  // ── Filtering, sorting, pagination ──────────────────────────────────────
+  const filtered = useMemo(() => {
+    let list = allProducts.filter((p) => p.active);
+
+    if (selectedType !== 'ALL') {
+      list = list.filter((p) => p.productType === selectedType);
+    }
+
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.description?.toLowerCase().includes(q))
       );
-    },
-  });
+    }
+
+    return sortProducts(list, sortBy);
+  }, [allProducts, selectedType, debouncedSearch, sortBy]);
+
+  const visibleProducts = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+  const remaining = filtered.length - visibleCount;
 
   const clearAllFilters = () => {
-    setLocalSearch('');
-    setLocalMinOz(0);
-    setLocalMaxOz(PRICE_MAX_OZ);
-    setSearchParams({}, { replace: true });
+    setSearchTerm('');
+    setDebouncedSearch('');
+    setSelectedType('ALL');
+    setSortBy('name');
   };
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -257,30 +294,29 @@ export default function CatalogPage() {
   // ───────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background pb-20 font-body">
+      {/* ── Section 1 — AppBar ─────────────────────────────────────────── */}
       <AppBar title="Catálogo" showCart />
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          SECTION 1 — Search bar
-          Sticky below AppBar. Debounced 400 ms.
-          GET /api/essences?search=term — backend searches in essence name
-          and inspirationBrand fields.
-      ════════════════════════════════════════════════════════════════════════ */}
+      {/* ── Section 2 — Sticky search bar ──────────────────────────────── */}
       <div className="sticky top-14 z-20 bg-background border-b border-border px-4 py-2.5 shadow-sm">
-        <div className="relative flex items-center bg-surface border border-border rounded-xl overflow-hidden">
+        <div
+          className="relative flex items-center bg-surface border border-border rounded-xl overflow-hidden"
+          role="search"
+        >
           <span className="pl-3 flex items-center pointer-events-none">
             <Search size={16} className="text-muted" strokeWidth={2} />
           </span>
           <input
             type="search"
-            value={localSearch}
+            value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Buscar esencia o perfume original..."
+            placeholder="Buscar loción, crema, shampoo..."
             className="flex-1 px-3 py-2.5 text-sm font-body text-text-primary placeholder:text-muted bg-transparent outline-none"
-            aria-label="Buscar esencias"
+            aria-label="Buscar productos"
           />
-          {localSearch && (
+          {searchTerm && (
             <button
-              onClick={() => { setLocalSearch(''); setParam('search', null); }}
+              onClick={() => { setSearchTerm(''); setDebouncedSearch(''); }}
               className="pr-3 flex items-center"
               aria-label="Limpiar búsqueda"
             >
@@ -291,133 +327,55 @@ export default function CatalogPage() {
       </div>
 
       <div className="px-4 pt-4 space-y-4">
-        {/* ════════════════════════════════════════════════════════════════════
-            SECTION 2 — Olfactive family filter chips
-            GET /api/essences/families — full list of families for chip row.
-            GET /api/essences?olfactiveFamily=id — filter by olfactiveFamily.id.
-        ════════════════════════════════════════════════════════════════════ */}
+        {/* ── Section 3 — Product type filter chips ────────────────────── */}
         <div
           className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4"
           style={{ scrollbarWidth: 'none' }}
           role="listbox"
-          aria-label="Filtrar por familia olfativa"
+          aria-label="Filtrar por tipo de producto"
         >
-          <button
-            onClick={() => setParam('family', null)}
-            className={clsx(
-              'flex-none px-4 py-1.5 rounded-full text-[13px] font-body font-medium border transition-colors',
-              !urlFamily
-                ? 'bg-brand-pink text-surface border-brand-pink'
-                : 'bg-surface text-text-primary border-border'
-            )}
-            role="option"
-            aria-selected={!urlFamily}
-          >
-            Todas
-          </button>
-
-          {families.map((family) => (
+          {TYPE_CHIPS.map((chip) => (
             <button
-              key={family.id}
-              onClick={() =>
-                setParam('family', family.id === urlFamily ? null : family.id)
-              }
+              key={chip.value}
+              onClick={() => setSelectedType(chip.value)}
               className={clsx(
                 'flex-none px-4 py-1.5 rounded-full text-[13px] font-body font-medium border transition-colors whitespace-nowrap',
-                urlFamily === family.id
+                selectedType === chip.value
                   ? 'bg-brand-pink text-surface border-brand-pink'
                   : 'bg-surface text-text-primary border-border'
               )}
               role="option"
-              aria-selected={urlFamily === family.id}
+              aria-selected={selectedType === chip.value}
             >
-              {family.name}
+              {chip.label}
+              {chip.value === 'ALL' && !isLoading && !isError && (
+                <span className="ml-1.5 text-[11px] opacity-70">
+                  {allProducts.filter((p) => p.active).length}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {/* ════════════════════════════════════════════════════════════════════
-            SECTION 3 — Price slider (min / max per ounce)
-            GET /api/essences?minPrice=X — backend filters by pricePerMl.
-            Frontend shows COP/oz; divides by OZ_TO_ML (29.5735) before
-            sending to API.
-            Update is committed on mouseup / touchend (not on every move).
-        ════════════════════════════════════════════════════════════════════ */}
-        <div className="bg-surface rounded-xl border border-border p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-body text-[12px] font-medium text-muted uppercase tracking-wide">
-              Precio por onza
-            </span>
-            <span className="font-body text-sm font-semibold text-brand-pink">
-              {formatCOP(localMinOz)} — {formatCOP(localMaxOz)}
-            </span>
-          </div>
-
-          <div className="space-y-2.5">
-            {/* Min slider */}
-            <div className="flex items-center gap-3">
-              <span className="font-body text-[11px] text-muted w-7 flex-none">Mín</span>
-              <input
-                type="range"
-                min={0}
-                max={PRICE_MAX_OZ}
-                step={500}
-                value={localMinOz}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setLocalMinOz(Math.min(v, localMaxOz - 500));
-                }}
-                onMouseUp={commitPrices}
-                onTouchEnd={commitPrices}
-                className="flex-1 h-1.5 cursor-pointer"
-                style={{ accentColor: '#D81B60' }}
-                aria-label="Precio mínimo por onza"
-              />
-            </div>
-
-            {/* Max slider */}
-            <div className="flex items-center gap-3">
-              <span className="font-body text-[11px] text-muted w-7 flex-none">Máx</span>
-              <input
-                type="range"
-                min={0}
-                max={PRICE_MAX_OZ}
-                step={500}
-                value={localMaxOz}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setLocalMaxOz(Math.max(v, localMinOz + 500));
-                }}
-                onMouseUp={commitPrices}
-                onTouchEnd={commitPrices}
-                className="flex-1 h-1.5 cursor-pointer"
-                style={{ accentColor: '#D81B60' }}
-                aria-label="Precio máximo por onza"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ════════════════════════════════════════════════════════════════════
-            SECTION 4 — Sort selector + results count
-            Comment: orderBy=sales requires backend support. If not available,
-            client-side sort is implemented as fallback (see sortEssences).
-        ════════════════════════════════════════════════════════════════════ */}
+        {/* ── Section 4 — Sort + results count ─────────────────────────── */}
         <div className="flex items-center justify-between gap-2">
-          <div className="relative">
+          {!isLoading && !isError && (
+            <span className="font-body text-[13px] text-muted">
+              {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
+            </span>
+          )}
+
+          <div className="relative ml-auto">
             <label htmlFor="sort-select" className="sr-only">Ordenar por</label>
             <select
               id="sort-select"
-              value={urlOrderBy}
-              onChange={(e) => setParam('orderBy', e.target.value)}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="appearance-none bg-surface border border-border rounded-xl pl-3 pr-8 py-2 text-[13px] font-body text-text-primary cursor-pointer outline-none focus:border-brand-pink"
             >
               <option value="name">Nombre</option>
-              <option value="sales">Más vendido</option>
-              <option value="price_desc">Mayor precio</option>
               <option value="price_asc">Menor precio</option>
-              <option value="rating">Mejor valorado</option>
-              <option value="stock">Disponibilidad</option>
+              <option value="price_desc">Mayor precio</option>
             </select>
             <ChevronDown
               size={14}
@@ -425,126 +383,128 @@ export default function CatalogPage() {
               strokeWidth={2}
             />
           </div>
-
-          {!isLoading && !isError && (
-            <span className="font-body text-[13px] text-muted">
-              {totalCount} resultado{totalCount !== 1 ? 's' : ''}
-            </span>
-          )}
         </div>
 
-        {/* ════════════════════════════════════════════════════════════════════
-            SECTION 6 — Active filter pills
-            Visual feedback for active filters. Improves UX especially on
-            mobile. Shown when at least one filter has a value.
-        ════════════════════════════════════════════════════════════════════ */}
-        {activeFilters.length > 0 && (
-          <div
-            className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4"
-            style={{ scrollbarWidth: 'none' }}
-            aria-label="Filtros activos"
-          >
-            {activeFilters.map((f) => (
-              <div
-                key={f.key}
-                className="flex-none flex items-center gap-1.5 bg-brand-pink/10 border border-brand-pink/30 text-brand-pink px-3 py-1.5 rounded-full text-[12px] font-body font-medium"
-              >
-                <span>{f.label}</span>
-                <button
-                  onClick={f.onRemove}
-                  aria-label={`Quitar filtro ${f.label}`}
-                  className="flex items-center"
-                >
-                  <X size={12} strokeWidth={2.5} />
-                </button>
-              </div>
-            ))}
+        {/* ── Section 5 — Product grid ─────────────────────────────────── */}
 
+        {/* Loading — 6 skeleton cards */}
+        {isLoading && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        )}
+
+        {/* Error */}
+        {isError && (
+          <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <AlertCircle size={36} className="text-orange-400" strokeWidth={1.5} />
+            <p className="font-body text-sm text-muted">
+              No pudimos cargar los productos. Revisa tu conexión.
+            </p>
             <button
-              onClick={clearAllFilters}
-              className="flex-none px-3 py-1.5 rounded-full border border-border text-muted text-[12px] font-body bg-surface"
+              onClick={() => refetch()}
+              className="flex items-center gap-1.5 bg-brand-pink text-surface font-body font-medium text-sm px-5 py-2.5 rounded-full"
             >
-              Limpiar todo
+              <RefreshCw size={14} strokeWidth={2} />
+              Reintentar
             </button>
           </div>
         )}
 
-        {/* ════════════════════════════════════════════════════════════════════
-            SECTION 5 — Essence list
-            GET /api/essences returns results. Use ?page=N&limit=10.
-            Currently uses client-side slicing: "Ver más" reveals next
-            PAGE_SIZE (10) items from the already-fetched array.
-            Stock status is shown by EssenceCard via StockIndicator.
-            "Agotado" state: card is dimmed (opacity-60) and cannot be pressed.
-        ════════════════════════════════════════════════════════════════════ */}
-        <div className="space-y-3 pb-2">
-          {/* Loading — 3 skeleton cards */}
-          {isLoading && (
-            <>
-              <EssenceCardSkeleton />
-              <EssenceCardSkeleton />
-              <EssenceCardSkeleton />
-            </>
-          )}
+        {/* Product cards */}
+        {!isLoading && !isError && visibleProducts.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {visibleProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
 
-          {/* Error */}
-          {isError && (
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <AlertCircle size={36} className="text-warning" strokeWidth={1.5} />
-              <p className="font-body text-sm text-muted">
-                No pudimos cargar las esencias. Revisa tu conexión.
+        {/* Empty state */}
+        {!isLoading && !isError && filtered.length === 0 && (
+          <div className="flex flex-col items-center gap-4 py-14 text-center">
+            <SearchX size={44} className="text-brand-pink/40" strokeWidth={1.2} />
+            <div>
+              <p className="font-heading font-semibold text-base text-text-primary">
+                No encontramos productos
               </p>
-              <button
-                onClick={() => refetch()}
-                className="flex items-center gap-1.5 bg-brand-pink text-surface font-body font-medium text-sm px-5 py-2.5 rounded-full"
-              >
-                <RefreshCw size={14} strokeWidth={2} />
-                Reintentar
-              </button>
+              <p className="font-body text-sm text-muted mt-1.5">
+                Prueba ajustando la búsqueda o los filtros.
+              </p>
             </div>
-          )}
+            <button
+              onClick={clearAllFilters}
+              className="bg-brand-pink text-surface font-body font-medium text-sm px-7 py-2.5 rounded-full"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        )}
 
-          {/* Essence cards — each navigates to /esencia/:id */}
-          {!isLoading && !isError && visibleEssences.map((essence) => (
-            <EssenceCard
-              key={essence.id}
-              essence={essence}
-              onPress={() => navigate(`/esencia/${essence.id}`)}
-            />
-          ))}
+        {/* ── Section 6 — "Ver más" button ─────────────────────────────── */}
+        {!isLoading && !isError && hasMore && (
+          <button
+            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            className="w-full py-3 border border-border rounded-xl font-body text-sm text-text-primary bg-surface active:bg-background transition-colors"
+          >
+            Ver {Math.min(PAGE_SIZE, remaining)} más ({remaining} restante
+            {remaining !== 1 ? 's' : ''})
+          </button>
+        )}
 
-          {/* Empty state */}
-          {!isLoading && !isError && sortedEssences.length === 0 && (
-            <div className="flex flex-col items-center gap-4 py-14 text-center">
-              <Package size={44} className="text-border" strokeWidth={1.2} />
-              <div>
-                <p className="font-heading font-semibold text-base text-text-primary">
-                  No encontramos esencias con estos filtros
+        {/* ── Section 7 — Weekly challenge teaser ──────────────────────── */}
+        {challenge && challenge.active && (
+          <div
+            onClick={() => navigate('/juegos')}
+            className="bg-brand-gold/10 border border-brand-gold/30 rounded-xl p-4 cursor-pointer active:bg-brand-gold/15 transition-colors"
+            role="link"
+            aria-label="Ir a juegos — desafío semanal"
+          >
+            <div className="flex items-center gap-3">
+              <Trophy size={24} className="text-brand-gold flex-none" strokeWidth={1.8} />
+              <div className="flex-1 min-w-0">
+                <p className="font-heading font-semibold text-sm text-text-primary truncate">
+                  Desafío semanal
                 </p>
-                <p className="font-body text-sm text-muted mt-1.5">
-                  Prueba ajustando la búsqueda o los filtros.
+                <p className="font-body text-[12px] text-muted line-clamp-1">
+                  {challenge.description}
                 </p>
               </div>
-              <button
-                onClick={clearAllFilters}
-                className="bg-brand-pink text-surface font-body font-medium text-sm px-7 py-2.5 rounded-full"
-              >
-                Limpiar filtros
-              </button>
+              <span className="font-heading font-bold text-sm text-brand-gold flex-none">
+                +{challenge.gramReward}g
+              </span>
             </div>
-          )}
 
-          {/* "Ver más" button — loads next PAGE_SIZE items client-side */}
-          {!isLoading && !isError && hasMore && (
-            <button
-              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              className="w-full py-3 border border-border rounded-xl font-body text-sm text-text-primary bg-surface active:bg-background transition-colors"
-            >
-              Ver más ({sortedEssences.length - visibleCount} restante
-              {sortedEssences.length - visibleCount !== 1 ? 's' : ''})
-            </button>
-          )}
-        </div>
+            {/* Progress bar */}
+            {challenge.myProgress && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-body text-[11px] text-muted">
+                    {challenge.myProgress.purchasesCount} / {challenge.requiredPurchases} compras
+                  </span>
+                  {challenge.myProgress.completed && (
+                    <span className="font-body text-[11px] font-semibold text-emerald-500">
+                      ¡Completado!
+                    </span>
+                  )}
+                </div>
+                <div className="h-2 rounded-full bg-brand-gold/20 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-brand-gold transition-all"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (challenge.myProgress.purchasesCount / challenge.requiredPurchases) * 100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <BottomTabBar />

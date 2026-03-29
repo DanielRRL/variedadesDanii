@@ -42,6 +42,7 @@ const ForgotPasswordPage    = lazy(() => import('../pages/auth/ForgotPasswordPag
 const ResetPasswordPage     = lazy(() => import('../pages/auth/ResetPasswordPage'));
 const CatalogPage           = lazy(() => import('../pages/CatalogPage'));
 const EssenceDetailPage     = lazy(() => import('../pages/EssenceDetailPage'));
+const ProductDetailPage     = lazy(() => import('../pages/ProductDetailPage'));
 
 const CartPage             = lazy(() => import('../pages/CartPage'));
 const PaymentPendingPage   = lazy(() => import('../pages/PaymentPendingPage'));
@@ -131,6 +132,7 @@ export const router = createBrowserRouter([
       { path: 'reset-password',      element: <ResetPasswordPage /> },
       { path: 'catalogo',            element: <CatalogPage /> },
       { path: 'esencia/:id',         element: <EssenceDetailPage /> },
+      { path: 'productos/:id',       element: <ProductDetailPage /> },
     ],
   },
 
