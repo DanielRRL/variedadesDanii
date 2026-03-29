@@ -5,6 +5,9 @@
  *  - GET /api/admin/dashboard          → KPI cards + recent orders + top essences
  *  - GET /api/admin/reports/daily-sales → AreaChart (refreshes on period change)
  *  - GET /api/admin/reports/low-stock   → orange alert banner
+ *  - GET /api/admin/gamification/stats  → gamification KPI cards
+ *  - GET /api/admin/reports/sales-by-type → donut chart
+ *  - GET /api/admin/redemptions         → pending redemptions alert
  *
  * Auto-refreshes every 30 seconds. Status changes invalidate the dashboard query.
  */
@@ -20,6 +23,9 @@ import {
   AlertTriangle,
   Eye,
   ChevronDown,
+  Gem,
+  Gift,
+  Clock,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -29,6 +35,10 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from 'recharts';
 
 import {
@@ -36,6 +46,9 @@ import {
   getDailySales,
   getLowStockAlerts,
   updateOrderStatus,
+  getGamificationStats,
+  getSalesByProductType,
+  adminGetPendingRedemptions,
 } from '../../services/api';
 import { formatCOP } from '../../utils/format';
 import { STATUS_LABELS, STATUS_COLORS, VALID_TRANSITIONS } from './adminShared';
@@ -202,6 +215,24 @@ export default function AdminDashboardPage() {
     staleTime: 5 * 60_000,
   });
 
+  const { data: gamifRes } = useQuery({
+    queryKey: ['admin-gamification-stats'],
+    queryFn: getGamificationStats,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: salesTypeRes } = useQuery({
+    queryKey: ['admin-sales-by-type', period],
+    queryFn: () => getSalesByProductType(getDateRange(period)),
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: redemptionsRes } = useQuery({
+    queryKey: ['admin-pending-redemptions-dash'],
+    queryFn: () => adminGetPendingRedemptions(1),
+    staleTime: 60_000,
+  });
+
   const stats = dashRes?.data ?? {};
 
   const salesToday: number  = stats.salesToday  ?? 0;
@@ -214,6 +245,16 @@ export default function AdminDashboardPage() {
 
   const topEssences: { name: string; revenue: number; rank: number }[] = stats.topEssences ?? [];
   const recentOrders: AdminOrder[] = stats.recentOrders ?? [];
+
+  // Gamification KPIs
+  const gamifStats = gamifRes?.data ?? {};
+  const gramsIssued: number     = gamifStats.totalGramsIssued ?? 0;
+  const pendingRedemptions: number = (redemptionsRes?.data as { total?: number } | undefined)?.total ?? 0;
+
+  // Sales by product type for donut chart
+  const DONUT_COLORS = ['#D81B60', '#F9A825', '#43A047', '#1E88E5', '#8E24AA', '#FF7043', '#26A69A'];
+  const salesByType: { name: string; value: number }[] =
+    (salesTypeRes?.data as { types?: { name: string; value: number }[] } | undefined)?.types ?? [];
 
   const chartLabels: string[] = salesRes?.data?.labels ?? [];
   const chartValues: number[] = salesRes?.data?.values ?? [];
@@ -251,6 +292,20 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
+      {/* Pending redemptions alert */}
+      {pendingRedemptions > 0 && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 flex items-start gap-3">
+          <Gift size={17} className="text-purple-500 mt-0.5 shrink-0" />
+          <p className="text-sm text-purple-800 flex-1">
+            <span className="font-semibold">{pendingRedemptions} canje{pendingRedemptions > 1 ? 's' : ''} pendiente{pendingRedemptions > 1 ? 's' : ''}</span>{' '}
+            de entrega esperan atención.
+          </p>
+          <Link to="/admin/canjes" className="text-xs font-semibold text-purple-700 underline whitespace-nowrap shrink-0">
+            Gestionar canjes
+          </Link>
+        </div>
+      )}
+
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard icon={TrendingUp} label="Ventas Hoy"     value={formatCOP(salesToday)} accent progress={{ pct: salesPct }} />
@@ -258,6 +313,13 @@ export default function AdminDashboardPage() {
           sub={vsYesterday !== 0 ? `${vsYesterday >= 0 ? '▲' : '▼'} ${Math.abs(vsYesterday)}% vs ayer` : undefined} />
         <KpiCard icon={CreditCard}  label="Ticket Promedio" value={formatCOP(avgTicket)}  sub="Basado en pedidos de hoy" />
         <KpiCard icon={UserPlus}    label="Clientes Nuevos" value={String(newClients)}    sub="Registrados hoy" />
+      </div>
+
+      {/* Gamification KPI row */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <KpiCard icon={Gem}   label="Gramos Emitidos"    value={`${gramsIssued}g`}           sub="Total acumulado" />
+        <KpiCard icon={Gift}  label="Canjes Pendientes"  value={String(pendingRedemptions)}  sub="Esperando entrega" accent={pendingRedemptions > 0} />
+        <KpiCard icon={Clock} label="Fichas Activas"     value={String(gamifStats.activeTokens ?? 0)} sub="Sin jugar aún" />
       </div>
 
       {/* Sales chart + Top essences */}
@@ -353,6 +415,42 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Sales by product type donut */}
+      {salesByType.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-border p-5">
+          <h2 className="font-heading font-semibold text-text-primary text-sm mb-4">Ventas por tipo de producto</h2>
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie
+                data={salesByType}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius={55}
+                outerRadius={90}
+                paddingAngle={3}
+                stroke="none"
+              >
+                {salesByType.map((_, i) => (
+                  <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(v: unknown) => [formatCOP(v as number), 'Ventas']}
+                contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E0E0E0' }}
+              />
+              <Legend
+                verticalAlign="bottom"
+                iconType="circle"
+                iconSize={8}
+                wrapperStyle={{ fontSize: 11 }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Recent orders table */}
       <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">

@@ -17,16 +17,21 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  ShoppingBag,
   FlaskConical,
   Users,
   Trophy,
+  Gamepad2,
+  Gift,
   FileText,
   BarChart2,
   ArrowLeftRight,
   Settings,
   Bell,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
+import { adminGetPendingRedemptions } from '../../services/api';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Navigation items
@@ -34,11 +39,14 @@ import { useAuthStore } from '../../stores/authStore';
 
 const NAV = [
   { Icon: LayoutDashboard, label: 'Dashboard',    path: '/admin',               exact: true  },
+  { Icon: ShoppingBag,     label: 'Productos',    path: '/admin/productos',     exact: false },
   { Icon: Package,         label: 'Inventario',   path: '/admin/inventario',    exact: false },
   { Icon: ShoppingCart,    label: 'Pedidos',       path: '/admin/pedidos',       exact: false },
   { Icon: FlaskConical,    label: 'Esencias',      path: '/admin/esencias',      exact: false },
   { Icon: Users,           label: 'Clientes',      path: '/admin/clientes',      exact: false },
   { Icon: Trophy,          label: 'Fidelización',  path: '/admin/fidelizacion',  exact: false },
+  { Icon: Gamepad2,        label: 'Gamificación',  path: '/admin/gamificacion',  exact: false },
+  { Icon: Gift,            label: 'Canjes',        path: '/admin/canjes',        exact: false, badge: true },
   { Icon: FileText,        label: 'Facturas',      path: '/admin/facturas',      exact: false },
   { Icon: BarChart2,       label: 'Reportes',      path: '/admin/reportes',      exact: false },
   { Icon: ArrowLeftRight,  label: 'Devoluciones',  path: '/admin/devoluciones',  exact: false },
@@ -51,6 +59,16 @@ const NAV = [
 
 export default function AdminLayout() {
   const user = useAuthStore((s) => s.user);
+
+  const { data: redemptionsRes } = useQuery({
+    queryKey: ['admin-pending-redemptions-count'],
+    queryFn: () => adminGetPendingRedemptions(1),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  const pendingCount: number =
+    (redemptionsRes?.data as { total?: number } | undefined)?.total ?? 0;
 
   const initials =
     user?.name
@@ -77,7 +95,7 @@ export default function AdminLayout() {
 
         {/* Navigation links */}
         <nav className="flex-1 overflow-y-auto py-2" aria-label="Navegación de administración">
-          {NAV.map(({ Icon, label, path, exact }) => (
+          {NAV.map(({ Icon, label, path, exact, ...rest }) => (
             <NavLink
               key={path}
               to={path}
@@ -97,7 +115,12 @@ export default function AdminLayout() {
                     className={isActive ? 'text-brand-pink' : 'text-muted'}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
-                  {label}
+                  <span className="flex-1">{label}</span>
+                  {'badge' in rest && (rest as { badge?: boolean }).badge && pendingCount > 0 && (
+                    <span className="ml-auto min-w-5 h-5 flex items-center justify-center rounded-full bg-brand-pink text-white text-[10px] font-bold px-1.5">
+                      {pendingCount > 99 ? '99+' : pendingCount}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>
