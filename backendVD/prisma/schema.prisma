@@ -78,6 +78,9 @@ enum BottleType {
   LUXURY
 }
 
+/// DEPRECATED: el sistema de descuentos porcentuales fue reemplazado por el sistema de gramos.
+/// Solo se mantiene el descuento por codigo de referido (5%, solo en lociones).
+/// Estos enums se conservan por compatibilidad con datos historicos.
 enum DiscountType {
   BOTTLE_RETURN
   FREQUENT_CLIENT
@@ -96,6 +99,56 @@ enum AuditEntityType {
   ESSENCE
   BOTTLE
   PRODUCT
+}
+
+/// Tipo de producto vendible o canjeable en el catalogo.
+enum ProductType {
+  LOTION          /// Locion perfumada — producto principal de venta. Genera 1 gramo al comprar.
+  CREAM           /// Crema corporal o facial. Genera 1 gramo al comprar.
+  SHAMPOO         /// Shampoo o acondicionador. Genera 1 gramo al comprar.
+  MAKEUP          /// Maquillaje. Genera 1 gramo al comprar.
+  SPLASH          /// Body splash. Genera 1 gramo al comprar.
+  ACCESSORY       /// Accesorio (sin gramo).
+  ESSENCE_CATALOG /// Esencia canjeable — no tiene precio de venta. Solo aparece en pantalla de canje.
+}
+
+/// Origen de un movimiento de gramos en la billetera del cliente.
+enum GramSourceType {
+  PRODUCT_PURCHASE     /// +1g por cada producto de tipo LOTION/CREAM/SHAMPOO/MAKEUP/SPLASH comprado
+  ESSENCE_OZ_BONUS     /// +1g al canjear 1 oz o mas de esencia (no aplica a recargas menores a 13g)
+  GAME_ROULETTE        /// Gramos ganados jugando ruleta (1-3g)
+  GAME_PUZZLE          /// Gramos ganados resolviendo puzzle (1-4g)
+  WEEKLY_CHALLENGE     /// Gramos ganados al completar reto semanal
+  MONTHLY_RANKING      /// Gramos otorgados al top 10 mensual
+  ADMIN_ADJUSTMENT     /// Ajuste manual por administrador
+  REDEMPTION           /// Salida de gramos al canjear esencia (valor negativo)
+}
+
+/// Estado de una ficha de juego emitida tras una compra confirmada.
+enum GameTokenStatus {
+  PENDING  /// Ficha emitida, no usada aun
+  USED     /// Ficha ya jugada
+  EXPIRED  /// Ficha vencida (72h sin usar)
+}
+
+/// Tipo de minijuego disponible en la plataforma.
+enum GameType {
+  ROULETTE /// Ruleta: premio aleatorio 1-3g
+  PUZZLE   /// Puzzle de logica: premio 1-4g segun dificultad
+}
+
+/// Estado del progreso de un usuario en un reto semanal.
+enum ChallengeStatus {
+  ACTIVE    /// Reto en curso esta semana
+  COMPLETED /// Reto completado por el usuario
+  EXPIRED   /// Semana termino sin completar
+}
+
+/// Estado de un canje de gramos por esencia.
+enum EssenceRedemptionStatus {
+  PENDING_DELIVERY /// Gramos descontados, esencia pendiente de entrega fisica por admin
+  DELIVERED        /// Admin marco la entrega como completada
+  CANCELLED        /// Cancelado por admin (gramos revertidos)
 }
 
 // Nivel de fidelizacion del cliente en el programa de puntos.
@@ -155,6 +208,14 @@ model User {
   passwordResets      PasswordReset[]
   /// Cambios de estado de pedido realizados por este usuario (admin/seller)
   orderStatusChanges  OrderStatusHistory[]
+  /// Billetera de gramos del cliente (1:1)
+  gramAccount         GramAccount?
+  /// Fichas de juego emitidas por compras confirmadas
+  gameTokens          GameToken[]
+  /// Canjes de gramos por esencia realizados
+  essenceRedemptions  EssenceRedemption[]
+  /// Progreso en retos semanales
+  challengeProgresses UserChallengeProgress[]
 
   @@map("users")
 }
@@ -234,10 +295,21 @@ model Product {
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
-  essence    Essence?          @relation(fields: [essenceId], references: [id])
-  bottle     Bottle?           @relation(fields: [bottleId], references: [id])
-  orderItems OrderItem[]
-  movements  ProductMovement[]
+  /// Tipo de producto: locion, crema, maquillaje, etc.
+  productType    ProductType  @default(LOTION) @map("product_type")
+  /// Indica si la compra de este producto genera 1 gramo acumulable. True para LOTION/CREAM/SHAMPOO/MAKEUP/SPLASH.
+  generatesGram  Boolean      @default(true) @map("generates_gram")
+  /// Stock en unidades para productos vendibles. Las esencias del catalogo (ESSENCE_CATALOG) usan EssenceMovement.
+  stockUnits     Int          @default(0) @map("stock_units")
+  /// URL de foto del producto. Puede ser diferente a la foto de la esencia vinculada.
+  photoUrl       String?      @map("photo_url")
+
+  essence          Essence?          @relation(fields: [essenceId], references: [id])
+  bottle           Bottle?           @relation(fields: [bottleId], references: [id])
+  orderItems       OrderItem[]
+  movements        ProductMovement[]
+  /// Relacion con gramos ganados: todos los GramTransaction originados por compras de este producto.
+  gramTransactions GramTransaction[]
 
   @@unique([essenceId, bottleId, mlQuantity])
   @@map("products")
@@ -620,4 +692,149 @@ model ElectronicInvoice {
   order Order @relation(fields: [orderId], references: [id])
 
   @@map("electronic_invoices")
+}
+
+// ---------------------------------------------------------------------------
+// GAMIFICATION & GRAM SYSTEM - Sistema de gramos y juegos
+// ---------------------------------------------------------------------------
+
+/// Billetera de gramos del cliente. Maximo 13g simultaneos (1 oz = 13g).
+/// Al llegar a 13g el sistema emite automaticamente un EssenceRedemption disponible.
+model GramAccount {
+  id              String   @id @default(uuid())
+  /// FK al usuario dueno de la billetera; cada usuario tiene una sola billetera de gramos
+  userId          String   @unique @map("user_id")
+  /// Gramos actuales disponibles para canjear (0 a 13, nunca mas de 13).
+  currentGrams    Int      @default(0) @map("current_grams")
+  /// Total historico de gramos ganados (nunca decrece).
+  totalEarned     Int      @default(0) @map("total_earned")
+  /// Total historico de gramos canjeados (nunca decrece).
+  totalRedeemed   Int      @default(0) @map("total_redeemed")
+  /// Total de compras entregadas del usuario. Habilita el canje cuando llega a 5.
+  totalPurchases  Int      @default(0) @map("total_purchases")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user         User              @relation(fields: [userId], references: [id])
+  transactions GramTransaction[]
+
+  @@map("gram_accounts")
+}
+
+/// Log inmutable de cada movimiento de gramos. Nunca se elimina ni edita.
+model GramTransaction {
+  id          String         @id @default(uuid())
+  /// FK a la billetera de gramos sobre la que aplica el movimiento
+  accountId   String         @map("account_id")
+  /// Origen del movimiento: compra, juego, reto, ajuste admin o canje
+  sourceType  GramSourceType @map("source_type")
+  /// Positivo = ganancia, negativo = canje/descuento.
+  gramsDelta  Int            @map("grams_delta")
+  /// Descripcion legible del movimiento para mostrar en el historial.
+  description String
+  /// ID del pedido, ficha de juego, reto o ajuste que origino el movimiento.
+  referenceId String?        @map("reference_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  account     GramAccount @relation(fields: [accountId], references: [id])
+  product     Product?    @relation(fields: [referenceId], references: [id])
+
+  @@map("gram_transactions")
+}
+
+/// Ficha de juego emitida por cada compra confirmada.
+/// Maximo 3 fichas PENDING por usuario. Vence en 72 horas.
+model GameToken {
+  id          String          @id @default(uuid())
+  /// FK al usuario que recibio la ficha
+  userId      String          @map("user_id")
+  /// ID del pedido que origino esta ficha.
+  orderId     String          @map("order_id")
+  /// Estado de la ficha: PENDING, USED o EXPIRED
+  status      GameTokenStatus @default(PENDING)
+  /// Tipo de juego elegido por el usuario al jugar. Null mientras status=PENDING.
+  gameType    GameType?       @map("game_type")
+  /// Gramos ganados en la partida. 0 mientras no se juega.
+  gramsWon    Int             @default(0) @map("grams_won")
+  /// Fecha limite para usar la ficha (72h desde creacion).
+  expiresAt   DateTime        @map("expires_at")
+  /// Fecha en que el usuario jugo. Null si aun no se ha jugado.
+  playedAt    DateTime?       @map("played_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("game_tokens")
+}
+
+/// Registro de cada canje de gramos por esencia.
+/// Se crea automaticamente cuando currentGrams llega a 13 (1 oz completa).
+/// Tambien se puede crear manualmente por canje parcial.
+model EssenceRedemption {
+  id            String                   @id @default(uuid())
+  /// FK al usuario que realizo el canje
+  userId        String                   @map("user_id")
+  /// Gramos descontados de la billetera del cliente.
+  gramsUsed     Int                      @map("grams_used")
+  /// Onzas equivalentes: gramsUsed / 13.0 (puede ser fraccion).
+  ozRedeemed    Float                    @map("oz_redeemed")
+  /// Nombre de la esencia elegida por el cliente al canjear.
+  essenceName   String                   @map("essence_name")
+  /// ID de la esencia del catalogo elegida.
+  essenceId     String?                  @map("essence_id")
+  /// Estado del canje: pendiente de entrega, entregado o cancelado
+  status        EssenceRedemptionStatus  @default(PENDING_DELIVERY)
+  /// Notas del admin al entregar (ej: "entregado en tienda el 15/3").
+  adminNotes    String?                  @map("admin_notes")
+  /// Admin que proceso la entrega.
+  deliveredById String?                  @map("delivered_by_id")
+  deliveredAt   DateTime?                @map("delivered_at")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("essence_redemptions")
+}
+
+/// Reto semanal creado por el admin. Visible para todos los clientes.
+model WeeklyChallenge {
+  id                  String   @id @default(uuid())
+  /// Descripcion del reto que ve el cliente (ej: "Compra 3 lociones esta semana").
+  description         String
+  /// Gramos de premio al completar el reto.
+  gramReward          Int      @map("gram_reward")
+  /// Numero de compras necesarias para completar el reto.
+  requiredPurchases   Int      @map("required_purchases")
+  /// Inicio del periodo semanal del reto
+  weekStart           DateTime @map("week_start")
+  /// Fin del periodo semanal del reto
+  weekEnd             DateTime @map("week_end")
+  /// Si el reto esta activo y visible para los clientes.
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  progresses UserChallengeProgress[]
+
+  @@map("weekly_challenges")
+}
+
+/// Progreso individual de un usuario en un reto semanal.
+model UserChallengeProgress {
+  id              String          @id @default(uuid())
+  /// FK al usuario participante
+  userId          String          @map("user_id")
+  /// FK al reto semanal
+  challengeId     String          @map("challenge_id")
+  /// Compras realizadas durante el periodo del reto.
+  purchasesCount  Int             @default(0) @map("purchases_count")
+  /// Si ya completo el reto y recibio el premio.
+  completed       Boolean         @default(false)
+  /// Fecha en que completo el reto. Null si no lo ha completado.
+  completedAt     DateTime?       @map("completed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  user      User            @relation(fields: [userId], references: [id])
+  challenge WeeklyChallenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId])
+  @@map("user_challenge_progresses")
 }
