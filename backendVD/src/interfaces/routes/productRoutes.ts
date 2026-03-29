@@ -55,3 +55,30 @@ export const createProductRoutes = (
 
   return router;
 };
+
+/**
+ * Crea y retorna el router de administracion de productos (catalogo gamificado).
+ * Se monta en /api/admin/products en app.ts.
+ * @param productController - Controlador inyectado desde app.ts.
+ * GET    /                - Listar todos con paginacion y filtros.
+ * POST   /                - Crear producto.
+ * PUT    /:id             - Actualizar producto.
+ * PATCH  /:id/toggle      - Activar/desactivar producto.
+ * POST   /:id/stock       - Agregar stock (con movimiento).
+ */
+export const createAdminProductRoutes = (
+  productController: ProductController
+): Router => {
+  const router = Router();
+
+  // Todas requieren auth + ADMIN
+  router.use(authMiddleware, roleMiddleware("ADMIN"));
+
+  router.get("/", productController.adminGetAll);
+  router.post("/", productController.adminCreate);
+  router.put("/:id", productController.adminUpdate);
+  router.patch("/:id/toggle", productController.adminToggleActive);
+  router.post("/:id/stock", productController.adminAddStock);
+
+  return router;
+};

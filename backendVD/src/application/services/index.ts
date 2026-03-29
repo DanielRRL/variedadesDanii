@@ -26,3 +26,25 @@ export {
   CashPayment,
 } from "./PaymentStrategy";
 export type { IPaymentStrategy, PaymentResult } from "./PaymentStrategy";
+
+// GramService - Sistema de acumulacion y canje de gramos.
+export {
+  GramService,
+  GRAMS_PER_PURCHASE,
+  GRAMS_FOR_ESSENCE_OZ_BONUS,
+  GRAMS_PER_OZ,
+  MAX_GRAMS,
+  MIN_PURCHASES_TO_REDEEM,
+  REFERRAL_DISCOUNT_PCT,
+} from "./GramService";
+
+// GameTokenService - Fichas de juego (ruleta y puzzle).
+export {
+  GameTokenService,
+  MAX_PENDING_TOKENS,
+  TOKEN_EXPIRY_HOURS,
+  ROULETTE_GRAM_RANGE,
+  ROULETTE_PROBABILITIES,
+  PUZZLE_GRAM_RANGE,
+  PUZZLE_PROBABILITIES,
+} from "./GameTokenService";

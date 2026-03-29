@@ -65,3 +65,13 @@ export type { PasswordResetProps } from "./PasswordReset";
 // Entidad de facturacion electronica DIAN.
 export { ElectronicInvoice, InvoiceStatus } from "./ElectronicInvoice";
 export type { ElectronicInvoiceProps } from "./ElectronicInvoice";
+
+// Entidades del sistema de gamificacion (gramos).
+export { GramAccount, GramSourceType } from "./GramAccount";
+export type { GramAccountProps } from "./GramAccount";
+export { GramTransaction } from "./GramTransaction";
+export type { GramTransactionProps } from "./GramTransaction";
+export { GameToken, GameTokenStatus, GameType } from "./GameToken";
+export type { GameTokenProps } from "./GameToken";
+export { EssenceRedemption, EssenceRedemptionStatus } from "./EssenceRedemption";
+export type { EssenceRedemptionProps } from "./EssenceRedemption";

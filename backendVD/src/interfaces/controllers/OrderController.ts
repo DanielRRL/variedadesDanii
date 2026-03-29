@@ -22,6 +22,9 @@ import { param } from "../../utils/param";
 // EarnPointsAfterOrderUseCase - Acredita puntos al marcar una orden como entregada.
 import { EarnPointsAfterOrderUseCase } from "../../application/usecases/EarnPointsAfterOrderUseCase";
 
+// EarnGramAfterOrderUseCase - Acumula gramos y emite ficha de juego al entregar una orden.
+import { EarnGramAfterOrderUseCase } from "../../application/usecases/EarnGramAfterOrderUseCase";
+
 // IOrderStatusHistoryRepository - Registra el log inmutable de transiciones de estado.
 import { IOrderStatusHistoryRepository } from "../../domain/repositories/IOrderStatusHistoryRepository";
 
@@ -40,7 +43,8 @@ export class OrderController {
     private readonly orderRepo: IOrderRepository,
     private readonly earnPointsUseCase: EarnPointsAfterOrderUseCase,
     private readonly orderStatusHistoryRepo: IOrderStatusHistoryRepository,
-    private readonly emailService: IEmailService
+    private readonly emailService: IEmailService,
+    private readonly earnGramUseCase?: EarnGramAfterOrderUseCase,
   ) {}
 
   /** POST /orders - Crea una orden (userId viene del JWT en el middleware). */
@@ -204,6 +208,18 @@ export class OrderController {
             orderId,
             error: loyaltyErr,
           });
+        }
+
+        // 5a-bis. DELIVERED: acumular gramos y emitir ficha de juego.
+        if (this.earnGramUseCase) {
+          try {
+            await this.earnGramUseCase.execute(orderId, currentOrder.userId);
+          } catch (gramErr) {
+            logger.warn("Failed to earn grams after delivery", {
+              orderId,
+              error: gramErr,
+            });
+          }
         }
       }
 

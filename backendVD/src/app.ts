@@ -54,6 +54,12 @@ import { PrismaReferralRepository } from "./infrastructure/repositories/PrismaRe
 import { PrismaOrderStatusHistoryRepository } from "./infrastructure/repositories/PrismaOrderStatusHistoryRepository";
 // PrismaInvoiceRepository - Facturas electronicas DIAN.
 import { PrismaInvoiceRepository } from "./infrastructure/repositories/PrismaInvoiceRepository";
+// PrismaGramRepository - Billetera y transacciones de gramos.
+import { PrismaGramRepository } from "./infrastructure/repositories/PrismaGramRepository";
+// PrismaGameTokenRepository - Fichas de juego (ruleta y puzzle).
+import { PrismaGameTokenRepository } from "./infrastructure/repositories/PrismaGameTokenRepository";
+// PrismaEssenceRedemptionRepository - Canjes de esencia.
+import { PrismaEssenceRedemptionRepository } from "./infrastructure/repositories/PrismaEssenceRedemptionRepository";
 
 // --- Servicios de aplicacion: logica de negocio reutilizable ---
 // AuthService - Registro y login con JWT y bcrypt.
@@ -74,6 +80,10 @@ import { ReferralService } from "./application/services/ReferralService";
 import { InvoiceService } from "./application/services/InvoiceService";
 // ReportService - Genera reportes CSV y PDF descargables para el panel admin.
 import { ReportService } from "./application/services/ReportService";
+// GramService - Acumulacion y canje de gramos.
+import { GramService } from "./application/services/GramService";
+// GameTokenService - Fichas de juego (ruleta y puzzle).
+import { GameTokenService } from "./application/services/GameTokenService";
 
 // --- Casos de uso: orquestan la logica de negocio compleja ---
 // CreateOrderUseCase - Crear orden con validacion de stock y descuentos.
@@ -84,6 +94,8 @@ import { ProcessBottleReturnUseCase } from "./application/usecases/ProcessBottle
 import { EarnPointsAfterOrderUseCase } from "./application/usecases/EarnPointsAfterOrderUseCase";
 // GenerateInvoiceUseCase - Generar factura electronica tras pago confirmado.
 import { GenerateInvoiceUseCase } from "./application/usecases/GenerateInvoiceUseCase";
+// EarnGramAfterOrderUseCase - Acumular gramos tras entrega de pedido.
+import { EarnGramAfterOrderUseCase } from "./application/usecases/EarnGramAfterOrderUseCase";
 
 // --- Controladores: manejan HTTP y delegan a servicios/casos de uso ---
 import { AuthController } from "./interfaces/controllers/AuthController";
@@ -97,6 +109,12 @@ import { BottleReturnController } from "./interfaces/controllers/BottleReturnCon
 import { PaymentController } from "./interfaces/controllers/PaymentController";
 // AdminController - Dashboard y reportes de negocio.
 import { AdminController } from "./interfaces/controllers/AdminController";
+// GramController - Billetera de gramos del cliente y ajustes admin.
+import { GramController } from "./interfaces/controllers/GramController";
+// GameTokenController - Fichas de juego (consulta y jugar).
+import { GameTokenController } from "./interfaces/controllers/GameTokenController";
+// EssenceRedemptionController - Canjes de esencia (cliente y admin).
+import { EssenceRedemptionController } from "./interfaces/controllers/EssenceRedemptionController";
 // LoyaltyController - Puntos del programa de fidelizacion y referidos.
 import { LoyaltyController } from "./interfaces/controllers/LoyaltyController";
 // InvoiceController - Consulta y gestion de facturas electronicas.
@@ -116,6 +134,16 @@ import { createBottleReturnRoutes } from "./interfaces/routes/bottleReturnRoutes
 import { createPaymentRoutes } from "./interfaces/routes/paymentRoutes";
 // createAdminRoutes - Rutas de dashboard y reportes admin.
 import { createAdminRoutes } from "./interfaces/routes/adminRoutes";
+// createGramRoutes, createAdminGramRoutes - Billetera de gramos (cliente y admin).
+import { createGramRoutes, createAdminGramRoutes } from "./interfaces/routes/gramRoutes";
+// createGameTokenRoutes - Fichas de juego.
+import { createGameTokenRoutes } from "./interfaces/routes/gameTokenRoutes";
+// createRedemptionRoutes, createAdminRedemptionRoutes - Canjes de esencia.
+import { createRedemptionRoutes, createAdminRedemptionRoutes } from "./interfaces/routes/redemptionRoutes";
+// createAdminProductRoutes - CRUD admin de productos.
+import { createAdminProductRoutes } from "./interfaces/routes/productRoutes";
+// createChallengeRoutes - Desafios semanales (publico + cliente).
+import { createChallengeRoutes } from "./interfaces/routes/challengeRoutes";
 // createLoyaltyRoutes, createAdminLoyaltyRoutes - Fidelizacion y referidos.
 import { createLoyaltyRoutes, createAdminLoyaltyRoutes } from "./interfaces/routes/loyaltyRoutes";
 // createWebhookRoutes - Webhooks de pasarelas de pago (raw body; debe montarse antes de express.json).
@@ -213,6 +241,9 @@ export function createApp(): express.Application {
   const referralRepo = new PrismaReferralRepository();
   const orderStatusHistoryRepo = new PrismaOrderStatusHistoryRepository();
   const invoiceRepo = new PrismaInvoiceRepository();
+  const gramRepo = new PrismaGramRepository();
+  const gameTokenRepo = new PrismaGameTokenRepository();
+  const essenceRedemptionRepo = new PrismaEssenceRedemptionRepository();
 
   // EmailService - Implementacion concreta del contrato IEmailService.
   const emailService = new EmailService();
@@ -232,6 +263,8 @@ export function createApp(): express.Application {
   const referralService = new ReferralService(referralRepo, loyaltyService, userRepo);
   const dianClient = new DianSoapClient();
   const invoiceService = new InvoiceService(invoiceRepo, orderRepo, dianClient, emailService);
+  const gramService = new GramService(gramRepo, essenceRedemptionRepo, emailService);
+  const gameTokenService = new GameTokenService(gameTokenRepo, gramService);
 
   // 3. Instanciar casos de uso (inyectando repos y servicios)
   const createOrderUseCase = new CreateOrderUseCase(
@@ -253,6 +286,13 @@ export function createApp(): express.Application {
     orderRepo,
     userRepo,
   );
+  const earnGramAfterOrderUseCase = new EarnGramAfterOrderUseCase(
+    orderRepo,
+    productRepo,
+    gramRepo,
+    gramService,
+    gameTokenService,
+  );
 
   // 4. Instanciar controladores (inyectando servicios, casos de uso, repos)
   const authController = new AuthController(authService);
@@ -260,7 +300,7 @@ export function createApp(): express.Application {
   const essenceController = new EssenceController(essenceRepo, inventoryService);
   const bottleController = new BottleController(bottleRepo, inventoryService);
   const productController = new ProductController(productRepo);
-  const orderController = new OrderController(createOrderUseCase, orderRepo, earnPointsAfterOrderUseCase, orderStatusHistoryRepo, emailService);
+  const orderController = new OrderController(createOrderUseCase, orderRepo, earnPointsAfterOrderUseCase, orderStatusHistoryRepo, emailService, earnGramAfterOrderUseCase);
   const inventoryController = new InventoryController(inventoryService);
   const bottleReturnController = new BottleReturnController(
     processBottleReturnUseCase,
@@ -268,6 +308,9 @@ export function createApp(): express.Application {
   );
   const paymentController = new PaymentController(paymentRepo, orderRepo);
   const adminController = new AdminController(adminService, reportService);
+  const gramController = new GramController(gramService, gramRepo, essenceRedemptionRepo);
+  const gameTokenController = new GameTokenController(gameTokenService, gameTokenRepo);
+  const essenceRedemptionController = new EssenceRedemptionController(essenceRedemptionRepo, gramService);
   const loyaltyController = new LoyaltyController(loyaltyService, referralService);
   const invoiceController = new InvoiceController(invoiceService, invoiceRepo);
 
@@ -291,10 +334,25 @@ export function createApp(): express.Application {
   app.use("/api/returns", createBottleReturnRoutes(bottleReturnController));
   app.use("/api/payments", createPaymentRoutes(paymentController));
   app.use("/api/admin", createAdminRoutes(adminController));
+  app.use("/api/admin/products", createAdminProductRoutes(productController));
+  app.use("/api/admin/grams", createAdminGramRoutes(gramController));
+  app.use("/api/admin/redemptions", createAdminRedemptionRoutes(essenceRedemptionController));
+  app.use("/api/grams", createGramRoutes(gramController));
+  app.use("/api/game-tokens", createGameTokenRoutes(gameTokenController));
+  app.use("/api/redemptions", createRedemptionRoutes(essenceRedemptionController));
+  app.use("/api/challenges", createChallengeRoutes(adminController));
   app.use("/api/loyalty", createLoyaltyRoutes(loyaltyController));
   app.use("/api/admin/loyalty", createAdminLoyaltyRoutes(loyaltyController));
   app.use("/api/invoices", createInvoiceRoutes(invoiceController));
   app.use("/api/admin/invoices", createAdminInvoiceRoutes(invoiceController));
+
+  // ---------------------------------------------------------------------------
+  // Cron: expirar fichas de juego viejas cada 6 horas
+  // ---------------------------------------------------------------------------
+  gameTokenService.expireOldTokens().catch(() => {});
+  setInterval(() => {
+    gameTokenService.expireOldTokens().catch(() => {});
+  }, 6 * 60 * 60 * 1000);
 
   // ---------------------------------------------------------------------------
   // Error Handler (debe ir al final de la cadena de middlewares)

@@ -69,5 +69,19 @@ export const createAdminRoutes = (
   router.get("/reports/inventory/csv", adminController.downloadInventoryCSV);
   router.get("/reports/clients/csv",   adminController.downloadClientsCSV);
 
+  // --- Nuevos endpoints de gamificacion y reportes avanzados ---
+
+  // Ventas agrupadas por tipo de producto
+  router.get("/reports/sales-by-type", adminController.getSalesByProductType);
+
+  // Historial de un cliente especifico
+  router.get("/clients/:id/history", adminController.getClientHistory);
+
+  // Estadisticas generales de gamificacion
+  router.get("/gamification/stats", adminController.getGamificationStats);
+
+  // Crear desafio semanal
+  router.post("/challenges", adminController.createWeeklyChallenge);
+
   return router;
 };

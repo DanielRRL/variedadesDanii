@@ -28,4 +28,7 @@ export { IEmailVerificationRepository } from "./IEmailVerificationRepository";
 export { IPasswordResetRepository } from "./IPasswordResetRepository";
 export { IOrderStatusHistoryRepository } from "./IOrderStatusHistoryRepository";
 export { IInvoiceRepository } from "./IInvoiceRepository";
+export { IGramRepository } from "./IGramRepository";
+export { IGameTokenRepository } from "./IGameTokenRepository";
+export { IEssenceRedemptionRepository } from "./IEssenceRedemptionRepository";
 export type { InvoiceListResult } from "./IInvoiceRepository";

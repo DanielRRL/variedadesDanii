@@ -10,3 +10,6 @@ export type { CreateOrderInput } from "./CreateOrderUseCase";
 // ProcessBottleReturnUseCase - Flujo de devolucion de frasco.
 export { ProcessBottleReturnUseCase } from "./ProcessBottleReturnUseCase";
 export type { ProcessBottleReturnInput } from "./ProcessBottleReturnUseCase";
+
+// EarnGramAfterOrderUseCase - Acumular gramos tras entrega de pedido.
+export { EarnGramAfterOrderUseCase } from "./EarnGramAfterOrderUseCase";

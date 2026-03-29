@@ -12,3 +12,6 @@ export { InventoryController } from "./InventoryController";
 export { BottleReturnController } from "./BottleReturnController";
 export { PaymentController } from "./PaymentController";
 export { AdminController } from "./AdminController";
+export { GramController } from "./GramController";
+export { GameTokenController } from "./GameTokenController";
+export { EssenceRedemptionController } from "./EssenceRedemptionController";

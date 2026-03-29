@@ -17,3 +17,6 @@ export { PrismaEmailVerificationRepository } from "./PrismaEmailVerificationRepo
 export { PrismaPasswordResetRepository } from "./PrismaPasswordResetRepository";
 export { PrismaOrderStatusHistoryRepository } from "./PrismaOrderStatusHistoryRepository";
 export { PrismaInvoiceRepository } from "./PrismaInvoiceRepository";
+export { PrismaGramRepository } from "./PrismaGramRepository";
+export { PrismaGameTokenRepository } from "./PrismaGameTokenRepository";
+export { PrismaEssenceRedemptionRepository } from "./PrismaEssenceRedemptionRepository";

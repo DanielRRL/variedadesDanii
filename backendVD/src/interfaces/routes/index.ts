@@ -13,3 +13,8 @@ export { createInventoryRoutes } from "./inventoryRoutes";
 export { createBottleReturnRoutes } from "./bottleReturnRoutes";
 export { createPaymentRoutes } from "./paymentRoutes";
 export { createAdminRoutes } from "./adminRoutes";
+export { createGramRoutes, createAdminGramRoutes } from "./gramRoutes";
+export { createGameTokenRoutes } from "./gameTokenRoutes";
+export { createRedemptionRoutes, createAdminRedemptionRoutes } from "./redemptionRoutes";
+export { createAdminProductRoutes } from "./productRoutes";
+export { createChallengeRoutes } from "./challengeRoutes";
