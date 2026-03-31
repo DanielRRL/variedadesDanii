@@ -14,24 +14,25 @@ const ADMIN_NAME     = env.admin.name;
 const ADMIN_PHONE    = env.admin.phone;
 
 /**
- * Crea el usuario administrador si no existe en la base de datos.
- * Usa upsert para evitar duplicados de forma segura.
+ * Crea o actualiza el usuario administrador.
+ * Usa upsert: si ya existe, garantiza que tenga role=ADMIN, active=true,
+ * emailVerified=true y la contraseña correcta. Si no existe, lo crea.
  */
 export async function seedAdminUser(): Promise<void> {
   try {
-    const existing = await prisma.user.findUnique({
-      where: { email: ADMIN_EMAIL },
-    });
-
-    if (existing) {
-      logger.info(`Admin user already exists: ${ADMIN_EMAIL}`);
-      return;
-    }
-
     const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
 
-    await prisma.user.create({
-      data: {
+    const admin = await prisma.user.upsert({
+      where: { email: ADMIN_EMAIL },
+      update: {
+        name: ADMIN_NAME,
+        phone: ADMIN_PHONE,
+        password: hashedPassword,
+        role: "ADMIN",
+        active: true,
+        emailVerified: true,
+      },
+      create: {
         name: ADMIN_NAME,
         email: ADMIN_EMAIL,
         phone: ADMIN_PHONE,
@@ -42,7 +43,7 @@ export async function seedAdminUser(): Promise<void> {
       },
     });
 
-    logger.info(`Admin user created successfully: ${ADMIN_EMAIL}`);
+    logger.info(`Admin user ready: ${admin.email} (${admin.id})`);
   } catch (error) {
     logger.error("Failed to seed admin user:", error);
   }

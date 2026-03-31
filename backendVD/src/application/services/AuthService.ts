@@ -185,8 +185,9 @@ export class AuthService {
       throw AppError.unauthorized("Invalid credentials");
     }
 
-    // Requerir que el correo haya sido verificado antes de permitir acceso
-    if (!user.emailVerified) {
+    // Admins skip email verification (seed always sets emailVerified=true).
+    // Regular users must verify their email before accessing the platform.
+    if (!user.emailVerified && user.role !== "ADMIN") {
       throw AppError.forbidden(
         "Please verify your email before logging in. Check your inbox."
       );
