@@ -61,6 +61,7 @@ export interface AuthResponse {
     email: string;
     phone: string;
     role: string;
+    emailVerified: boolean;
   };
   token: string;
 }
@@ -152,6 +153,7 @@ export class AuthService {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        emailVerified: user.emailVerified ?? false,
       },
       token,
     };
@@ -202,6 +204,7 @@ export class AuthService {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        emailVerified: user.emailVerified ?? false,
       },
       token,
     };

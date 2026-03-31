@@ -29,6 +29,7 @@ import {
   Bell,
   X,
   Loader2,
+  Shield,
 } from 'lucide-react';
 
 import { useAuthStore }         from '../stores/authStore';
@@ -307,6 +308,7 @@ export default function ProfilePage() {
   // ── Menu items ─────────────────────────────────────────────────────────────
 
   const menuItems = [
+    ...(user?.role === 'ADMIN' ? [{ icon: Shield, label: 'Panel de Administración', action: () => navigate('/admin') }] : []),
     { icon: Package,  label: 'Mis pedidos',     action: () => navigate('/pedidos')               },
     { icon: Scale,    label: 'Mis gramos',       action: () => navigate('/mis-gramos')            },
     { icon: Gamepad2, label: 'Juegos',           action: () => navigate('/juegos')                },
@@ -329,7 +331,7 @@ export default function ProfilePage() {
           cases where a user somehow accessed the profile without verification
           (e.g., token set manually, or email changed by admin).
         */}
-        {user && !user.emailVerified && (
+        {user && !user.emailVerified && user.role !== 'ADMIN' && (
           <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 flex items-start gap-3">
             <AlertTriangle size={18} className="text-orange-500 mt-0.5 shrink-0" />
             <div className="flex-1">
