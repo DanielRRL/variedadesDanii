@@ -18,13 +18,13 @@ import {
   AlertCircle, RefreshCw, User, Scale,
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getEssences, getMyGramAccount } from '../services/api';
+import { getProducts, getMyGramAccount } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
 import { formatCOP } from '../utils/format';
 import { GRAMS_PER_OZ, gramProgress } from '../utils/priceCalculator';
-import type { Essence, GramAccount } from '../types';
+import type { Product, GramAccount } from '../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -105,50 +105,61 @@ function HeroTopBar() {
 }
 
 /**
- * Square essence card for the horizontal featured scroll.
- * Distinct from the full EssenceCard — this is a smaller 160×200 variant.
+ * Small product card for the horizontal featured scroll.
+ * Shows name, price, type badge, and "Gana 1g" pill.
  */
-function FeaturedEssenceCard({ essence, onPress }: { essence: Essence; onPress: () => void }) {
-  const isOutOfStock = essence.currentStockMl === 0;
-  const pricePerOz   = essence.pricePerMl * 29.5735;
+function FeaturedProductCard({ product, onPress }: { product: Product; onPress: () => void }) {
+  const outOfStock = product.stockUnits <= 0;
+
+  const TYPE_LABELS: Record<string, string> = {
+    LOTION: 'Loción', CREAM: 'Crema', SHAMPOO: 'Shampoo',
+    MAKEUP: 'Maquillaje', SPLASH: 'Splash', ACCESSORY: 'Accesorio',
+  };
 
   return (
     <article
-      onClick={isOutOfStock ? undefined : onPress}
+      onClick={outOfStock ? undefined : onPress}
       className={clsx(
         'flex-none w-40 bg-surface rounded-[12px] shadow-card border border-border',
         'flex flex-col overflow-hidden',
-        isOutOfStock ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer active:opacity-80'
+        outOfStock ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer active:opacity-80'
       )}
       role="button"
-      tabIndex={isOutOfStock ? -1 : 0}
-      onKeyDown={(e) => { if (!isOutOfStock && (e.key === 'Enter' || e.key === ' ')) onPress(); }}
-      aria-disabled={isOutOfStock}
+      tabIndex={outOfStock ? -1 : 0}
+      onKeyDown={(e) => { if (!outOfStock && (e.key === 'Enter' || e.key === ' ')) onPress(); }}
+      aria-disabled={outOfStock}
     >
-      {/* Image area (160×110) */}
+      {/* Image area */}
       <div className="relative w-full h-28 bg-brand-pink/10 overflow-hidden">
-        {essence.photoUrl ? (
+        {product.photoUrl ? (
           <img
-            src={essence.photoUrl}
-            alt={essence.name}
+            src={product.photoUrl}
+            alt={product.name}
             className="w-full h-full object-cover"
             loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span className="font-heading font-bold text-4xl text-brand-pink/30 select-none">
-              {essence.name[0]?.toUpperCase()}
+              {product.name[0]?.toUpperCase()}
             </span>
           </div>
         )}
 
-        {/* Family chip top-left */}
+        {/* Type chip top-left */}
         <span className="absolute top-1.5 left-1.5 bg-surface/90 text-text-primary text-[9px] font-body px-1.5 py-0.5 rounded-full leading-none truncate max-w-[80%]">
-          {essence.olfactiveFamily.name}
+          {TYPE_LABELS[product.productType] ?? product.productType}
         </span>
 
+        {/* "Gana 1g" pill top-right */}
+        {product.generatesGram && (
+          <span className="absolute top-1.5 right-1.5 bg-emerald-500 text-white text-[9px] font-body font-semibold px-1.5 py-0.5 rounded-full">
+            +1g
+          </span>
+        )}
+
         {/* Out of stock overlay */}
-        {isOutOfStock && (
+        {outOfStock && (
           <div className="absolute inset-0 bg-text-primary/50 flex items-center justify-center">
             <span className="bg-warning text-surface text-[11px] font-body font-medium px-2 py-1 rounded-full">
               Agotado
@@ -160,22 +171,17 @@ function FeaturedEssenceCard({ essence, onPress }: { essence: Essence; onPress: 
       {/* Content */}
       <div className="p-2.5 flex flex-col gap-1 flex-1">
         <p className="font-heading font-semibold text-[13px] text-text-primary leading-snug line-clamp-2">
-          {essence.name}
+          {product.name}
         </p>
-        {essence.inspirationBrand && (
-          <p className="text-[11px] text-muted font-body leading-snug truncate">
-            {essence.inspirationBrand}
-          </p>
-        )}
         <p className="font-heading font-semibold text-brand-gold text-[12px] leading-none mt-auto">
-          {formatCOP(pricePerOz)}/oz
+          {formatCOP(product.price)}
         </p>
       </div>
     </article>
   );
 }
 
-/** Skeleton placeholder while essences load — 2 animated pulse cards. */
+/** Skeleton placeholder while products load — 2 animated pulse cards. */
 function FeaturedSkeleton() {
   return (
     <>
@@ -197,20 +203,22 @@ export default function HomePage() {
   const navigate        = useNavigate();
   const user            = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  // ── Section 2 data — GET /api/essences?orderBy=sales&limit=6 ─────────────
-  // Backend must support orderBy=sales to return top-selling essences.
+  // ── Section 2 data — GET /api/products (featured products) ─────────────────
   const {
-    data: essencesData,
-    isLoading: essencesLoading,
-    isError: essencesError,
-    refetch: retryEssences,
+    data: productsData,
+    isLoading: productsLoading,
+    isError: productsError,
+    refetch: retryProducts,
   } = useQuery({
-    queryKey: ['essences', 'featured'],
-    queryFn:  () => getEssences({ orderBy: 'name', limit: 6 }),
+    queryKey: ['products', 'featured'],
+    queryFn: getProducts,
     staleTime: 2 * 60 * 1000,
   });
 
-  const essences: Essence[] = Array.isArray(essencesData?.data) ? essencesData.data : (essencesData?.data?.essences ?? []);
+  const products: Product[] = (() => {
+    const raw = Array.isArray(productsData?.data) ? productsData.data : (productsData?.data?.products ?? []);
+    return raw.filter((p: Product) => p.active).slice(0, 6);
+  })();
 
   // ── Gram account query (only when authenticated) ──────────────────────────
   const { data: gramRes } = useQuery({
@@ -244,7 +252,7 @@ export default function HomePage() {
               Tu fragancia perfecta al precio que mereces
             </h1>
             <p className="font-body font-normal text-[14px] text-surface/80 mt-2">
-              Esencias artesanales por onzas
+              Lociones, cremas y más al mejor precio
             </p>
           </div>
 
@@ -272,9 +280,8 @@ export default function HomePage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SECTION 2 — Esencias Destacadas
-          GET /api/essences?orderBy=sales&limit=6
-          Backend must support orderBy=sales param; falls back to orderBy=name.
+          SECTION 2 — Productos Destacados
+          GET /api/products — shows the first 6 active products.
       ════════════════════════════════════════════════════════════════════════ */}
       <section className="mt-6 px-4" aria-labelledby="featured-heading">
         {/* Section header */}
@@ -285,7 +292,7 @@ export default function HomePage() {
               id="featured-heading"
               className="font-heading font-semibold text-base text-text-primary"
             >
-              Esencias Destacadas
+              Productos Destacados
             </h2>
           </div>
           <Link
@@ -301,16 +308,16 @@ export default function HomePage() {
           className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scroll-smooth"
           style={{ scrollbarWidth: 'none' }}
         >
-          {essencesLoading && <FeaturedSkeleton />}
+          {productsLoading && <FeaturedSkeleton />}
 
-          {essencesError && (
+          {productsError && (
             <div className="flex flex-col items-center gap-3 py-6 w-full text-center">
               <AlertCircle size={32} className="text-warning" strokeWidth={1.5} />
               <p className="text-muted text-sm font-body">
-                No pudimos cargar las esencias. Intenta de nuevo.
+                No pudimos cargar los productos. Intenta de nuevo.
               </p>
               <button
-                onClick={() => retryEssences()}
+                onClick={() => retryProducts()}
                 className="flex items-center gap-1.5 bg-brand-pink text-surface font-body font-medium text-sm px-5 py-2 rounded-full"
               >
                 <RefreshCw size={14} strokeWidth={2} />
@@ -319,17 +326,17 @@ export default function HomePage() {
             </div>
           )}
 
-          {!essencesLoading && !essencesError && essences.map((essence) => (
-            <FeaturedEssenceCard
-              key={essence.id}
-              essence={essence}
-              onPress={() => navigate(`/esencia/${essence.id}`)}
+          {!productsLoading && !productsError && products.map((product) => (
+            <FeaturedProductCard
+              key={product.id}
+              product={product}
+              onPress={() => navigate(`/productos/${product.id}`)}
             />
           ))}
 
-          {!essencesLoading && !essencesError && essences.length === 0 && (
+          {!productsLoading && !productsError && products.length === 0 && (
             <p className="text-muted text-sm font-body py-4">
-              No hay esencias disponibles por el momento.
+              No hay productos disponibles por el momento.
             </p>
           )}
         </div>

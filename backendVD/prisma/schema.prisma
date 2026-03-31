@@ -308,9 +308,6 @@ model Product {
   bottle           Bottle?           @relation(fields: [bottleId], references: [id])
   orderItems       OrderItem[]
   movements        ProductMovement[]
-  /// Relacion con gramos ganados: todos los GramTransaction originados por compras de este producto.
-  gramTransactions GramTransaction[]
-
   @@unique([essenceId, bottleId, mlQuantity])
   @@map("products")
 }
@@ -736,7 +733,6 @@ model GramTransaction {
   createdAt   DateTime       @default(now()) @map("created_at")
 
   account     GramAccount @relation(fields: [accountId], references: [id])
-  product     Product?    @relation(fields: [referenceId], references: [id])
 
   @@map("gram_transactions")
 }

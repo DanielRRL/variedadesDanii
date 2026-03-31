@@ -1,32 +1,25 @@
 /**
- * AdminLoyaltyPage.tsx — Loyalty account management for admins.
+ * AdminLoyaltyPage.tsx — Gram account management for admins.
  *
  * Features:
- *  - Stats cards (total users per tier, total points outstanding)
- *  - Manual points adjustment form: search user, enter points (+/-), reason
- *  - Submits to POST /api/admin/loyalty/adjust
+ *  - Stats cards (total grams earned, redeemed, tokens issued, active accounts)
+ *  - Manual gram adjustment form: search user, enter grams (+/-), reason
+ *  - Submits to POST /api/admin/grams/adjust
  */
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Trophy, Star, Zap, Crown, CheckCircle2 } from 'lucide-react';
-import { searchUsers, adminAdjustPoints } from '../../services/api';
+import { Search, Scale, CheckCircle2, Gamepad2, Gift, TrendingUp } from 'lucide-react';
+import { searchUsers, adminAdjustGrams, getGamificationStats } from '../../services/api';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tier config
+// Constants
 // ─────────────────────────────────────────────────────────────────────────────
-
-const TIERS = [
-  { key: 'BRONZE', label: 'Bronce',   Icon: Star,     color: 'text-amber-600',  bg: 'bg-amber-50  border-amber-200' },
-  { key: 'SILVER', label: 'Plata',    Icon: Zap,      color: 'text-gray-500',   bg: 'bg-gray-50   border-gray-200'  },
-  { key: 'GOLD',   label: 'Oro',      Icon: Trophy,   color: 'text-brand-gold', bg: 'bg-yellow-50 border-yellow-200'},
-  { key: 'VIP',    label: 'VIP',      Icon: Crown,    color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200'},
-] as const;
 
 const REASONS = [
   'Compensación por demora',
   'Bono de bienvenida',
-  'Ajuste manual de puntos',
+  'Ajuste manual de gramos',
   'Corrección de error',
   'Premio de campaña',
   'Deducción por devolución',
@@ -41,10 +34,18 @@ interface UserHit {
   id: string;
   name: string;
   email: string;
-  loyaltyAccount?: { points: number; level: string };
+  gramAccount?: { currentGrams: number; totalEarned: number; totalRedeemed: number };
 }
 
 export default function AdminLoyaltyPage() {
+  // ── Gamification stats ──────────────────────────────────────────────────────
+  const { data: statsRes } = useQuery({
+    queryKey: ['admin-gamification-stats'],
+    queryFn: getGamificationStats,
+    staleTime: 60_000,
+  });
+
+  const stats = statsRes?.data ?? {};
 
   // ── User search + selection ─────────────────────────────────────────────────
   const [userSearch, setUserSearch] = useState('');
@@ -61,29 +62,29 @@ export default function AdminLoyaltyPage() {
   const userHits: UserHit[] = usersRes?.data?.users ?? usersRes?.data ?? [];
 
   // ── Adjustment form ──────────────────────────────────────────────────────────
-  const [points, setPoints]   = useState('');
+  const [grams, setGrams]     = useState('');
   const [reason, setReason]   = useState(REASONS[0]);
-  const [busy,   setBusy]     = useState(false);
-  const [error,  setError]    = useState('');
+  const [busy, setBusy]       = useState(false);
+  const [error, setError]     = useState('');
   const [success, setSuccess] = useState('');
 
   const handleAdjust = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) { setError('Selecciona un usuario.'); return; }
-    const pts = parseInt(points, 10);
-    if (isNaN(pts) || pts === 0) { setError('Ingresa una cantidad de puntos válida (puede ser negativa).'); return; }
+    const delta = parseInt(grams, 10);
+    if (isNaN(delta) || delta === 0) { setError('Ingresa una cantidad de gramos válida (puede ser negativa).'); return; }
     setError('');
     setBusy(true);
     try {
-      await adminAdjustPoints({ userId: selectedUser.id, points: pts, reason });
-      setSuccess(`✓ ${pts > 0 ? '+' : ''}${pts} puntos aplicados a ${selectedUser.name}.`);
-      setPoints('');
+      await adminAdjustGrams({ userId: selectedUser.id, delta, reason });
+      setSuccess(`✓ ${delta > 0 ? '+' : ''}${delta}g aplicados a ${selectedUser.name}.`);
+      setGrams('');
       setSelectedUser(null);
       setUserSearch('');
       setTimeout(() => setSuccess(''), 5000);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg ?? 'Error al ajustar los puntos.');
+      setError(msg ?? 'Error al ajustar los gramos.');
     } finally {
       setBusy(false);
     }
@@ -95,29 +96,33 @@ export default function AdminLoyaltyPage() {
       {/* Header */}
       <div>
         <h1 className="font-heading font-bold text-xl text-text-primary">Fidelización</h1>
-        <p className="text-xs text-muted mt-0.5">Ajusta puntos y gestiona el programa de lealtad</p>
+        <p className="text-xs text-muted mt-0.5">Gestiona gramos y programa de gamificación</p>
       </div>
 
-      {/* Tier stats — decorative placeholder (real data would need a /admin/loyalty/stats endpoint) */}
+      {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {TIERS.map(({ key, label, Icon, color, bg }) => (
-          <div key={key} className={`border rounded-xl p-4 flex flex-col gap-2 ${bg}`}>
+        {[
+          { label: 'Gramos emitidos',  value: stats.totalGramsEarned  ?? '—', Icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
+          { label: 'Gramos canjeados', value: stats.totalGramsRedeemed ?? '—', Icon: Gift,       color: 'text-brand-gold',  bg: 'bg-yellow-50  border-yellow-200' },
+          { label: 'Fichas emitidas',  value: stats.totalTokensIssued ?? '—', Icon: Gamepad2,   color: 'text-brand-pink',  bg: 'bg-pink-50    border-pink-200'   },
+          { label: 'Cuentas activas',  value: stats.activeAccounts    ?? '—', Icon: Scale,      color: 'text-blue-600',    bg: 'bg-blue-50    border-blue-200'   },
+        ].map(({ label, value, Icon, color, bg }) => (
+          <div key={label} className={`border rounded-xl p-4 flex flex-col gap-2 ${bg}`}>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">{label}</span>
               <Icon size={15} className={color} />
             </div>
-            <p className="font-heading font-bold text-2xl text-text-primary leading-none">—</p>
-            <p className="text-[10px] text-muted">usuarios activos</p>
+            <p className="font-heading font-bold text-2xl text-text-primary leading-none">{value}</p>
           </div>
         ))}
       </div>
 
-      {/* Points adjustment form */}
+      {/* Gram adjustment form */}
       <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h2 className="font-heading font-semibold text-text-primary">Ajuste Manual de Puntos</h2>
+          <h2 className="font-heading font-semibold text-text-primary">Ajuste Manual de Gramos</h2>
           <p className="text-xs text-muted mt-0.5">
-            Ingresa un valor positivo para sumar puntos o negativo para deducir.
+            Ingresa un valor positivo para sumar gramos o negativo para deducir.
           </p>
         </div>
 
@@ -164,9 +169,9 @@ export default function AdminLoyaltyPage() {
                           <p className="text-xs font-medium text-text-primary">{u.name}</p>
                           <p className="text-[10px] text-muted">{u.email}</p>
                         </div>
-                        {u.loyaltyAccount && (
+                        {u.gramAccount && (
                           <span className="ml-auto text-[10px] font-semibold text-brand-gold">
-                            {u.loyaltyAccount.points} pts
+                            {u.gramAccount.currentGrams}g
                           </span>
                         )}
                       </button>
@@ -176,33 +181,35 @@ export default function AdminLoyaltyPage() {
               )}
             </div>
 
-            {selectedUser?.loyaltyAccount && (
+            {selectedUser?.gramAccount && (
               <p className="text-[11px] text-muted mt-1">
-                Puntos actuales:{' '}
-                <span className="font-semibold text-brand-gold">{selectedUser.loyaltyAccount.points}</span>
-                {' · Nivel: '}
-                <span className="font-semibold">{selectedUser.loyaltyAccount.level}</span>
+                Gramos actuales:{' '}
+                <span className="font-semibold text-brand-gold">{selectedUser.gramAccount.currentGrams}g</span>
+                {' · Ganados: '}
+                <span className="font-semibold">{selectedUser.gramAccount.totalEarned}g</span>
+                {' · Canjeados: '}
+                <span className="font-semibold">{selectedUser.gramAccount.totalRedeemed}g</span>
               </p>
             )}
           </div>
 
-          {/* Points amount */}
+          {/* Grams amount */}
           <div>
-            <label className="block text-xs font-semibold text-muted uppercase mb-1.5" htmlFor="adj-points">
-              Cantidad de puntos
+            <label className="block text-xs font-semibold text-muted uppercase mb-1.5" htmlFor="adj-grams">
+              Cantidad de gramos
             </label>
             <input
-              id="adj-points"
+              id="adj-grams"
               type="number"
               step="1"
-              value={points}
-              onChange={(e) => setPoints(e.target.value)}
-              placeholder="Ej: 100 para sumar, -50 para deducir"
+              value={grams}
+              onChange={(e) => setGrams(e.target.value)}
+              placeholder="Ej: 5 para sumar, -3 para deducir"
               className="w-full px-3 py-2 text-sm border border-border rounded-lg outline-none focus:border-brand-pink bg-gray-50"
             />
-            {points && !isNaN(parseInt(points)) && (
-              <p className={`text-[11px] mt-1 font-semibold ${parseInt(points) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {parseInt(points) >= 0 ? `+${points} puntos (suma)` : `${points} puntos (deducción)`}
+            {grams && !isNaN(parseInt(grams)) && (
+              <p className={`text-[11px] mt-1 font-semibold ${parseInt(grams) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                {parseInt(grams) >= 0 ? `+${grams}g (suma)` : `${grams}g (deducción)`}
               </p>
             )}
           </div>
