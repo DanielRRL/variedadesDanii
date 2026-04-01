@@ -29,7 +29,12 @@ export class AdminController {
     private readonly reportService: ReportService
   ) {}
 
-  /** GET /admin/dashboard - Resumen general con metricas del dia. */
+  /**
+   * GET /admin/dashboard - Resumen general con metricas del dia.
+   * Returns the enriched payload the frontend expects:
+   *   { salesToday, salesGoal, salesPercent, ordersToday, ordersTodayVsYesterday,
+   *     averageTicket, newClientsToday, topEssences, recentOrders }
+   */
   getDashboard = async (
     req: Request,
     res: Response,
@@ -40,7 +45,139 @@ export class AdminController {
         ? Number(req.query.threshold)
         : undefined;
       const summary = await this.adminService.getDashboardSummary(threshold);
-      res.json({ success: true, data: summary });
+
+      // --- Enrich with fields the frontend dashboard expects ---
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      // Average ticket
+      const averageTicket =
+        summary.todayOrders > 0
+          ? Math.round(summary.todaySales / summary.todayOrders)
+          : 0;
+
+      // Yesterday's orders for comparison
+      const yesterdayOrderCount = await prisma.order.count({
+        where: {
+          createdAt: { gte: yesterday, lt: today },
+          status: { in: ["PAID", "PREPARING", "READY", "SHIPPED", "DELIVERED"] },
+        },
+      });
+      const ordersTodayVsYesterday =
+        yesterdayOrderCount > 0
+          ? Math.round(
+              ((summary.todayOrders - yesterdayOrderCount) / yesterdayOrderCount) * 100
+            )
+          : 0;
+
+      // New clients registered today
+      const newClientsToday = await prisma.user.count({
+        where: {
+          role: "CLIENT",
+          createdAt: { gte: today, lt: tomorrow },
+        },
+      });
+
+      // Top 5 essences by revenue today
+      const topItems = await prisma.orderItem.findMany({
+        where: {
+          order: {
+            createdAt: { gte: today, lt: tomorrow },
+            status: { in: ["PAID", "PREPARING", "READY", "SHIPPED", "DELIVERED"] },
+          },
+        },
+        include: {
+          product: {
+            select: { name: true, essence: { select: { name: true } } },
+          },
+        },
+      });
+
+      const revenueByEssence = new Map<string, number>();
+      for (const item of topItems) {
+        const essName =
+          item.product?.essence?.name ?? item.product?.name ?? "Otro";
+        revenueByEssence.set(
+          essName,
+          (revenueByEssence.get(essName) || 0) + item.subtotal
+        );
+      }
+      const topEssences = Array.from(revenueByEssence.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, revenue], i) => ({ name, revenue, rank: i + 1 }));
+
+      // Recent orders (last 10) with client info
+      const recentOrders = await prisma.order.findMany({
+        where: {
+          createdAt: { gte: today, lt: tomorrow },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          items: {
+            include: {
+              product: {
+                select: { name: true, essence: { select: { name: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      const formattedOrders = recentOrders.map((o: any) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        status: o.status,
+        total: o.total,
+        subtotal: o.subtotal,
+        discount: o.discount,
+        createdAt: o.createdAt,
+        client: o.user
+          ? { id: o.user.id, name: o.user.name, email: o.user.email }
+          : undefined,
+        items: o.items.map((it: any) => ({
+          id: it.id,
+          productId: it.productId,
+          quantity: it.quantity,
+          subtotal: it.subtotal,
+          product: it.product
+            ? {
+                name: it.product.name,
+                essence: it.product.essence
+                  ? { name: it.product.essence.name }
+                  : undefined,
+              }
+            : undefined,
+        })),
+      }));
+
+      // Sales goal: a sensible default (adjustable)
+      const salesGoal = 1_000_000;
+      const salesPercent = Math.round(
+        (summary.todaySales / Math.max(1, salesGoal)) * 100
+      );
+
+      res.json({
+        success: true,
+        data: {
+          salesToday: summary.todaySales,
+          salesGoal,
+          salesPercent,
+          ordersToday: summary.todayOrders,
+          ordersTodayVsYesterday,
+          averageTicket,
+          newClientsToday,
+          topEssences,
+          recentOrders: formattedOrders,
+        },
+      });
     } catch (error) {
       next(error);
     }
@@ -56,7 +193,12 @@ export class AdminController {
       const from = new Date(req.query.from as string);
       const to = new Date(req.query.to as string);
       const sales = await this.adminService.getDailySales(from, to);
-      res.json({ success: true, data: sales });
+
+      // Transform to { labels, values } format the frontend chart expects
+      const labels = sales.map((s) => s.date);
+      const values = sales.map((s) => s.totalSales);
+
+      res.json({ success: true, data: { labels, values } });
     } catch (error) {
       next(error);
     }
@@ -87,8 +229,15 @@ export class AdminController {
       const threshold = req.query.threshold
         ? Number(req.query.threshold)
         : undefined;
-      const essences = await this.adminService.getLowStockEssences(threshold);
-      res.json({ success: true, data: essences });
+      const rawEssences = await this.adminService.getLowStockEssences(threshold);
+
+      // Transform to { essences: [{ name, stockMl }] } format the frontend expects
+      const essences = rawEssences.map((e) => ({
+        name: e.essenceName,
+        stockMl: e.currentStockMl,
+      }));
+
+      res.json({ success: true, data: { essences } });
     } catch (error) {
       next(error);
     }
@@ -216,7 +365,10 @@ export class AdminController {
         byType[type] = (byType[type] || 0) + item.subtotal;
       }
 
-      res.json({ success: true, data: { byType } });
+      // Transform to { types: [{ name, value }] } format the frontend donut chart expects
+      const types = Object.entries(byType).map(([name, value]) => ({ name, value }));
+
+      res.json({ success: true, data: { byType, types } });
     } catch (error) {
       next(error);
     }
@@ -285,12 +437,14 @@ export class AdminController {
         totalGramsEarnedAgg,
         totalGramsRedeemedAgg,
         activeRedemptions,
+        activeTokensCount,
         currentChallenge,
       ] = await Promise.all([
         prisma.gameToken.count(),
         prisma.gramAccount.aggregate({ _sum: { totalEarned: true } }),
         prisma.gramAccount.aggregate({ _sum: { totalRedeemed: true } }),
         prisma.essenceRedemption.count({ where: { status: "PENDING_DELIVERY" } }),
+        prisma.gameToken.count({ where: { status: "PENDING" } }),
         prisma.weeklyChallenge.findFirst({
           where: { active: true, weekEnd: { gte: new Date() } },
           orderBy: { weekStart: "desc" },
@@ -322,12 +476,17 @@ export class AdminController {
         })
       );
 
+      const totalGramsEarned = totalGramsEarnedAgg._sum.totalEarned || 0;
+
       res.json({
         success: true,
         data: {
           totalTokensIssued,
-          totalGramsEarned: totalGramsEarnedAgg._sum.totalEarned || 0,
+          totalGramsEarned,
           totalGramsRedeemed: totalGramsRedeemedAgg._sum.totalRedeemed || 0,
+          // Aliases the frontend expects
+          totalGramsIssued: totalGramsEarned,
+          activeTokens: activeTokensCount,
           topGamePlayers: enrichedPlayers,
           activeRedemptions,
           weeklyChallenge: currentChallenge,

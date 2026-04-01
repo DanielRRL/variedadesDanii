@@ -4,15 +4,12 @@
  * Use with React Router v6 nested routes: this component renders <Outlet />
  * in the main content area so child pages (Dashboard, Orders, etc.) fill that space.
  *
- * Layout:
- *  ┌──────────────┬───────────────────────────────────────────────────────────┐
- *  │  220px       │  top bar (sticky, 56px)                                   │
- *  │  sidebar     ├───────────────────────────────────────────────────────────┤
- *  │  (fixed)     │  <Outlet />  (scrollable, p-6)                            │
- *  └──────────────┴───────────────────────────────────────────────────────────┘
+ * The sidebar is collapsible on all screen sizes. On mobile it overlays with
+ * a backdrop; on desktop it pushes the main content.
  */
 
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -28,6 +25,9 @@ import {
   ArrowLeftRight,
   Settings,
   Bell,
+  Menu,
+  X,
+  Home,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
@@ -59,6 +59,8 @@ const NAV = [
 
 export default function AdminLayout() {
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const { data: redemptionsRes } = useQuery({
     queryKey: ['admin-pending-redemptions-count'],
@@ -81,17 +83,47 @@ export default function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* ── Fixed sidebar ────────────────────────────────────────────────────── */}
-      <aside className="fixed top-0 left-0 h-full w-55 bg-white border-r border-border flex flex-col z-40">
-        {/* Brand header */}
-        <div className="px-5 py-4 border-b border-border shrink-0">
-          <p className="font-heading font-bold text-brand-pink text-sm leading-tight">
-            Variedades DANII
-          </p>
-          <p className="text-[10px] text-muted uppercase tracking-widest mt-0.5">
-            Panel de Administración
-          </p>
+      {/* ── Backdrop for mobile (when sidebar overlays) ──────────────────────── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
+      <aside
+        className={`fixed top-0 left-0 h-full w-55 bg-white border-r border-border flex flex-col z-40 transition-transform duration-200 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Brand header + close button */}
+        <div className="px-5 py-4 border-b border-border shrink-0 flex items-center justify-between">
+          <div>
+            <p className="font-heading font-bold text-brand-pink text-sm leading-tight">
+              Variedades DANII
+            </p>
+            <p className="text-[10px] text-muted uppercase tracking-widest mt-0.5">
+              Panel de Administración
+            </p>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-lg text-muted hover:bg-gray-100 transition-colors"
+            aria-label="Cerrar menú"
+          >
+            <X size={16} />
+          </button>
         </div>
+
+        {/* Back to store link */}
+        <button
+          onClick={() => navigate('/')}
+          className="mx-2 mt-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-blue hover:bg-blue-50 transition-colors"
+        >
+          <Home size={16} className="text-brand-blue" />
+          <span>Volver a la tienda</span>
+        </button>
 
         {/* Navigation links */}
         <nav className="flex-1 overflow-y-auto py-2" aria-label="Navegación de administración">
@@ -100,6 +132,10 @@ export default function AdminLayout() {
               key={path}
               to={path}
               end={exact}
+              onClick={() => {
+                // Close sidebar on mobile after navigation
+                if (window.innerWidth < 1024) setSidebarOpen(false);
+              }}
               className={({ isActive }) =>
                 `flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
                   isActive
@@ -142,12 +178,26 @@ export default function AdminLayout() {
       </aside>
 
       {/* ── Main content ─────────────────────────────────────────────────────── */}
-      <div className="ml-55 flex-1 flex flex-col min-h-screen">
+      <div
+        className={`flex-1 flex flex-col min-h-screen transition-[margin] duration-200 ${
+          sidebarOpen ? 'lg:ml-55' : 'ml-0'
+        }`}
+      >
         {/* Sticky top bar */}
-        <header className="sticky top-0 z-30 bg-white border-b border-border h-14 flex items-center justify-between px-6 shrink-0">
-          <p className="font-body text-sm text-text-primary">
-            Buenos días, <span className="font-semibold">{firstName}</span> 👋
-          </p>
+        <header className="sticky top-0 z-20 bg-white border-b border-border h-14 flex items-center justify-between px-6 shrink-0">
+          <div className="flex items-center gap-3">
+            {/* Hamburger toggle */}
+            <button
+              onClick={() => setSidebarOpen((v) => !v)}
+              className="p-2 rounded-lg text-muted hover:bg-gray-100 transition-colors"
+              aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+            >
+              <Menu size={18} />
+            </button>
+            <p className="font-body text-sm text-text-primary">
+              Buenos días, <span className="font-semibold">{firstName}</span> 👋
+            </p>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
