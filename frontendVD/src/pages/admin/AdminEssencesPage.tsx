@@ -21,6 +21,9 @@ import {
   ToggleRight,
   Tag,
   Home as HomeIcon,
+  Trash2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -34,6 +37,7 @@ import {
   createOlfactiveFamily,
   registerEssenceMovement,
   getLowStockAlerts,
+  adminDeleteEssence,
 } from '../../services/api';
 import type { Essence, OlfactiveFamily, House } from '../../types';
 
@@ -465,7 +469,10 @@ export default function AdminEssencesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Essence | null>(null);
   const [saving, setSaving] = useState(false);
-
+  const [deleteTarget, setDeleteTarget] = useState<Essence | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);  const [showDeletePassword, setShowDeletePassword] = useState(false);
   // Data queries
   const { data: essencesRes, isLoading } = useQuery({
     queryKey: ['admin-essences'],
@@ -569,6 +576,25 @@ export default function AdminEssencesPage() {
   const handleCreateHouse = async (name: string, handle: string) => {
     await createHouse({ name, handle });
     queryClient.invalidateQueries({ queryKey: ['houses'] });
+  };
+
+  // Delete essence with password
+  const handleDelete = async () => {
+    if (!deleteTarget || !deletePassword) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await adminDeleteEssence(deleteTarget.id, deletePassword);
+      queryClient.invalidateQueries({ queryKey: ['admin-essences'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] });
+      setDeleteTarget(null);
+      setDeletePassword('');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setDeleteError(msg ?? 'Error al eliminar esencia.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -709,6 +735,13 @@ export default function AdminEssencesPage() {
                   >
                     {isActive ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
                   </button>
+                  <button
+                    onClick={() => { setDeleteTarget(essence); setDeletePassword(''); setDeleteError(''); }}
+                    className="p-1.5 text-muted hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               </div>
             );
@@ -765,6 +798,56 @@ export default function AdminEssencesPage() {
           onCreateFamily={handleCreateFamily}
           onCreateHouse={handleCreateHouse}
         />
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Eliminar esencia</h3>
+            <p className="text-sm text-gray-600 mb-1">
+              Estás a punto de eliminar <strong>{deleteTarget.name}</strong>. Esta acción es irreversible.
+            </p>
+            <p className="text-xs text-red-500 mb-4">Se eliminarán también todos los movimientos asociados.</p>
+
+            <label className="block text-sm font-medium text-gray-700 mb-1">Clave de administrador</label>
+            <div className="relative mb-1">
+              <input
+                type={showDeletePassword ? 'text' : 'password'}
+                value={deletePassword}
+                onChange={(e) => { setDeletePassword(e.target.value); setDeleteError(''); }}
+                className="w-full border rounded-lg px-3 py-2 pr-10 text-sm focus:ring-2 focus:ring-brand-pink/40 outline-none"
+                placeholder="Ingresa tu contraseña"
+              />
+              <button
+                type="button"
+                onClick={() => setShowDeletePassword(!showDeletePassword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                tabIndex={-1}
+              >
+                {showDeletePassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            {deleteError && <p className="text-xs text-red-500 mb-2">{deleteError}</p>}
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 px-4 py-2 text-sm rounded-lg border hover:bg-gray-50 transition-colors"
+                disabled={deleting}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting || !deletePassword}
+                className="flex-1 px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deleting ? 'Eliminando…' : 'Eliminar permanentemente'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

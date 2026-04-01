@@ -1,22 +1,32 @@
 /**
- * AdminInventoryPage.tsx — Essence stock management.
+ * AdminInventoryPage.tsx — Inventory management for essences and products.
  *
  * Features:
- *  - Table of all essences with current stock (ml / oz) and status (OK / LOW)
- *  - Search filter + family filter
+ *  - Tab filter: Esencias / Lociones / Cremas / Shampoo / Maquillaje / Splash / Todos
+ *  - Table of essences with current stock (ml / oz) and status (OK / LOW)
+ *  - Table of products with stock units
+ *  - Search filter
  *  - RegisterMovementModal to add IN/OUT movements per essence
- *  - Stock status = LOW when currentStockMl < minStockGrams (backend stores min in grams,
- *    1g ≈ 1ml for fragrance essences)
  */
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, X, AlertTriangle, CheckCircle2, Package } from 'lucide-react';
 
-import { getEssences, registerEssenceMovement } from '../../services/api';
-import type { Essence } from '../../types';
+import { getEssences, registerEssenceMovement, adminGetProducts } from '../../services/api';
+import type { Essence, Product } from '../../types';
 
 const OZ_TO_ML = 29.5735;
+
+const INVENTORY_TABS: { key: string; label: string }[] = [
+  { key: 'ALL', label: 'Todos' },
+  { key: 'ESSENCES', label: 'Esencias' },
+  { key: 'LOTION', label: 'Lociones' },
+  { key: 'CREAM', label: 'Cremas' },
+  { key: 'SHAMPOO', label: 'Shampoo' },
+  { key: 'MAKEUP', label: 'Maquillaje' },
+  { key: 'SPLASH', label: 'Splash' },
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Register Movement Modal
@@ -196,30 +206,74 @@ function RegisterMovementModal({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Product type labels
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PRODUCT_TYPE_LABELS: Record<string, string> = {
+  LOTION: 'Loción',
+  CREAM: 'Crema',
+  SHAMPOO: 'Shampoo',
+  MAKEUP: 'Maquillaje',
+  SPLASH: 'Splash',
+  ACCESSORY: 'Accesorio',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main page
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AdminInventoryPage() {
-  const queryClient                         = useQueryClient();
-  const [search, setSearch]                 = useState('');
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState('ALL');
   const [selectedEssence, setSelectedEssence] = useState<Essence | null>(null);
 
-  const { data, isLoading } = useQuery({
+  // Fetch essences
+  const { data: essencesData, isLoading: loadingEssences } = useQuery({
     queryKey: ['essences-inventory'],
     queryFn: () => getEssences({ limit: 200 }),
     staleTime: 60_000,
   });
 
-  const rawEssences: Essence[] = data?.data?.essences ?? data?.data ?? [];
+  // Fetch products
+  const { data: productsData, isLoading: loadingProducts } = useQuery({
+    queryKey: ['products-inventory'],
+    queryFn: () => adminGetProducts({ page: 1 }),
+    staleTime: 60_000,
+  });
 
-  const essences = rawEssences.filter((e) =>
+  const rawEssences: Essence[] = essencesData?.data?.essences ?? essencesData?.data ?? [];
+  const rawProducts: Product[] = productsData?.data?.products ?? productsData?.data ?? [];
+
+  const isLoading = loadingEssences || loadingProducts;
+
+  // Filter essences
+  const filteredEssences = rawEssences.filter((e) =>
     e.name.toLowerCase().includes(search.toLowerCase()) ||
     (e.olfactiveFamily?.name ?? '').toLowerCase().includes(search.toLowerCase()),
   );
 
+  // Filter products by type tab and search
+  const filteredProducts = rawProducts
+    .filter((p) => p.productType !== 'ESSENCE_CATALOG')
+    .filter((p) => {
+      if (activeTab !== 'ALL' && activeTab !== 'ESSENCES') {
+        return p.productType === activeTab;
+      }
+      return true;
+    })
+    .filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()),
+    );
+
+  const showEssences = activeTab === 'ALL' || activeTab === 'ESSENCES';
+  const showProducts = activeTab !== 'ESSENCES';
+
   const lowCount = rawEssences.filter(
     (e) => (e.currentStockMl ?? 0) < (e.minStockGrams ?? 0),
   ).length;
+
+  const lowStockProducts = rawProducts.filter((p) => p.stockUnits <= 5 && p.productType !== 'ESSENCE_CATALOG').length;
 
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
@@ -228,23 +282,46 @@ export default function AdminInventoryPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-heading font-bold text-xl text-text-primary">Inventario</h1>
-          <p className="text-xs text-muted mt-0.5">Stock de esencias · 1 oz = {OZ_TO_ML} ml</p>
+          <p className="text-xs text-muted mt-0.5">Stock de esencias y productos · 1 oz = {OZ_TO_ML} ml</p>
         </div>
-        {lowCount > 0 && (
-          <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 px-3 py-2 rounded-xl text-xs text-orange-700 font-medium">
-            <AlertTriangle size={14} />
-            {lowCount} {lowCount === 1 ? 'esencia con' : 'esencias con'} stock bajo
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {lowCount > 0 && (
+            <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 px-3 py-2 rounded-xl text-xs text-orange-700 font-medium">
+              <AlertTriangle size={14} />
+              {lowCount} esencia{lowCount !== 1 ? 's' : ''} stock bajo
+            </div>
+          )}
+          {lowStockProducts > 0 && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 px-3 py-2 rounded-xl text-xs text-red-700 font-medium">
+              <AlertTriangle size={14} />
+              {lowStockProducts} producto{lowStockProducts !== 1 ? 's' : ''} stock bajo
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="bg-white rounded-xl border border-border p-4">
+      {/* Filter tabs + Search */}
+      <div className="bg-white rounded-xl border border-border p-4 space-y-3">
+        <div className="flex flex-wrap gap-1.5">
+          {INVENTORY_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === tab.key
+                  ? 'bg-brand-pink text-white shadow-sm'
+                  : 'bg-gray-100 text-muted hover:text-text-primary hover:bg-gray-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         <div className="relative max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
           <input
             type="text"
-            placeholder="Buscar esencia o familia…"
+            placeholder="Buscar por nombre…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg outline-none focus:border-brand-pink bg-gray-50"
@@ -252,75 +329,164 @@ export default function AdminInventoryPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-gray-50">
-                {['ESENCIA', 'FAMILIA', 'STOCK ACTUAL', 'STOCK EN OZ', 'MÍNIMO', 'ESTADO', 'ACCIÓN'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
-                    <div className="inline-block w-6 h-6 border-4 border-brand-pink border-t-transparent rounded-full animate-spin" />
-                  </td>
+      {/* Essences Table */}
+      {showEssences && (
+        <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
+          <div className="px-4 py-3 border-b border-border bg-purple-50/50">
+            <h2 className="text-sm font-bold text-text-primary flex items-center gap-2">
+              <Package size={14} className="text-brand-pink" />
+              Esencias (gramos/ml)
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-gray-50">
+                  {['ESENCIA', 'FAMILIA', 'STOCK ACTUAL', 'STOCK EN OZ', 'MÍNIMO', 'ESTADO', 'ACCIÓN'].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ) : essences.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted">
-                    No se encontraron esencias.
-                  </td>
-                </tr>
-              ) : (
-                essences.map((essence) => {
-                  const stockMl  = essence.currentStockMl ?? 0;
-                  const minStock = essence.minStockGrams  ?? 0;
-                  const stockOz  = (stockMl / OZ_TO_ML).toFixed(1);
-                  const isLow    = stockMl < minStock;
+              </thead>
+              <tbody className="divide-y divide-border">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12 text-center">
+                      <div className="inline-block w-6 h-6 border-4 border-brand-pink border-t-transparent rounded-full animate-spin" />
+                    </td>
+                  </tr>
+                ) : filteredEssences.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-muted">
+                      No se encontraron esencias.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredEssences.map((essence) => {
+                    const stockMl  = essence.currentStockMl ?? 0;
+                    const minStock = essence.minStockGrams  ?? 0;
+                    const stockOz  = (stockMl / OZ_TO_ML).toFixed(1);
+                    const isLow    = stockMl < minStock;
 
-                  return (
-                    <tr key={essence.id} className={`transition-colors ${isLow ? 'bg-red-50/30' : 'hover:bg-gray-50'}`}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          {essence.imageUrl ? (
-                            <img src={essence.imageUrl} alt={essence.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
-                          ) : (
+                    return (
+                      <tr key={essence.id} className={`transition-colors ${isLow ? 'bg-red-50/30' : 'hover:bg-gray-50'}`}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-brand-pink/10 flex items-center justify-center shrink-0">
                               <span className="text-brand-pink font-bold text-[10px]">
                                 {essence.name[0]}
                               </span>
                             </div>
+                            <div>
+                              <p className="font-semibold text-text-primary">{essence.name}</p>
+                              {essence.house && <p className="text-muted text-[10px]">@{essence.house.handle}</p>}
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 text-muted">
+                          {essence.olfactiveFamily?.name ?? '—'}
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <span className={`font-bold ${isLow ? 'text-red-500' : 'text-text-primary'}`}>
+                            {stockMl.toLocaleString('es-CO')} ml
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3 text-muted">{stockOz} oz</td>
+
+                        <td className="px-4 py-3 text-muted">
+                          {minStock > 0 ? `${minStock.toLocaleString('es-CO')} ml` : '—'}
+                        </td>
+
+                        <td className="px-4 py-3">
+                          {isLow ? (
+                            <div className="flex items-center gap-1.5 text-red-500 font-semibold">
+                              <AlertTriangle size={12} />
+                              BAJO
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-green-600 font-semibold">
+                              <CheckCircle2 size={12} />
+                              OK
+                            </div>
                           )}
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => setSelectedEssence(essence)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-brand-pink text-white text-[11px] font-semibold rounded-lg hover:bg-brand-pink/90 transition-colors"
+                          >
+                            <Plus size={11} />
+                            Movimiento
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Products Table */}
+      {showProducts && filteredProducts.length > 0 && (
+        <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
+          <div className="px-4 py-3 border-b border-border bg-blue-50/50">
+            <h2 className="text-sm font-bold text-text-primary flex items-center gap-2">
+              <Package size={14} className="text-brand-blue" />
+              Productos (unidades)
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-gray-50">
+                  {['PRODUCTO', 'TIPO', 'ESENCIA ASOCIADA', 'STOCK', 'ESTADO'].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredProducts.map((product) => {
+                  const isLow = product.stockUnits <= 5;
+                  return (
+                    <tr key={product.id} className={`transition-colors ${isLow ? 'bg-red-50/30' : 'hover:bg-gray-50'}`}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                            <span className="text-brand-blue font-bold text-[10px]">
+                              {product.name.charAt(0)}
+                            </span>
+                          </div>
                           <div>
-                            <p className="font-semibold text-text-primary">{essence.name}</p>
-                            {essence.brand && <p className="text-muted">{essence.brand}</p>}
+                            <p className="font-semibold text-text-primary">{product.name}</p>
+                            {product.description && <p className="text-muted text-[10px] truncate max-w-40">{product.description}</p>}
                           </div>
                         </div>
                       </td>
-
-                      <td className="px-4 py-3 text-muted">
-                        {essence.olfactiveFamily?.name ?? '—'}
-                      </td>
-
                       <td className="px-4 py-3">
-                        <span className={`font-bold ${isLow ? 'text-red-500' : 'text-text-primary'}`}>
-                          {stockMl.toLocaleString('es-CO')} ml
+                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-text-primary font-medium text-[10px]">
+                          {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
                         </span>
                       </td>
-
-                      <td className="px-4 py-3 text-muted">{stockOz} oz</td>
-
                       <td className="px-4 py-3 text-muted">
-                        {minStock > 0 ? `${minStock.toLocaleString('es-CO')} ml` : '—'}
+                        {product.essence ? (
+                          <span className="text-[10px]">{product.essence.name} {product.mlQuantity ? `(${product.mlQuantity} ml)` : ''}</span>
+                        ) : '—'}
                       </td>
-
+                      <td className="px-4 py-3">
+                        <span className={`font-bold ${isLow ? 'text-red-500' : 'text-text-primary'}`}>
+                          {product.stockUnits} uds
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         {isLow ? (
                           <div className="flex items-center gap-1.5 text-red-500 font-semibold">
@@ -334,36 +500,29 @@ export default function AdminInventoryPage() {
                           </div>
                         )}
                       </td>
-
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => setSelectedEssence(essence)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-brand-pink text-white text-[11px] font-semibold rounded-lg hover:bg-brand-pink/90 transition-colors"
-                        >
-                          <Plus size={11} />
-                          Movimiento
-                        </button>
-                      </td>
                     </tr>
                   );
-                })
-              )}
-            </tbody>
-          </table>
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Legend */}
       <p className="text-[11px] text-muted text-right">
-        * El stock mínimo se configura por esencia en la sección de Esencias.
+        * El stock mínimo de esencias se configura en la sección de Esencias. Productos con ≤5 uds se marcan como bajo.
       </p>
 
-      {/* Modal */}
+      {/* Essence Movement Modal */}
       {selectedEssence && (
         <RegisterMovementModal
           essence={selectedEssence}
           onClose={() => setSelectedEssence(null)}
-          onSaved={() => queryClient.invalidateQueries({ queryKey: ['essences-inventory'] })}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ['essences-inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['products-inventory'] });
+          }}
         />
       )}
     </div>

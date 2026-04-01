@@ -79,6 +79,7 @@ export const createAdminProductRoutes = (
   router.put("/:id", productController.adminUpdate);
   router.patch("/:id/toggle", productController.adminToggleActive);
   router.post("/:id/stock", productController.adminAddStock);
+  router.delete("/:id", productController.adminDelete);
 
   return router;
 };

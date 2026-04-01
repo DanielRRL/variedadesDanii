@@ -26,6 +26,9 @@ import { param } from "../../utils/param";
 // logger - Logger para operaciones de stock.
 import logger from "../../utils/logger";
 
+// bcrypt - Para verificar la contraseña del admin al eliminar.
+import bcrypt from "bcrypt";
+
 export class ProductController {
   constructor(private readonly productRepo: IProductRepository) {}
 
@@ -369,6 +372,55 @@ export class ProductController {
         success: true,
         data: { product, movement },
       });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * DELETE /api/admin/products/:id — ADMIN only
+   * Elimina un producto permanentemente.
+   * Requiere password del admin en el body para confirmar.
+   * Body: { password: string }
+   */
+  adminDelete = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const id = param(req, "id");
+      const { password } = req.body;
+
+      if (!password) {
+        throw AppError.badRequest("Admin password is required to delete a product.");
+      }
+
+      // Verify admin password
+      const adminUser = await prisma.user.findUnique({ where: { id: (req as any).userId } });
+      if (!adminUser) {
+        throw AppError.unauthorized("User not found.");
+      }
+      const valid = await bcrypt.compare(password, adminUser.password);
+      if (!valid) {
+        throw AppError.unauthorized("Contraseña incorrecta.");
+      }
+
+      // Check product exists
+      const existing = await prisma.product.findUnique({ where: { id } });
+      if (!existing) {
+        throw AppError.notFound("Product not found");
+      }
+
+      // Delete related movements first, then product
+      await prisma.$transaction([
+        prisma.productMovement.deleteMany({ where: { productId: id } }),
+        prisma.orderItem.deleteMany({ where: { productId: id } }),
+        prisma.product.delete({ where: { id } }),
+      ]);
+
+      logger.info(`Product deleted by admin: ${existing.name} (${id})`);
+      res.json({ success: true, message: "Product deleted" });
     } catch (error) {
       next(error);
     }

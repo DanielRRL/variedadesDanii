@@ -17,7 +17,8 @@ import logger from "./utils/logger";
 import prisma from "./config/database";
 
 // seedAdminUser - Crea el usuario admin por defecto si no existe.
-import { seedAdminUser } from "./config/seed";
+// seedCatalogData - Crea familias olfativas y casas de fragancias por defecto.
+import { seedAdminUser, seedCatalogData } from "./config/seed";
 
 // Crear la instancia de la aplicacion Express
 const app = createApp();
@@ -34,6 +35,9 @@ async function main(): Promise<void> {
 
     // Crear usuario administrador por defecto si no existe
     await seedAdminUser();
+
+    // Crear familias olfativas y casas de fragancias por defecto
+    await seedCatalogData();
 
     // Iniciar servidor HTTP en el puerto configurado
     app.listen(env.port, () => {

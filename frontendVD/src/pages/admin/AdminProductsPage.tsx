@@ -20,6 +20,9 @@ import {
   ToggleRight,
   X,
   Loader2,
+  Trash2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 import {
@@ -28,6 +31,7 @@ import {
   adminUpdateProduct,
   adminToggleProduct,
   adminAddProductStock,
+  adminDeleteProduct,
   getEssences,
   getHouses,
 } from '../../services/api';
@@ -46,7 +50,6 @@ const PRODUCT_TYPES: Record<string, string> = {
   MAKEUP:          'Maquillaje',
   SPLASH:          'Splash',
   ACCESSORY:       'Accesorios',
-  ESSENCE_CATALOG: 'Esencias',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -348,6 +351,11 @@ export default function AdminProductsPage() {
   const [editTarget, setEditTarget]   = useState<Product | null>(null);
   const [stockTarget, setStockTarget] = useState<Product | null>(null);
   const [saving, setSaving]           = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   const { data: res, isLoading } = useQuery({
     queryKey: ['admin-products', typeFilter, activeFilter, page],
@@ -429,6 +437,24 @@ export default function AdminProductsPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     } catch {
       alert('Error al cambiar estado.');
+    }
+  };
+
+  // ── Delete ──
+  const handleDelete = async () => {
+    if (!deleteTarget || !deletePassword) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await adminDeleteProduct(deleteTarget.id, deletePassword);
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      setDeleteTarget(null);
+      setDeletePassword('');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setDeleteError(msg ?? 'Error al eliminar producto.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -597,6 +623,13 @@ export default function AdminProductsPage() {
                         >
                           {p.active ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
                         </button>
+                        <button
+                          onClick={() => { setDeleteTarget(p); setDeletePassword(''); setDeleteError(''); }}
+                          className="p-1.5 text-muted hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -664,6 +697,63 @@ export default function AdminProductsPage() {
         open={!!stockTarget}
         onClose={() => setStockTarget(null)}
       />
+
+      {/* Delete confirmation modal */}
+      <Modal open={!!deleteTarget} onClose={() => { setDeleteTarget(null); setDeletePassword(''); setDeleteError(''); setShowDeletePassword(false); }} title="Eliminar Producto">
+        {deleteTarget && (
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-800 font-medium">
+                ¿Estás seguro de eliminar "{deleteTarget.name}"?
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                Esta acción es irreversible. Se eliminará el producto y todos sus movimientos asociados.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-text-primary mb-1">
+                Contraseña del administrador
+              </label>
+              <div className="relative">
+                <input
+                  type={showDeletePassword ? 'text' : 'password'}
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Ingresa tu contraseña para confirmar"
+                  className="w-full border border-border rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-red-400/40"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDeletePassword(!showDeletePassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showDeletePassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            {deleteError && (
+              <p className="text-red-600 text-xs">{deleteError}</p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setDeleteTarget(null); setDeletePassword(''); setDeleteError(''); setShowDeletePassword(false); }}
+                className="px-4 py-2 rounded-xl border border-border text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={!deletePassword || deleting}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+              >
+                {deleting && <Loader2 size={14} className="animate-spin" />}
+                Eliminar permanentemente
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

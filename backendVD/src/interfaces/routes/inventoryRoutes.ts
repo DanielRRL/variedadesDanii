@@ -70,6 +70,11 @@ export const createInventoryRoutes = (
     validate,
     inventoryController.createEssenceMovement
   );
+  // Ruta alternativa: permite enviar essenceId como URL param (usada por el frontend)
+  router.post(
+    "/essence/:essenceId/movements",
+    inventoryController.createEssenceMovementByParam
+  );
 
   // --- Inventario de frascos ---
   router.get("/bottle/:bottleId/stock", inventoryController.getBottleStock);

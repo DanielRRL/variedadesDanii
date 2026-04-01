@@ -610,6 +610,20 @@ export const adminToggleProduct = (id: string) =>
 export const adminAddProductStock = (id: string, quantity: number, notes?: string) =>
   api.post(`/api/admin/products/${id}/stock`, { quantity, notes });
 
+/**
+ * DELETE /api/admin/products/:id
+ * Permanently delete a product. Requires admin password for confirmation.
+ */
+export const adminDeleteProduct = (id: string, password: string) =>
+  api.delete(`/api/admin/products/${id}`, { data: { password } });
+
+/**
+ * DELETE /api/essences/:id
+ * Permanently delete an essence. Requires admin password for confirmation.
+ */
+export const adminDeleteEssence = (id: string, password: string) =>
+  api.delete(`/api/essences/${id}`, { data: { password } });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — Gamification
 // ─────────────────────────────────────────────────────────────────────────────

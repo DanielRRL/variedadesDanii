@@ -23,6 +23,9 @@ import { param } from "../../utils/param";
 // prisma - Para operaciones directas (houses, families).
 import prisma from "../../config/database";
 
+// bcrypt - Para verificar la contraseña del admin al eliminar.
+import bcrypt from "bcrypt";
+
 export class EssenceController {
   constructor(
     private readonly essenceRepo: IEssenceRepository,
@@ -190,14 +193,44 @@ export class EssenceController {
     }
   };
 
-  /** DELETE /essences/:id - Elimina una esencia. */
+  /** DELETE /essences/:id - Elimina una esencia. Requiere password del admin. */
   delete = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      await this.essenceRepo.delete(param(req, "id"));
+      const id = param(req, "id");
+      const { password } = req.body;
+
+      if (!password) {
+        throw AppError.badRequest("Admin password is required to delete an essence.");
+      }
+
+      // Verify admin password
+      const adminUser = await prisma.user.findUnique({ where: { id: (req as any).userId } });
+      if (!adminUser) {
+        throw AppError.unauthorized("User not found.");
+      }
+      const valid = await bcrypt.compare(password, adminUser.password);
+      if (!valid) {
+        throw AppError.unauthorized("Contraseña incorrecta.");
+      }
+
+      // Check essence exists
+      const existing = await prisma.essence.findUnique({ where: { id } });
+      if (!existing) {
+        throw AppError.notFound("Essence not found");
+      }
+
+      // Delete related records in a transaction, then the essence
+      await prisma.$transaction([
+        prisma.essenceMovement.deleteMany({ where: { essenceId: id } }),
+        prisma.essenceOlfactiveTag.deleteMany({ where: { essenceId: id } }),
+        prisma.product.updateMany({ where: { essenceId: id }, data: { essenceId: null } }),
+        prisma.essence.delete({ where: { id } }),
+      ]);
+
       res.json({ success: true, message: "Essence deleted" });
     } catch (error) {
       next(error);

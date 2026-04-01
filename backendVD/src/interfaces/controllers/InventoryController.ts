@@ -78,6 +78,59 @@ export class InventoryController {
     }
   };
 
+  /**
+   * POST /inventory/essence/:essenceId/movements
+   * Ruta alternativa que toma essenceId del URL param.
+   * Mapea razones legibles a enum values del backend.
+   */
+  private static REASON_MAP: Record<string, string> = {
+    "Compra a proveedor": "PURCHASE",
+    "Ajuste de inventario": "ADJUSTMENT",
+    "Merma / evaporación": "ADJUSTMENT",
+    "Devolución parcial": "RETURN",
+    "Muestra al cliente": "SALE",
+    "Pérdida / daño": "ADJUSTMENT",
+    "Otro": "ADJUSTMENT",
+  };
+
+  createEssenceMovementByParam = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const essenceId = param(req, "essenceId");
+      const { type, ml, reason, notes } = req.body;
+
+      if (!type || !["IN", "OUT"].includes(type)) {
+        res.status(400).json({ success: false, message: "type must be IN or OUT" });
+        return;
+      }
+      if (!ml || ml <= 0) {
+        res.status(400).json({ success: false, message: "ml must be greater than 0" });
+        return;
+      }
+
+      // Map human-readable reason to enum value, fallback to raw value
+      const mappedReason = InventoryController.REASON_MAP[reason] || reason || (type === "IN" ? "PURCHASE" : "SALE");
+
+      let movement;
+      if (type === "IN") {
+        movement = await this.inventoryService.registerEssenceEntry(
+          essenceId, ml, mappedReason, notes
+        );
+      } else {
+        movement = await this.inventoryService.registerEssenceExit(
+          essenceId, ml, mappedReason, notes
+        );
+      }
+
+      res.status(201).json({ success: true, data: movement });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // ---------------------------------------------------------------------------
   // Frascos (unidades)
   // ---------------------------------------------------------------------------
