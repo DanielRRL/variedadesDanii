@@ -1,6 +1,6 @@
 /**
  * Rutas de gestion de esencias.
- * GET publicos (listar, ver detalle).
+ * GET publicos (listar, ver detalle, familias, casas).
  * POST/PUT/DELETE solo para ADMIN.
  */
 
@@ -19,27 +19,25 @@ import { roleMiddleware } from "../middleware/roleMiddleware";
 /**
  * Crea y retorna el router de esencias.
  * @param essenceController - Controlador inyectado desde app.ts.
- * GET / - Listar todas (publico).
- * GET /:id - Ver detalle (publico).
- * POST / - Crear (solo ADMIN).
- * PUT /:id - Actualizar (solo ADMIN).
- * DELETE /:id - Eliminar (solo ADMIN).
  */
 export const createEssenceRoutes = (
   essenceController: EssenceController
 ): Router => {
   const router = Router();
 
-  // Rutas publicas: cualquiera puede ver esencias
+  // Rutas publicas
   router.get("/", essenceController.getAll);
-  // /families MUST be registered before /:id to avoid being captured as an id param.
+  // /families y /houses MUST be registered before /:id to avoid being captured as an id param.
   router.get("/families", essenceController.getFamilies);
+  router.get("/houses", essenceController.getHouses);
   router.get("/:id", essenceController.getById);
 
   // A partir de aqui, se requiere autenticacion
   router.use(authMiddleware);
-  // Solo ADMIN puede crear, editar y eliminar esencias
+  // Solo ADMIN puede crear, editar y eliminar esencias, familias y casas
   router.post("/", roleMiddleware("ADMIN"), essenceController.create);
+  router.post("/families", roleMiddleware("ADMIN"), essenceController.createFamily);
+  router.post("/houses", roleMiddleware("ADMIN"), essenceController.createHouse);
   router.put("/:id", roleMiddleware("ADMIN"), essenceController.update);
   router.delete("/:id", roleMiddleware("ADMIN"), essenceController.delete);
 

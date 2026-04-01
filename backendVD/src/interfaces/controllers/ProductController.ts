@@ -132,7 +132,8 @@ export class ProductController {
   /**
    * POST /api/admin/products — ADMIN only
    * Crea un producto nuevo con el schema extendido (productType, generatesGram, etc.).
-   * Body: { name, description?, productType, price, stockUnits, generatesGram, photoUrl?, category? }
+   * Body: { name, description?, productType, price, stockUnits, generatesGram, photoUrl?,
+   *         category?, essenceId?, bottleId?, mlQuantity? }
    * ESSENCE_CATALOG: price=0, stockUnits gestionado via EssenceMovement.
    */
   adminCreate = async (
@@ -143,7 +144,7 @@ export class ProductController {
     try {
       const {
         name, description, productType, price, stockUnits,
-        generatesGram, photoUrl, category,
+        generatesGram, photoUrl, category, essenceId, bottleId, mlQuantity,
       } = req.body;
 
       // Validaciones
@@ -162,18 +163,25 @@ export class ProductController {
         throw AppError.badRequest("stockUnits cannot be negative.");
       }
 
+      // Si tiene essenceId, la categoría es PERFUME para activar deducción de inventario
+      const resolvedCategory = essenceId ? "PERFUME" : (category || "GENERAL");
+
       const product = await prisma.product.create({
         data: {
           name,
           description: description || null,
-          category: category || "GENERAL",
+          category: resolvedCategory as any,
           productType: productType as any,
           price: productType === "ESSENCE_CATALOG" ? 0 : price,
           stockUnits: stockUnits ?? 0,
           generatesGram: generatesGram ?? (productType !== "ACCESSORY" && productType !== "ESSENCE_CATALOG"),
           photoUrl: photoUrl || null,
           active: true,
+          essenceId: essenceId || null,
+          bottleId: bottleId || null,
+          mlQuantity: mlQuantity ? Number(mlQuantity) : null,
         },
+        include: { essence: true, bottle: true },
       });
 
       res.status(201).json({ success: true, data: product });
@@ -185,7 +193,8 @@ export class ProductController {
   /**
    * PUT /api/admin/products/:id — ADMIN only
    * Actualiza campos parciales de un producto.
-   * Body: partial of { name, description, productType, price, stockUnits, generatesGram, photoUrl, active }
+   * Body: partial of { name, description, productType, price, stockUnits, generatesGram,
+   *        photoUrl, active, category, essenceId, bottleId, mlQuantity }
    */
   adminUpdate = async (
     req: Request,
@@ -197,6 +206,7 @@ export class ProductController {
       const {
         name, description, productType, price, stockUnits,
         generatesGram, photoUrl, active, category,
+        essenceId, bottleId, mlQuantity,
       } = req.body;
 
       // Validar productType si se envia
@@ -224,7 +234,11 @@ export class ProductController {
           ...(generatesGram !== undefined && { generatesGram }),
           ...(photoUrl !== undefined && { photoUrl }),
           ...(active !== undefined && { active }),
+          ...(essenceId !== undefined && { essenceId: essenceId || null }),
+          ...(bottleId !== undefined && { bottleId: bottleId || null }),
+          ...(mlQuantity !== undefined && { mlQuantity: mlQuantity ? Number(mlQuantity) : null }),
         },
+        include: { essence: true, bottle: true },
       });
 
       res.json({ success: true, data: product });
@@ -284,7 +298,7 @@ export class ProductController {
         prisma.product.findMany({
           where,
           include: {
-            essence: { select: { id: true, name: true } },
+            essence: { select: { id: true, name: true, house: { select: { id: true, name: true, handle: true } } } },
             bottle: { select: { id: true, name: true } },
             _count: { select: { orderItems: true } },
           },

@@ -1,8 +1,9 @@
 /**
  * Entidad de dominio: Esencia.
  * Representa una esencia (perfume) del catalogo de Variedades Danni.
- * Cada esencia pertenece a una familia olfativa y puede estar
- * inspirada en una marca comercial.
+ * Cada esencia pertenece a una familia olfativa principal y puede tener
+ * etiquetas adicionales de familias olfativas (#cítrica #amaderada).
+ * También puede pertenecer a una casa/marca (House).
  * El stock de esencias se controla en mililitros mediante movimientos
  * de inventario (EssenceMovement), no con un campo directo.
  */
@@ -12,10 +13,18 @@ export interface EssenceProps {
   id?: string;              // UUID generado por la BD.
   name: string;             // Nombre de la esencia.
   description?: string;     // Descripcion opcional del aroma.
-  olfactiveFamilyId: string;// FK a la familia olfativa (floral, amaderada, etc.).
+  olfactiveFamilyId: string;// FK a la familia olfativa principal.
   /** Objeto de relacion incluido cuando el repositorio hace include. */
   olfactiveFamily?: { id: string; name: string };
   inspirationBrand?: string;// Marca de inspiracion (ej: "Carolina Herrera").
+  /** FK a la casa / marca. */
+  houseId?: string;
+  /** Objeto de relacion de la casa. */
+  house?: { id: string; name: string; handle: string };
+  /** Precio por mililitro en COP. */
+  pricePerMl?: number;
+  /** Etiquetas de familias olfativas adicionales (many-to-many). */
+  olfactiveTags?: { id: string; name: string }[];
   active: boolean;          // Si esta disponible en el catalogo.
   createdAt?: Date;
   updatedAt?: Date;
@@ -33,6 +42,10 @@ export class Essence {
   public olfactiveFamilyId: string;
   public olfactiveFamily?: { id: string; name: string };
   public inspirationBrand?: string;
+  public houseId?: string;
+  public house?: { id: string; name: string; handle: string };
+  public pricePerMl?: number;
+  public olfactiveTags?: { id: string; name: string }[];
   public active: boolean;
   public readonly createdAt?: Date;
   public readonly updatedAt?: Date;
@@ -45,6 +58,10 @@ export class Essence {
     this.olfactiveFamilyId = props.olfactiveFamilyId;
     this.olfactiveFamily = props.olfactiveFamily;
     this.inspirationBrand = props.inspirationBrand;
+    this.houseId = props.houseId;
+    this.house = props.house;
+    this.pricePerMl = props.pricePerMl;
+    this.olfactiveTags = props.olfactiveTags;
     this.active = props.active;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;

@@ -198,6 +198,17 @@ export interface OlfactiveFamily {
   name: string;
 }
 
+/** House / fragrance brand returned by GET /api/essences/houses. */
+export interface House {
+  id: string;
+  name: string;
+  /** Identifier handle without @, e.g. "carolinaherrera". */
+  handle: string;
+  description?: string;
+  logoUrl?: string;
+  active: boolean;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CATALOG — ESSENCES
 // ─────────────────────────────────────────────────────────────────────────────
@@ -211,18 +222,24 @@ export interface Essence {
   olfactiveFamily: { id: string; name: string };
   /** Brand name that inspired this essence (e.g., "Chanel Nº5"). */
   inspirationBrand?: string;
+  /** House / brand this essence belongs to. */
+  house?: { id: string; name: string; handle: string };
+  houseId?: string;
   /** Price per milliliter in COP. Used to compute line totals in the cart. */
-  pricePerMl: number;
+  pricePerMl?: number;
   photoUrl?: string;
-  isActive: boolean;
+  isActive?: boolean;
+  active?: boolean;
   /** Minimum stock threshold in grams that triggers a low-stock alert. */
-  minStockGrams: number;
+  minStockGrams?: number;
   /** Returned only when the endpoint includes stock data (admin / catalog with stock). */
   currentStockMl?: number;
   /** Average star rating (1–5). */
   rating?: number;
   /** Number of reviews contributing to the rating. */
   reviewCount?: number;
+  /** Olfactive family tags (many-to-many, additional families besides the primary one). */
+  olfactiveTags?: { id: string; name: string }[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -259,6 +276,7 @@ export interface Product {
   /** Legacy category kept for backwards compatibility with existing pages. */
   category: 'PERFUME' | 'ACCESSORY' | 'GENERAL';
   /** Only present when productType links to an essence. */
+  essenceId?: string;
   essence?: Essence;
   /** Only present when the product ships in a specific bottle. */
   bottle?: Bottle;

@@ -2,6 +2,7 @@
  * Controlador de esencias.
  * CRUD de esencias con stock actual agregado a cada respuesta.
  * El stock se calcula con InventoryService (SUM IN - SUM OUT).
+ * Soporta casa (House), etiquetas olfativas y pricePerMl.
  */
 
 // Request, Response, NextFunction - Tipos base de Express.
@@ -18,6 +19,9 @@ import { AppError } from "../../utils/AppError";
 
 // param - Helper de Express 5.
 import { param } from "../../utils/param";
+
+// prisma - Para operaciones directas (houses, families).
+import prisma from "../../config/database";
 
 export class EssenceController {
   constructor(
@@ -39,6 +43,63 @@ export class EssenceController {
     }
   };
 
+  /** POST /essences/families - Crea una familia olfativa nueva (ADMIN). */
+  createFamily = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { name } = req.body;
+      if (!name) throw AppError.badRequest("name is required");
+      const family = await prisma.olfactiveFamily.create({ data: { name } });
+      res.status(201).json({ success: true, data: family });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ── Houses (casas / marcas) ──────────────────────────────────────────
+
+  /** GET /essences/houses - Lista todas las casas. */
+  getHouses = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const houses = await prisma.house.findMany({
+        where: { active: true },
+        orderBy: { name: "asc" },
+      });
+      res.json({ success: true, data: houses });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /** POST /essences/houses - Crea una casa nueva (ADMIN). */
+  createHouse = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { name, handle, description, logoUrl } = req.body;
+      if (!name || !handle) throw AppError.badRequest("name and handle are required");
+      // Sanitize handle: lowercase, no spaces, no @
+      const cleanHandle = handle.toLowerCase().replace(/[@\s]/g, "");
+      const house = await prisma.house.create({
+        data: { name, handle: cleanHandle, description, logoUrl },
+      });
+      res.status(201).json({ success: true, data: house });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ── Essence CRUD ─────────────────────────────────────────────────────
+
   /** GET /essences - Lista todas con stock actual en ml. */
   getAll = async (
     _req: Request,
@@ -48,7 +109,6 @@ export class EssenceController {
     try {
       const essences = await this.essenceRepo.findAll();
       // Agregar currentStockMl a cada esencia en paralelo.
-      // currentStockMl es el campo que espera el frontend (Essence.currentStockMl).
       const withStock = await Promise.all(
         essences.map(async (e) => ({
           ...e,
@@ -86,28 +146,45 @@ export class EssenceController {
     next: NextFunction
   ): Promise<void> => {
     try {
+      const { name, description, olfactiveFamilyId, inspirationBrand, houseId, pricePerMl, tagIds } = req.body;
+      if (!name || !olfactiveFamilyId) {
+        throw AppError.badRequest("name and olfactiveFamilyId are required");
+      }
       const essence = await this.essenceRepo.create({
-        name: req.body.name,
-        description: req.body.description,
-        olfactiveFamilyId: req.body.olfactiveFamilyId,
-        inspirationBrand: req.body.inspirationBrand,
+        name,
+        description,
+        olfactiveFamilyId,
+        inspirationBrand,
+        houseId: houseId || undefined,
+        pricePerMl: pricePerMl ? Number(pricePerMl) : undefined,
+        olfactiveTags: tagIds ? tagIds.map((id: string) => ({ id, name: "" })) : [],
         active: true,
       });
-      res.status(201).json({ success: true, data: essence });
+      // Return with stock = 0 (just created)
+      res.status(201).json({ success: true, data: { ...essence, currentStockMl: 0 } });
     } catch (error) {
       next(error);
     }
   };
 
-  /** PATCH /essences/:id - Actualiza campos de una esencia. */
+  /** PUT /essences/:id - Actualiza campos de una esencia. */
   update = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const essence = await this.essenceRepo.update(param(req, "id"), req.body);
-      res.json({ success: true, data: essence });
+      const { tagIds, ...rest } = req.body;
+      const data: any = { ...rest };
+      if (tagIds) {
+        data.olfactiveTags = tagIds.map((id: string) => ({ id, name: "" }));
+      }
+      if (data.pricePerMl !== undefined) {
+        data.pricePerMl = data.pricePerMl ? Number(data.pricePerMl) : null;
+      }
+      const essence = await this.essenceRepo.update(param(req, "id"), data);
+      const stock = await this.inventoryService.getEssenceStock(essence.id!);
+      res.json({ success: true, data: { ...essence, currentStockMl: stock } });
     } catch (error) {
       next(error);
     }

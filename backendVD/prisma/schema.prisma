@@ -244,8 +244,28 @@ model OlfactiveFamily {
   name String @unique
 
   essences Essence[]
+  /// Tabla pivote: etiquetas de familias olfativas asociadas a esencias
+  essenceTags EssenceOlfactiveTag[]
 
   @@map("olfactive_families")
+}
+
+/// Casa / marca de inspiración (ej: Carolina Herrera, Versace).
+/// El handle es un identificador corto estilo @carolinaherrera.
+model House {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  /// Identificador corto sin @, ej: "carolinaherrera". Unico e inmutable.
+  handle      String   @unique
+  description String?
+  logoUrl     String?  @map("logo_url")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  essences Essence[]
+
+  @@map("houses")
 }
 
 model Essence {
@@ -254,15 +274,36 @@ model Essence {
   description       String?
   olfactiveFamilyId String   @map("olfactive_family_id")
   inspirationBrand  String?  @map("inspiration_brand")
+  /// Casa / marca a la que pertenece esta esencia.
+  houseId           String?  @map("house_id")
+  /// Precio por mililitro en COP. Usado para cotizar en el carrito.
+  pricePerMl        Float?   @map("price_per_ml")
   active            Boolean  @default(true)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   olfactiveFamily    OlfactiveFamily     @relation(fields: [olfactiveFamilyId], references: [id])
+  house              House?              @relation(fields: [houseId], references: [id])
   products           Product[]
   essenceMovements   EssenceMovement[]
+  /// Etiquetas de familias olfativas adicionales (ej: #cítrica #amaderada)
+  olfactiveTags      EssenceOlfactiveTag[]
 
   @@map("essences")
+}
+
+/// Tabla pivote para la relación muchos-a-muchos entre Essence y OlfactiveFamily.
+/// Permite etiquetar una esencia con múltiples familias olfativas (#cítrica #amaderada).
+model EssenceOlfactiveTag {
+  id                String @id @default(uuid())
+  essenceId         String @map("essence_id")
+  olfactiveFamilyId String @map("olfactive_family_id")
+
+  essence         Essence         @relation(fields: [essenceId], references: [id], onDelete: Cascade)
+  olfactiveFamily OlfactiveFamily @relation(fields: [olfactiveFamilyId], references: [id], onDelete: Cascade)
+
+  @@unique([essenceId, olfactiveFamilyId])
+  @@map("essence_olfactive_tags")
 }
 
 model Bottle {

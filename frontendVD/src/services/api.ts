@@ -206,6 +206,55 @@ export const getOlfactiveFamilies = () =>
 export const getEssenceById = (id: string) =>
   api.get(`/api/essences/${id}`);
 
+/**
+ * Create a new essence (ADMIN).
+ * POST /api/essences
+ */
+export const createEssence = (data: {
+  name: string;
+  description?: string;
+  olfactiveFamilyId: string;
+  inspirationBrand?: string;
+  houseId?: string;
+  pricePerMl?: number;
+  tagIds?: string[];
+}) => api.post('/api/essences', data);
+
+/**
+ * Update an existing essence (ADMIN).
+ * PUT /api/essences/:id
+ */
+export const updateEssence = (id: string, data: Record<string, unknown>) =>
+  api.put(`/api/essences/${id}`, data);
+
+/**
+ * Delete an essence (ADMIN).
+ * DELETE /api/essences/:id
+ */
+export const deleteEssence = (id: string) =>
+  api.delete(`/api/essences/${id}`);
+
+/**
+ * Fetch all houses (brands).
+ * GET /api/essences/houses
+ */
+export const getHouses = () =>
+  api.get('/api/essences/houses');
+
+/**
+ * Create a new house/brand (ADMIN).
+ * POST /api/essences/houses
+ */
+export const createHouse = (data: { name: string; handle: string; description?: string }) =>
+  api.post('/api/essences/houses', data);
+
+/**
+ * Create a new olfactive family (ADMIN).
+ * POST /api/essences/families
+ */
+export const createOlfactiveFamily = (name: string) =>
+  api.post('/api/essences/families', { name });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCTS endpoints (public catalog)
 // ─────────────────────────────────────────────────────────────────────────────

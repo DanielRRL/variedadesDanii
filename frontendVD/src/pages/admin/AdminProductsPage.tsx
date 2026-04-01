@@ -28,9 +28,11 @@ import {
   adminUpdateProduct,
   adminToggleProduct,
   adminAddProductStock,
+  getEssences,
+  getHouses,
 } from '../../services/api';
 import { formatCOP } from '../../utils/format';
-import type { Product } from '../../types';
+import type { Product, Essence, House } from '../../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -85,6 +87,8 @@ type ProductFormData = {
   price: string;
   stockUnits: string;
   generatesGram: boolean;
+  essenceId: string;
+  mlQuantity: string;
 };
 
 const EMPTY_FORM: ProductFormData = {
@@ -94,6 +98,8 @@ const EMPTY_FORM: ProductFormData = {
   price: '',
   stockUnits: '',
   generatesGram: true,
+  essenceId: '',
+  mlQuantity: '',
 };
 
 function ProductForm({
@@ -101,11 +107,15 @@ function ProductForm({
   onSubmit,
   loading,
   submitLabel,
+  essences,
+  houses,
 }: {
   initial: ProductFormData;
   onSubmit: (d: ProductFormData) => void;
   loading: boolean;
   submitLabel: string;
+  essences: Essence[];
+  houses: House[];
 }) {
   const [form, setForm] = useState<ProductFormData>(initial);
   const set = (k: keyof ProductFormData, v: string | boolean) =>
@@ -115,6 +125,9 @@ function ProductForm({
     e.preventDefault();
     onSubmit(form);
   };
+
+  // Find selected essence to show house info
+  const selectedEssence = essences.find((e) => e.id === form.essenceId);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -168,6 +181,47 @@ function ProductForm({
           />
         </div>
       </div>
+
+      {/* Essence selector */}
+      <div>
+        <label className="block text-xs font-semibold text-text-primary mb-1">Esencia asociada</label>
+        <select
+          value={form.essenceId}
+          onChange={(e) => set('essenceId', e.target.value)}
+          className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
+        >
+          <option value="">Sin esencia</option>
+          {essences.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.name} {e.house ? `(@${e.house.handle})` : ''} — {e.olfactiveFamily?.name ?? ''}
+            </option>
+          ))}
+        </select>
+        {selectedEssence?.house && (
+          <p className="text-[10px] text-brand-blue mt-1">
+            Casa: {selectedEssence.house.name} (@{selectedEssence.house.handle})
+          </p>
+        )}
+      </div>
+
+      {/* ml Quantity (when essence is linked) */}
+      {form.essenceId && (
+        <div>
+          <label className="block text-xs font-semibold text-text-primary mb-1">Cantidad ml del producto</label>
+          <input
+            type="number"
+            min={0}
+            step={0.1}
+            value={form.mlQuantity}
+            onChange={(e) => set('mlQuantity', e.target.value)}
+            className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
+            placeholder="Ej: 30 ml"
+          />
+          <p className="text-[10px] text-muted mt-0.5">
+            Se descontarán estos ml de la esencia por cada unidad vendida.
+          </p>
+        </div>
+      )}
 
       {/* Stock + Gram toggle row */}
       <div className="grid grid-cols-2 gap-3">
@@ -306,6 +360,12 @@ export default function AdminProductsPage() {
     staleTime: 30_000,
   });
 
+  // Essences & houses for product form
+  const { data: essencesRes } = useQuery({ queryKey: ['essences'], queryFn: getEssences, staleTime: 60_000 });
+  const { data: housesRes }   = useQuery({ queryKey: ['houses'],   queryFn: getHouses,   staleTime: 60_000 });
+  const essencesList: Essence[] = essencesRes?.data ?? [];
+  const housesList: House[]     = housesRes?.data ?? [];
+
   const products: Product[] = res?.data?.products ?? res?.data ?? [];
   const totalPages: number  = res?.data?.totalPages ?? 1;
 
@@ -325,6 +385,8 @@ export default function AdminProductsPage() {
         price: Number(form.price),
         stockUnits: Number(form.stockUnits),
         generatesGram: form.generatesGram,
+        essenceId: form.essenceId || undefined,
+        mlQuantity: form.mlQuantity ? Number(form.mlQuantity) : undefined,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setCreateOpen(false);
@@ -347,6 +409,8 @@ export default function AdminProductsPage() {
         price: Number(form.price),
         stockUnits: Number(form.stockUnits),
         generatesGram: form.generatesGram,
+        essenceId: form.essenceId || undefined,
+        mlQuantity: form.mlQuantity ? Number(form.mlQuantity) : undefined,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setEditTarget(null);
@@ -439,7 +503,7 @@ export default function AdminProductsPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border bg-gray-50">
-                {['PRODUCTO', 'TIPO', 'PRECIO', 'STOCK', 'GRAMO', 'ESTADO', 'ACCIONES'].map((h) => (
+                {['PRODUCTO', 'TIPO', 'PRECIO', 'STOCK', 'ESENCIA', 'GRAMO', 'ESTADO', 'ACCIONES'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-muted uppercase tracking-wider">
                     {h}
                   </th>
@@ -449,7 +513,7 @@ export default function AdminProductsPage() {
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-muted">
+                  <td colSpan={8} className="px-4 py-10 text-center text-muted">
                     No se encontraron productos.
                   </td>
                 </tr>
@@ -483,6 +547,16 @@ export default function AdminProductsPage() {
                       <span className={`font-semibold ${p.stockUnits <= 5 ? 'text-red-500' : 'text-text-primary'}`}>
                         {p.stockUnits}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.essence ? (
+                        <div className="text-[10px] leading-tight">
+                          <p className="font-medium text-text-primary truncate max-w-32">{p.essence.name}</p>
+                          {p.mlQuantity && <p className="text-muted">{p.mlQuantity} ml</p>}
+                        </div>
+                      ) : (
+                        <span className="text-muted text-[10px]">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {p.generatesGram ? (
@@ -558,7 +632,7 @@ export default function AdminProductsPage() {
 
       {/* Create modal */}
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo Producto">
-        <ProductForm initial={EMPTY_FORM} onSubmit={handleCreate} loading={saving} submitLabel="Crear producto" />
+        <ProductForm initial={EMPTY_FORM} onSubmit={handleCreate} loading={saving} submitLabel="Crear producto" essences={essencesList} houses={housesList} />
       </Modal>
 
       {/* Edit modal */}
@@ -572,10 +646,14 @@ export default function AdminProductsPage() {
               price: String(editTarget.price),
               stockUnits: String(editTarget.stockUnits),
               generatesGram: editTarget.generatesGram,
+              essenceId: editTarget.essenceId ?? '',
+              mlQuantity: editTarget.mlQuantity ? String(editTarget.mlQuantity) : '',
             }}
             onSubmit={handleEdit}
             loading={saving}
             submitLabel="Guardar cambios"
+            essences={essencesList}
+            houses={housesList}
           />
         )}
       </Modal>
