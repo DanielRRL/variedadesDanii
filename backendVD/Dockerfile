@@ -35,6 +35,9 @@ RUN npx prisma generate
 # Compilar TypeScript a JavaScript en la carpeta dist/
 RUN npm run build
 
+# Copiar archivos no-TS (plantillas .hbs) que TypeScript no copia automaticamente
+RUN cp -r src/infrastructure/notifications/email-templates dist/infrastructure/notifications/email-templates
+
 # ---------------------------------------------------------------------------
 # Stage 2: Runner (imagen final de produccion)
 # Solo contiene lo necesario para ejecutar: node, deps de produccion,

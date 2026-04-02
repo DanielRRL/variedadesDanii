@@ -82,6 +82,7 @@ export class EmailService implements IEmailService {
       secure: false,   // STARTTLS (no SSL directo en el puerto 587)
       requireTLS: hasCredentials,
       auth: hasCredentials ? { user, pass } : undefined,
+      tls: { rejectUnauthorized: false },
     });
   }
 
