@@ -1,0 +1,12 @@
+# Secretos — NUNCA subir a Git
+.env
+
+# Mantener la plantilla de ejemplo
+!.env.example
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
