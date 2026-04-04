@@ -31,6 +31,8 @@ export const createUserRoutes = (userController: UserController): Router => {
 
   // Solo admins pueden listar todos los usuarios
   router.get("/", roleMiddleware("ADMIN"), userController.getAll);
+  // Admin can manually verify a user's email
+  router.patch("/:id/verify", roleMiddleware("ADMIN"), userController.adminVerify);
   // Cualquier usuario autenticado puede ver un perfil
   router.get("/:id", userController.getById);
   // Cualquier usuario autenticado puede actualizar su perfil

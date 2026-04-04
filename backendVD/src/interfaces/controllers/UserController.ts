@@ -36,6 +36,7 @@ export class UserController {
         email: u.email,
         role: u.role,
         active: u.active,
+        emailVerified: u.emailVerified ?? false,
         createdAt: u.createdAt,
       }));
       res.json({ success: true, data: sanitized });
@@ -64,9 +65,33 @@ export class UserController {
           email: user.email,
           role: user.role,
           active: user.active,
+          emailVerified: user.emailVerified ?? false,
           createdAt: user.createdAt,
         },
       });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /** PATCH /users/:id/verify - Admin manually verifies a user's email. */
+  adminVerify = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const userId = param(req, "id");
+      const user = await this.userRepo.findById(userId);
+      if (!user) {
+        throw AppError.notFound("User not found");
+      }
+      if (user.emailVerified) {
+        res.json({ success: true, message: "User is already verified" });
+        return;
+      }
+      await this.userRepo.update(userId, { emailVerified: true });
+      res.json({ success: true, message: "User verified successfully" });
     } catch (error) {
       next(error);
     }

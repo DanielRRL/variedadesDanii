@@ -86,22 +86,15 @@ export default function AdminLayout() {
   const firstName = user?.name?.split(' ')[0] ?? 'Admin';
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* ── Backdrop for mobile (when sidebar overlays) ──────────────────────── */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <div className="flex h-screen overflow-hidden bg-gray-50">
 
-      {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
+      {/* ── Sidebar — flex child, NOT fixed. Pushes content to the right. ──── */}
       <aside
-        className={`fixed top-0 left-0 h-full w-55 bg-white border-r border-border flex flex-col z-40 transition-transform duration-200 lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`shrink-0 w-[220px] bg-white border-r border-border flex flex-col h-screen transition-[margin] duration-200 ${
+          sidebarOpen ? 'ml-0' : '-ml-[220px] lg:ml-0'
         }`}
       >
-        {/* Brand header + close button */}
+        {/* Brand header + close button (mobile only) */}
         <div className="px-5 py-4 border-b border-border shrink-0 flex items-center justify-between">
           <div>
             <p className="font-heading font-bold text-brand-pink text-sm leading-tight">
@@ -137,7 +130,6 @@ export default function AdminLayout() {
               to={path}
               end={exact}
               onClick={() => {
-                // Close sidebar on mobile after navigation
                 if (window.innerWidth < 1024) setSidebarOpen(false);
               }}
               className={({ isActive }) =>
@@ -181,18 +173,16 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      {/* ── Main content ─────────────────────────────────────────────────────── */}
-      <div
-        className="flex-1 flex flex-col min-h-screen transition-[margin] duration-200 lg:ml-55"
-      >
+      {/* ── Main content — scrolls independently ─────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         {/* Sticky top bar */}
         <header className="sticky top-0 z-20 bg-white border-b border-border h-14 flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-3">
-            {/* Hamburger toggle — mobile only */}
+            {/* Hamburger toggle — only visible on mobile when sidebar is hidden */}
             <button
-              onClick={() => setSidebarOpen((v) => !v)}
+              onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-lg text-muted hover:bg-gray-100 transition-colors lg:hidden"
-              aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-label="Abrir menú"
             >
               <Menu size={18} />
             </button>

@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
   Eye,
@@ -17,9 +17,10 @@ import {
   Gem,
   Gift,
   Users,
+  ShieldCheck,
 } from 'lucide-react';
 
-import { searchUsers, getClientHistory } from '../../services/api';
+import { searchUsers, getClientHistory, adminVerifyUser } from '../../services/api';
 import { formatCOP } from '../../utils/format';
 import type { User, Order, GramTransaction, EssenceRedemption } from '../../types';
 
@@ -207,9 +208,11 @@ function ClientHistoryModal({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AdminClientsPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage]     = useState(1);
   const [historyUser, setHistoryUser] = useState<{ id: string; name: string } | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
   const { data: res, isLoading } = useQuery({
     queryKey: ['admin-clients', search, page],
@@ -219,6 +222,18 @@ export default function AdminClientsPage() {
 
   const users: User[] = res?.data?.users ?? res?.data ?? [];
   const totalPages: number = res?.data?.totalPages ?? 1;
+
+  const handleVerify = async (userId: string) => {
+    setVerifyingId(userId);
+    try {
+      await adminVerifyUser(userId);
+      queryClient.invalidateQueries({ queryKey: ['admin-clients'] });
+    } catch {
+      alert('Error al verificar el usuario.');
+    } finally {
+      setVerifyingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -316,13 +331,29 @@ export default function AdminClientsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => setHistoryUser({ id: u.id, name: u.name })}
-                          className="p-1.5 text-muted hover:text-brand-blue rounded-lg hover:bg-blue-50 transition-colors"
-                          title="Ver historial"
-                        >
-                          <Eye size={14} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          {!u.emailVerified && u.role !== 'ADMIN' && (
+                            <button
+                              onClick={() => handleVerify(u.id)}
+                              disabled={verifyingId === u.id}
+                              className="p-1.5 text-muted hover:text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                              title="Verificar cuenta"
+                            >
+                              {verifyingId === u.id ? (
+                                <span className="block w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <ShieldCheck size={14} />
+                              )}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setHistoryUser({ id: u.id, name: u.name })}
+                            className="p-1.5 text-muted hover:text-brand-blue rounded-lg hover:bg-blue-50 transition-colors"
+                            title="Ver historial"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

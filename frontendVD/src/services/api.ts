@@ -471,6 +471,12 @@ export const adminAdjustPoints = (data: { userId: string; points: number; reason
 export const searchUsers = (params?: { search?: string; page?: number }) =>
   api.get('/api/users', { params });
 
+/**
+ * PATCH /api/users/:id/verify (admin only — manually verify a user's email)
+ */
+export const adminVerifyUser = (userId: string) =>
+  api.patch(`/api/users/${userId}/verify`);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — Invoices
 // ─────────────────────────────────────────────────────────────────────────────
