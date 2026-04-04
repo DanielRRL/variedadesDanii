@@ -66,6 +66,8 @@ const AdminConfigPage      = lazy(() => import('../pages/admin/AdminConfigPage')
 const AdminProductsPage    = lazy(() => import('../pages/admin/AdminProductsPage'));
 const AdminGamificationPage = lazy(() => import('../pages/admin/AdminGamificationPage'));
 const AdminRedemptionsPage = lazy(() => import('../pages/admin/AdminRedemptionsPage'));
+const AdminSalesPage        = lazy(() => import('../pages/admin/AdminSalesPage'));
+const AdminRevenueReportPage = lazy(() => import('../pages/admin/AdminRevenueReportPage'));
 const AdminLayout          = lazy(() => import('../pages/admin/AdminLayout'));
 
 // ── Route guard components ────────────────────────────────────────────────────
@@ -174,6 +176,8 @@ export const router = createBrowserRouter([
               { path: '/admin/productos',      element: <AdminProductsPage />    },
               { path: '/admin/gamificacion',   element: <AdminGamificationPage /> },
               { path: '/admin/canjes',         element: <AdminRedemptionsPage /> },
+              { path: '/admin/ventas',         element: <AdminSalesPage /> },
+              { path: '/admin/ganancias',      element: <AdminRevenueReportPage /> },
             ],
           },
         ],

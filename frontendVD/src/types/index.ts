@@ -422,3 +422,59 @@ export interface BottleReturnInput {
   orderId: string;
   quantity: number;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POS (Point of Sale) TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Payload for POST /api/pos/sales — register a new in-store sale. */
+export interface POSSaleInput {
+  products: { productId: string; quantity: number }[];
+  paymentMethod: 'CASH' | 'NEQUI' | 'DAVIPLATA' | 'BANCOLOMBIA' | 'TRANSFERENCIA';
+  userId?: string;
+  walkInClientName?: string;
+  walkInClientEmail?: string;
+  walkInClientPhone?: string;
+  notes?: string;
+  discount?: number;
+}
+
+/** Simple invoice data returned after a POS sale. */
+export interface SimpleInvoiceData {
+  invoiceNumber: string;
+  businessName: string;
+  businessAddress: string;
+  clientName: string;
+  clientEmail?: string;
+  orderNumber: string;
+  date: string;
+  time: string;
+  timezone: string;
+  city: string;
+  saleChannel: 'ECOMMERCE' | 'IN_STORE';
+  items: { productName: string; quantity: number; unitPrice: number; subtotal: number }[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  paymentMethod: string;
+  notes?: string;
+}
+
+/** Result of POST /api/pos/sales. */
+export interface POSSaleResult {
+  order: Order;
+  invoice: SimpleInvoiceData;
+  gramsEarned: number;
+  tokenIssued: boolean;
+}
+
+/** Revenue summary returned by GET /api/pos/revenue. */
+export interface RevenueSummary {
+  totalEcommerce: number;
+  totalInStore: number;
+  totalGeneral: number;
+  orderCountEcommerce: number;
+  orderCountInStore: number;
+  topProductsInStore: { name: string; quantity: number; revenue: number }[];
+  topProductsEcommerce: { name: string; quantity: number; revenue: number }[];
+}

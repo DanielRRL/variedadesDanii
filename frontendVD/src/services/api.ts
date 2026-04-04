@@ -20,6 +20,7 @@ import type {
   BottleReturnInput,
   Product,
   WeeklyChallenge,
+  POSSaleInput,
 } from '../types';
 import { useToastStore } from '../stores/toastStore';
 
@@ -676,3 +677,35 @@ export const getClientHistory = (userId: string) =>
  */
 export const getSalesByProductType = (params?: { from?: string; to?: string }) =>
   api.get('/api/admin/reports/sales-by-type', { params });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POS (Point of Sale) endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/pos/sales
+ * Register a new in-store sale.
+ */
+export const createPOSSale = (data: POSSaleInput) =>
+  api.post('/api/pos/sales', data);
+
+/**
+ * GET /api/pos/sales
+ * List POS sales with optional filters.
+ */
+export const getPOSSales = (params?: { from?: string; to?: string; channel?: string; page?: number; limit?: number }) =>
+  api.get('/api/pos/sales', { params });
+
+/**
+ * GET /api/pos/revenue
+ * Revenue summary by channel.
+ */
+export const getRevenueSummary = (params?: { from?: string; to?: string }) =>
+  api.get('/api/pos/revenue', { params });
+
+/**
+ * GET /api/users?search=...&limit=5
+ * Search registered clients for autocomplete (reuses existing searchUsers).
+ */
+export const searchRegisteredClients = (search: string) =>
+  api.get('/api/users', { params: { search, limit: 5 } });
