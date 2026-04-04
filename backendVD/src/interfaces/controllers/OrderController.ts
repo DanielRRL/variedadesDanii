@@ -75,15 +75,26 @@ export class OrderController {
     }
   };
 
-  /** GET /orders - Lista todas las ordenes (admin). */
+  /**
+   * GET /orders - Lista ordenes (admin) con filtros opcionales.
+   * Query params: channel (ECOMMERCE|IN_STORE), status, from, to, page, limit.
+   */
   getAll = async (
-    _req: Request,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const orders = await this.orderRepo.findAll();
-      res.json({ success: true, data: orders });
+      const { channel, status, from, to, page, limit } = req.query as Record<string, string | undefined>;
+      const { data, total } = await this.orderRepo.findAllFiltered({
+        channel,
+        status,
+        from,
+        to,
+        page: page ? parseInt(page, 10) : undefined,
+        limit: limit ? parseInt(limit, 10) : undefined,
+      });
+      res.json({ success: true, data, meta: { total, page: page ? parseInt(page, 10) : 1, limit: limit ? parseInt(limit, 10) : 50 } });
     } catch (error) {
       next(error);
     }
@@ -201,42 +212,32 @@ export class OrderController {
 
       // -- Paso 5: Acciones disparadas por el nuevo estado.
 
-      // 5a. DELIVERED: acreditar puntos de fidelizacion al cliente.
-      // Se envuelve en try/catch para que un fallo en loyalty no revierta
-      // el cambio de estado ya persistido.
+      // 5a. DELIVERED: disparar hooks post-entrega sin bloquear la respuesta HTTP.
+      // setImmediate garantiza que el 200 se envie antes de ejecutar factura,
+      // puntos y gramos. Si algo falla, se registra en log pero el cambio
+      // de estado ya fue persistido.
       if (newStatus === OrderStatus.DELIVERED) {
-        try {
-          await this.earnPointsUseCase.execute(orderId, currentOrder.userId);
-        } catch (loyaltyErr) {
-          logger.warn("Failed to earn loyalty points after delivery", {
-            orderId,
-            error: loyaltyErr,
-          });
-        }
+        const svc = this.simpleInvoiceService;
+        const gramUC = this.earnGramUseCase;
+        const pointsUC = this.earnPointsUseCase;
+        const userId = currentOrder.userId;
 
-        // 5a-bis. DELIVERED: acumular gramos y emitir ficha de juego.
-        if (this.earnGramUseCase) {
+        setImmediate(async () => {
           try {
-            await this.earnGramUseCase.execute(orderId, currentOrder.userId);
-          } catch (gramErr) {
-            logger.warn("Failed to earn grams after delivery", {
-              orderId,
-              error: gramErr,
-            });
+            // Factura simple
+            if (svc) {
+              await svc.generateAndSend(orderId);
+            }
+            // Puntos de fidelizacion
+            await pointsUC.execute(orderId, userId);
+            // Gramos y ficha de juego
+            if (gramUC) {
+              await gramUC.execute(orderId, userId);
+            }
+          } catch (err) {
+            logger.error("Error post-delivery hook", { orderId, err });
           }
-        }
-
-        // 5a-ter. DELIVERED: generar factura simple.
-        if (this.simpleInvoiceService) {
-          try {
-            await this.simpleInvoiceService.generateAndSend(orderId);
-          } catch (invoiceErr) {
-            logger.warn("Failed to generate simple invoice after delivery", {
-              orderId,
-              error: invoiceErr,
-            });
-          }
-        }
+        });
       }
 
       // 5b. PAID: generar factura electronica (stub hasta Parte 7).

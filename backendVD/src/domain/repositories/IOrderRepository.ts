@@ -37,10 +37,23 @@ export interface CreateOrderData {
   }>;
 }
 
+/** Filtros opcionales para listar pedidos (admin). */
+export interface OrderFilter {
+  channel?: string;
+  status?: string;
+  from?: string;   // ISO date
+  to?: string;     // ISO date
+  page?: number;
+  limit?: number;
+}
+
 /** Contrato del repositorio de pedidos. */
 export interface IOrderRepository {
   /** Obtiene todos los pedidos con usuario, items, pago y descuentos. */
   findAll(): Promise<any[]>;
+
+  /** Obtiene pedidos paginados con filtros opcionales. */
+  findAllFiltered(filters: OrderFilter): Promise<{ data: any[]; total: number }>;
 
   /** Busca un pedido por UUID con todas sus relaciones. */
   findById(id: string): Promise<any | null>;

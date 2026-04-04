@@ -12,6 +12,7 @@ import prisma from "../../config/database";
 import {
   IOrderRepository,
   CreateOrderData,
+  OrderFilter,
 } from "../../domain/repositories/IOrderRepository";
 
 export class PrismaOrderRepository implements IOrderRepository {
@@ -29,6 +30,47 @@ export class PrismaOrderRepository implements IOrderRepository {
       },
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  /**
+   * Obtiene pedidos paginados con filtros opcionales de canal, estado y rango de fechas.
+   */
+  async findAllFiltered(filters: OrderFilter): Promise<{ data: any[]; total: number }> {
+    const where: any = {};
+
+    if (filters.channel) {
+      where.saleChannel = filters.channel;
+    }
+    if (filters.status) {
+      where.status = filters.status;
+    }
+    if (filters.from || filters.to) {
+      where.createdAt = {};
+      if (filters.from) where.createdAt.gte = new Date(filters.from);
+      if (filters.to) where.createdAt.lte = new Date(filters.to);
+    }
+
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 50;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: {
+          user: { select: { id: true, name: true, phone: true, email: true } },
+          items: { include: { product: { include: { essence: true, bottle: true } } } },
+          payment: true,
+          discounts: true,
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    return { data, total };
   }
 
   /**
