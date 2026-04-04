@@ -55,6 +55,9 @@ const envSchema = z.object({
   DIAN_CERT_PATH: z.string().default("./certs/certificado.pfx"),
   DIAN_CERT_PASSWORD: z.string().default(""),
 
+  // Datos de negocio para factura simple
+  BUSINESS_NIT: z.string().default(""),
+
   // Email (SMTP) — opcionales, el servicio maneja la ausencia gracefully
   EMAIL_HOST: z.string().default("smtp-relay.brevo.com"),
   EMAIL_PORT: numericString(587),
@@ -143,6 +146,10 @@ export const env = {
     pass: v.EMAIL_PASS,
     from: v.EMAIL_FROM,
     fromName: v.EMAIL_FROM_NAME,
+  },
+
+  business: {
+    nit: v.BUSINESS_NIT,
   },
 
   admin: {

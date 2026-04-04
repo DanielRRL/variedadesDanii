@@ -135,4 +135,12 @@ export class PrismaOrderRepository implements IOrderRepository {
       },
     });
   }
+
+  /** Actualiza campos arbitrarios de un pedido. */
+  async update(id: string, data: Record<string, unknown>): Promise<any> {
+    return prisma.order.update({
+      where: { id },
+      data: data as any,
+    });
+  }
 }

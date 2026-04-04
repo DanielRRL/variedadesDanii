@@ -84,6 +84,10 @@ import { ReportService } from "./application/services/ReportService";
 import { GramService } from "./application/services/GramService";
 // GameTokenService - Fichas de juego (ruleta y puzzle).
 import { GameTokenService } from "./application/services/GameTokenService";
+// SimpleInvoiceService - Factura simple (no DIAN).
+import { SimpleInvoiceService } from "./application/services/SimpleInvoiceService";
+// SalesService - Ventas presenciales (POS).
+import { SalesService } from "./application/services/SalesService";
 
 // --- Casos de uso: orquestan la logica de negocio compleja ---
 // CreateOrderUseCase - Crear orden con validacion de stock y descuentos.
@@ -119,6 +123,8 @@ import { EssenceRedemptionController } from "./interfaces/controllers/EssenceRed
 import { LoyaltyController } from "./interfaces/controllers/LoyaltyController";
 // InvoiceController - Consulta y gestion de facturas electronicas.
 import { InvoiceController } from "./interfaces/controllers/InvoiceController";
+// POSController - Ventas presenciales.
+import { POSController } from "./interfaces/controllers/POSController";
 // DianSoapClient - Gateway de facturacion (STUB hasta completar habilitacion DIAN).
 import { DianSoapClient } from "./infrastructure/invoice/DianSoapClient";
 
@@ -150,6 +156,8 @@ import { createLoyaltyRoutes, createAdminLoyaltyRoutes } from "./interfaces/rout
 import { createWebhookRoutes } from "./interfaces/routes/webhookRoutes";
 // createInvoiceRoutes, createAdminInvoiceRoutes - Facturas electronicas DIAN.
 import { createInvoiceRoutes, createAdminInvoiceRoutes } from "./interfaces/routes/invoiceRoutes";
+// createPOSRoutes - Ventas presenciales (POS).
+import { createPOSRoutes } from "./interfaces/routes/posRoutes";
 
 // PaymentWebhookController - Valida y procesa eventos de Wompi.
 import { PaymentWebhookController } from "./interfaces/controllers/PaymentWebhookController";
@@ -265,6 +273,16 @@ export function createApp(): express.Application {
   const invoiceService = new InvoiceService(invoiceRepo, orderRepo, dianClient, emailService);
   const gramService = new GramService(gramRepo, essenceRedemptionRepo, emailService);
   const gameTokenService = new GameTokenService(gameTokenRepo, gramService);
+  const simpleInvoiceService = new SimpleInvoiceService(emailService, orderRepo);
+  const salesService = new SalesService(
+    orderRepo,
+    productRepo,
+    inventoryService,
+    gramService,
+    gameTokenService,
+    simpleInvoiceService,
+    emailService,
+  );
 
   // 3. Instanciar casos de uso (inyectando repos y servicios)
   const createOrderUseCase = new CreateOrderUseCase(
@@ -300,7 +318,7 @@ export function createApp(): express.Application {
   const essenceController = new EssenceController(essenceRepo, inventoryService);
   const bottleController = new BottleController(bottleRepo, inventoryService);
   const productController = new ProductController(productRepo);
-  const orderController = new OrderController(createOrderUseCase, orderRepo, earnPointsAfterOrderUseCase, orderStatusHistoryRepo, emailService, earnGramAfterOrderUseCase);
+  const orderController = new OrderController(createOrderUseCase, orderRepo, earnPointsAfterOrderUseCase, orderStatusHistoryRepo, emailService, earnGramAfterOrderUseCase, simpleInvoiceService);
   const inventoryController = new InventoryController(inventoryService);
   const bottleReturnController = new BottleReturnController(
     processBottleReturnUseCase,
@@ -313,6 +331,7 @@ export function createApp(): express.Application {
   const essenceRedemptionController = new EssenceRedemptionController(essenceRedemptionRepo, gramService);
   const loyaltyController = new LoyaltyController(loyaltyService, referralService);
   const invoiceController = new InvoiceController(invoiceService, invoiceRepo);
+  const posController = new POSController(salesService, orderRepo);
 
   // ---------------------------------------------------------------------------
   // Rutas de la API
@@ -345,6 +364,7 @@ export function createApp(): express.Application {
   app.use("/api/admin/loyalty", createAdminLoyaltyRoutes(loyaltyController));
   app.use("/api/invoices", createInvoiceRoutes(invoiceController));
   app.use("/api/admin/invoices", createAdminInvoiceRoutes(invoiceController));
+  app.use("/api/pos", createPOSRoutes(posController));
 
   // ---------------------------------------------------------------------------
   // Cron: expirar fichas de juego viejas cada 6 horas

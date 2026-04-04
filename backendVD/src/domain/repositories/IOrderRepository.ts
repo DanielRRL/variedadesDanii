@@ -53,4 +53,7 @@ export interface IOrderRepository {
 
   /** Actualiza el estado de un pedido (PENDING -> PAID -> etc). */
   updateStatus(id: string, status: string): Promise<any>;
+
+  /** Actualiza campos arbitrarios de un pedido. */
+  update(id: string, data: Record<string, unknown>): Promise<any>;
 }

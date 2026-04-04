@@ -22,4 +22,5 @@ export const mockEmailService: IEmailService = {
   sendOrderStatusUpdate:  vi.fn().mockResolvedValue(undefined),
   sendReferralReward:     vi.fn().mockResolvedValue(undefined),
   sendLowStockAlert:      vi.fn().mockResolvedValue(undefined),
+  sendSimpleInvoice:      vi.fn().mockResolvedValue(undefined),
 };

@@ -38,6 +38,9 @@ import { AppError } from "../../utils/AppError";
 // logger - Para registrar la creacion exitosa de ordenes.
 import logger from "../../utils/logger";
 
+// prisma - Cliente de BD para transacciones atomicas.
+import prisma from "../../config/database";
+
 /** Datos de entrada requeridos para crear una orden. */
 export interface CreateOrderInput {
   userId: string;
@@ -147,32 +150,99 @@ export class CreateOrderUseCase {
     // Total nunca puede ser negativo
     const total = Math.max(0, subtotal - totalDiscount);
 
-    // -- Paso 5: Persistir la orden con items y descuentos --
-    const order = await this.orderRepo.create({
-      userId: input.userId,
-      addressId: input.addressId,
-      type: input.type,
-      paymentMethod: input.paymentMethod,
-      notes: input.notes,
-      subtotal,
-      discount: totalDiscount,
-      total,
-      items: orderItems.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        subtotal: item.subtotal,
-      })),
-      discounts: discounts.map((d) => ({
-        type: d.type,
-        percentage: d.percentage,
-        amount: d.amount,
-        description: d.description,
-      })),
-    });
+    // -- Paso 5: Persistir la orden con items, descuentos Y descontar inventario en una transaccion atomica --
+    const seqResult = await prisma.$queryRaw<[{ val: bigint }]>`SELECT nextval('order_number_seq') as val`;
+    const year = new Date().getFullYear();
+    const seq = String(Number(seqResult[0].val)).padStart(4, "0");
+    const orderNumber = `VD-${year}${seq}`;
 
-    // -- Paso 6: Registrar movimientos de salida de inventario --
-    await this.registerInventoryExits(orderItems, order.id);
+    const order = await prisma.$transaction(async (tx) => {
+      // 5a. Crear la orden con items y descuentos
+      const newOrder = await tx.order.create({
+        data: {
+          orderNumber,
+          userId: input.userId,
+          addressId: input.addressId,
+          type: input.type as any,
+          paymentMethod: input.paymentMethod as any,
+          notes: input.notes,
+          subtotal,
+          discount: totalDiscount,
+          total,
+          items: {
+            create: orderItems.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              subtotal: item.subtotal,
+            })),
+          },
+          discounts: discounts.length > 0
+            ? {
+                create: discounts.map((d) => ({
+                  type: d.type as any,
+                  percentage: d.percentage,
+                  amount: d.amount,
+                  description: d.description,
+                })),
+              }
+            : undefined,
+        },
+        include: {
+          items: { include: { product: true } },
+          payment: true,
+          discounts: true,
+        },
+      });
+
+      // 5b. Registrar movimientos de salida de inventario dentro de la transaccion
+      for (const item of orderItems) {
+        if (item.category === "PERFUME") {
+          const totalMlOut = item.mlQuantity! * item.quantity;
+
+          // Salida de esencia (ml)
+          await tx.essenceMovement.create({
+            data: {
+              essenceId: item.essenceId!,
+              type: "OUT" as any,
+              ml: totalMlOut,
+              reason: "SALE" as any,
+              reference: `order:${newOrder.id}`,
+            },
+          });
+
+          // Salida de frascos (unidades)
+          if (item.bottleId) {
+            await tx.bottleMovement.create({
+              data: {
+                bottleId: item.bottleId,
+                type: "OUT" as any,
+                quantity: item.quantity,
+                reason: "SALE" as any,
+                reference: `order:${newOrder.id}`,
+              },
+            });
+          }
+        } else {
+          // ACCESSORY o GENERAL: decrementar stockUnits + crear movement
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stockUnits: { decrement: item.quantity } },
+          });
+          await tx.productMovement.create({
+            data: {
+              productId: item.productId,
+              type: "OUT" as any,
+              quantity: item.quantity,
+              reason: "SALE" as any,
+              reference: `order:${newOrder.id}`,
+            },
+          });
+        }
+      }
+
+      return newOrder;
+    });
 
     // -- Paso 7: Procesar pago con la estrategia correspondiente --
     const paymentStrategy = PaymentStrategyFactory.getStrategy(

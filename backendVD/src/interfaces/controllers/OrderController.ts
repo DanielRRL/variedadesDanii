@@ -37,6 +37,9 @@ import { OrderStatus } from "../../domain/entities/Order";
 // logger - Para registrar fallos no bloqueantes en el flujo de fidelizacion.
 import logger from "../../utils/logger";
 
+// SimpleInvoiceService - Genera factura simple al marcar como DELIVERED.
+import { SimpleInvoiceService } from "../../application/services/SimpleInvoiceService";
+
 export class OrderController {
   constructor(
     private readonly createOrderUseCase: CreateOrderUseCase,
@@ -45,6 +48,7 @@ export class OrderController {
     private readonly orderStatusHistoryRepo: IOrderStatusHistoryRepository,
     private readonly emailService: IEmailService,
     private readonly earnGramUseCase?: EarnGramAfterOrderUseCase,
+    private readonly simpleInvoiceService?: SimpleInvoiceService,
   ) {}
 
   /** POST /orders - Crea una orden (userId viene del JWT en el middleware). */
@@ -218,6 +222,18 @@ export class OrderController {
             logger.warn("Failed to earn grams after delivery", {
               orderId,
               error: gramErr,
+            });
+          }
+        }
+
+        // 5a-ter. DELIVERED: generar factura simple.
+        if (this.simpleInvoiceService) {
+          try {
+            await this.simpleInvoiceService.generateAndSend(orderId);
+          } catch (invoiceErr) {
+            logger.warn("Failed to generate simple invoice after delivery", {
+              orderId,
+              error: invoiceErr,
             });
           }
         }

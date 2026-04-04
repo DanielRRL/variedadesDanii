@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factura de Venta - {{invoiceNumber}}</title>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#f4f4f4;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f4f4;padding:20px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- HEADER -->
+          <tr>
+            <td style="background-color:#D81B60;padding:24px 30px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:1px;">Variedades DANII</h1>
+              <p style="margin:8px 0 0;color:#ffffff;font-size:14px;font-weight:400;">FACTURA DE VENTA</p>
+              <p style="margin:4px 0 0;color:#ffffffcc;font-size:16px;font-weight:600;">{{invoiceNumber}}</p>
+            </td>
+          </tr>
+
+          <!-- DATOS DEL EMISOR -->
+          <tr>
+            <td style="padding:24px 30px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="border-bottom:1px solid #eee;padding-bottom:16px;">
+                    <p style="margin:0 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Datos del emisor</p>
+                    <p style="margin:0 0 2px;font-size:14px;color:#333;font-weight:600;">{{businessName}}</p>
+                    <p style="margin:0 0 2px;font-size:13px;color:#555;">NIT: {{businessNit}}</p>
+                    <p style="margin:0 0 2px;font-size:13px;color:#555;">{{businessAddress}}</p>
+                    <p style="margin:0;font-size:13px;color:#555;">Tel: {{businessPhone}}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- DATOS DEL RECEPTOR -->
+          <tr>
+            <td style="padding:16px 30px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="border-bottom:1px solid #eee;padding-bottom:16px;">
+                    <p style="margin:0 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Datos del cliente</p>
+                    <p style="margin:0 0 2px;font-size:14px;color:#333;font-weight:600;">{{clientName}}</p>
+                    {{#if clientPhone}}
+                    <p style="margin:0 0 2px;font-size:13px;color:#555;">Tel: {{clientPhone}}</p>
+                    {{/if}}
+                    {{#if clientEmail}}
+                    <p style="margin:0;font-size:13px;color:#555;">Email: {{clientEmail}}</p>
+                    {{/if}}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- DATOS DE LA VENTA -->
+          <tr>
+            <td style="padding:16px 30px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="border-bottom:1px solid #eee;padding-bottom:16px;">
+                    <p style="margin:0 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Datos de la venta</p>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="font-size:13px;color:#555;padding:2px 0;" width="50%">Pedido: <strong style="color:#333;">{{orderNumber}}</strong></td>
+                        <td style="font-size:13px;color:#555;padding:2px 0;" width="50%">Fecha: <strong style="color:#333;">{{date}}</strong></td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:13px;color:#555;padding:2px 0;">Ciudad: <strong style="color:#333;">{{city}}</strong></td>
+                        <td style="font-size:13px;color:#555;padding:2px 0;">Hora: <strong style="color:#333;">{{time}}</strong></td>
+                      </tr>
+                      <tr>
+                        <td colspan="2" style="font-size:13px;color:#555;padding:2px 0;">Canal: <strong style="color:#333;">{{#ifeq saleChannel "IN_STORE"}}Venta presencial{{else}}E-commerce{{/ifeq}}</strong></td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- TABLA DE ITEMS -->
+          <tr>
+            <td style="padding:16px 30px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="background-color:#D81B60;color:#ffffff;font-size:12px;padding:10px 8px;text-align:left;border-radius:4px 0 0 0;">Producto</th>
+                    <th style="background-color:#D81B60;color:#ffffff;font-size:12px;padding:10px 8px;text-align:center;">Cant.</th>
+                    <th style="background-color:#D81B60;color:#ffffff;font-size:12px;padding:10px 8px;text-align:right;">Precio</th>
+                    <th style="background-color:#D81B60;color:#ffffff;font-size:12px;padding:10px 8px;text-align:right;border-radius:0 4px 0 0;">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{#each items}}
+                  <tr>
+                    <td style="font-size:13px;color:#333;padding:8px;border-bottom:1px solid #f0f0f0;">{{this.productName}}</td>
+                    <td style="font-size:13px;color:#333;padding:8px;border-bottom:1px solid #f0f0f0;text-align:center;">{{this.quantity}}</td>
+                    <td style="font-size:13px;color:#333;padding:8px;border-bottom:1px solid #f0f0f0;text-align:right;">${{this.unitPrice}}</td>
+                    <td style="font-size:13px;color:#333;padding:8px;border-bottom:1px solid #f0f0f0;text-align:right;">${{this.subtotal}}</td>
+                  </tr>
+                  {{/each}}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+
+          <!-- TOTALES -->
+          <tr>
+            <td style="padding:16px 30px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="font-size:13px;color:#555;padding:4px 8px;text-align:right;" width="70%">Subtotal:</td>
+                  <td style="font-size:13px;color:#333;padding:4px 8px;text-align:right;font-weight:600;" width="30%">${{subtotal}}</td>
+                </tr>
+                {{#if discount}}
+                <tr>
+                  <td style="font-size:13px;color:#D81B60;padding:4px 8px;text-align:right;">Descuento:</td>
+                  <td style="font-size:13px;color:#D81B60;padding:4px 8px;text-align:right;font-weight:600;">-${{discount}}</td>
+                </tr>
+                {{/if}}
+                <tr>
+                  <td style="font-size:18px;color:#333;padding:12px 8px 4px;text-align:right;font-weight:700;border-top:2px solid #D81B60;">TOTAL:</td>
+                  <td style="font-size:18px;color:#D81B60;padding:12px 8px 4px;text-align:right;font-weight:700;border-top:2px solid #D81B60;">${{total}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- METODO DE PAGO -->
+          <tr>
+            <td style="padding:16px 30px 0;">
+              <p style="margin:0;font-size:13px;color:#555;">Método de pago: <strong style="color:#333;">{{paymentMethod}}</strong></p>
+              {{#if notes}}
+              <p style="margin:8px 0 0;font-size:13px;color:#555;">Notas: {{notes}}</p>
+              {{/if}}
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="padding:24px 30px;text-align:center;">
+              <hr style="border:none;border-top:1px solid #eee;margin:0 0 16px;">
+              <p style="margin:0 0 4px;font-size:11px;color:#999;">⚠️ Esto no es una factura electrónica DIAN. Para factura tributaria contáctenos.</p>
+              <p style="margin:0 0 8px;font-size:11px;color:#999;">{{businessName}} · {{businessAddress}} · Tel: {{businessPhone}}</p>
+              <a href="https://wa.me/573003837442" style="display:inline-block;background-color:#25D366;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;">💬 WhatsApp: 300 383 7442</a>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

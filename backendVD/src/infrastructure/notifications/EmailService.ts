@@ -22,6 +22,7 @@ import nodemailer, { Transporter } from "nodemailer";
 import Handlebars from "handlebars";
 
 import { IEmailService, OrderItemEmailData } from "../../application/services/IEmailService";
+import { SimpleInvoiceData } from "../../application/services/SimpleInvoiceService";
 import { env } from "../../config/env";
 import logger from "../../utils/logger";
 
@@ -297,6 +298,22 @@ export class EmailService implements IEmailService {
     await this.sendMail({
       to,
       subject: `[ALERTA] Stock bajo – ${data.essenceName} | Variedades DANII`,
+      html,
+    });
+  }
+
+  /** Envia la factura simple (no DIAN) al cliente por correo. */
+  async sendSimpleInvoice(to: string, invoice: SimpleInvoiceData): Promise<void> {
+    if (!to) {
+      logger.warn("[EmailService] sendSimpleInvoice: sin email de destino, omitiendo envio", {
+        invoiceNumber: invoice.invoiceNumber,
+      });
+      return;
+    }
+    const html = this.renderTemplate("simple-invoice", invoice as any);
+    await this.sendMail({
+      to,
+      subject: `Factura ${invoice.invoiceNumber} – Variedades DANII`,
       html,
     });
   }

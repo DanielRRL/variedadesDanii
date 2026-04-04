@@ -39,6 +39,13 @@ enum PaymentMethod {
   DAVIPLATA
   BANCOLOMBIA
   CASH
+  EFECTIVO
+  TRANSFERENCIA
+}
+
+enum SaleChannel {
+  ECOMMERCE    // Pedido desde la app web/movil del cliente
+  IN_STORE     // Venta presencial en el local (POS)
 }
 
 enum PaymentStatus {
@@ -402,6 +409,14 @@ model Order {
   notes         String?
   /// Numero de pedido legible en formato VD-YYYYXXXX, generado en capa de negocio (RF-025)
   orderNumber   String?       @unique @map("order_number")
+  /// Canal de venta: e-commerce o presencial (POS)
+  saleChannel   SaleChannel   @default(ECOMMERCE) @map("sale_channel")
+  /// Nombre o alias del cliente presencial (si no esta registrado)
+  walkInClient  String?       @map("walk_in_client")
+  /// Factura simple generada para el cliente (JSON)
+  simpleInvoice Json?         @map("simple_invoice")
+  /// Numero correlativo de factura simple: FAC-YYYY-NNNN
+  invoiceNumber String?       @map("invoice_number")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -750,6 +765,8 @@ model GramAccount {
   totalRedeemed   Int      @default(0) @map("total_redeemed")
   /// Total de compras entregadas del usuario. Habilita el canje cuando llega a 5.
   totalPurchases  Int      @default(0) @map("total_purchases")
+  /// Total de compras presenciales (IN_STORE) realizadas por el cliente.
+  totalInStorePurchases Int @default(0) @map("total_in_store_purchases")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   user         User              @relation(fields: [userId], references: [id])

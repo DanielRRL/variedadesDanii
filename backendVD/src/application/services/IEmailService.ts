@@ -7,6 +7,8 @@
  * en src/infrastructure/notifications/EmailService.ts.
  */
 
+import { SimpleInvoiceData } from "./SimpleInvoiceService";
+
 /** Representa un item individual dentro de un pedido. */
 export interface OrderItemEmailData {
   name: string;  // Nombre del producto.
@@ -144,4 +146,13 @@ export interface IEmailService {
       minGrams: number;
     }
   ): Promise<void>;
+
+  /**
+   * Envia la factura simple (no DIAN) al cliente por correo.
+   * Si to esta vacio (cliente presencial sin email), la implementacion
+   * debe loguear warn y retornar sin lanzar error.
+   * @param to      - Correo del cliente.
+   * @param invoice - Datos completos de la factura simple.
+   */
+  sendSimpleInvoice(to: string, invoice: SimpleInvoiceData): Promise<void>;
 }
