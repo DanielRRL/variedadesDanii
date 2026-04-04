@@ -220,7 +220,7 @@ export default function AdminClientsPage() {
     staleTime: 30_000,
   });
 
-  const users: User[] = res?.data?.users ?? res?.data ?? [];
+  const users: User[] = res?.data?.data ?? res?.data?.users ?? [];
   const totalPages: number = res?.data?.totalPages ?? 1;
 
   const handleVerify = async (userId: string) => {

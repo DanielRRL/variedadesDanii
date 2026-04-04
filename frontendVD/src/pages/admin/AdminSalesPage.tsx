@@ -211,13 +211,15 @@ function ClientSearchDropdown({
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data, isFetching } = useQuery({
+  const { data: res, isFetching } = useQuery({
     queryKey: ['search-clients', debouncedSearch],
     queryFn: () => searchRegisteredClients(debouncedSearch),
     enabled: debouncedSearch.length >= 2,
   });
 
-  const users = (data?.data as Array<{ id: string; name: string; email: string; gramAccount?: { currentGrams: number } }>) ?? [];
+  const raw = res?.data;
+  const users: Array<{ id: string; name: string; email: string; phone?: string; gramAccount?: { currentGrams: number } }> =
+    Array.isArray(raw) ? raw : (raw?.data ?? []);
 
   return (
     <div className="relative">
