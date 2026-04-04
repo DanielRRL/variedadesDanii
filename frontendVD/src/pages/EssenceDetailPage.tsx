@@ -16,12 +16,12 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, Heart, Share2, Star,
   TestTube, FlaskConical, Trophy,
-  ShoppingCart, AlertCircle, RefreshCw,
+  ShoppingCart, AlertCircle, RefreshCw, Info,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getEssenceById, getBottles } from '../services/api';
@@ -409,6 +409,25 @@ export default function EssenceDetailPage() {
       </div>
 
       <div className="px-4 pt-5 space-y-5">
+
+        {/* ── Banner: redirect to new product catalog ──────────────────────── */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+          <Info size={20} className="text-blue-500 flex-none mt-0.5" />
+          <div className="flex-1">
+            <p className="font-heading font-semibold text-sm text-blue-800">
+              ¡Ahora vendemos productos completos!
+            </p>
+            <p className="font-body text-[12px] text-blue-700 mt-1">
+              Explora nuestro catálogo de lociones, cremas, splashes y más a precios increíbles.
+            </p>
+            <Link
+              to="/catalogo"
+              className="inline-block mt-2 bg-brand-pink text-white font-body font-medium text-[13px] px-5 py-2 rounded-full"
+            >
+              Ver catálogo de productos
+            </Link>
+          </div>
+        </div>
 
         {/* ══════════════════════════════════════════════════════════════════
             SECTION 2 — Product info

@@ -36,6 +36,7 @@ interface PendingState {
   orderNumber:   string;
   total:         number;
   paymentMethod: 'NEQUI' | 'BANCOLOMBIA' | 'BREB';
+  gramsEarned?:  number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ export default function PaymentPendingPage() {
     orderNumber   = '',
     total         = 0,
     paymentMethod = 'NEQUI',
+    gramsEarned   = 0,
   } = state;
 
   const [timedOut, setTimedOut]     = useState(false);
@@ -76,8 +78,7 @@ export default function PaymentPendingPage() {
               orderNumber,
               total,
               paymentMethod,
-              // 1 point earned per COP spent (Math.floor ensures whole number)
-              pointsEarned: Math.floor(total),
+              gramsEarned,
             },
             replace: true,
           });

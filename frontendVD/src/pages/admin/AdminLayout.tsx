@@ -64,7 +64,7 @@ const NAV = [
 export default function AdminLayout() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { data: redemptionsRes } = useQuery({
     queryKey: ['admin-pending-redemptions-count'],
@@ -97,7 +97,7 @@ export default function AdminLayout() {
 
       {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
       <aside
-        className={`fixed top-0 left-0 h-full w-55 bg-white border-r border-border flex flex-col z-40 transition-transform duration-200 ${
+        className={`fixed top-0 left-0 h-full w-55 bg-white border-r border-border flex flex-col z-40 transition-transform duration-200 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -113,7 +113,7 @@ export default function AdminLayout() {
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-lg text-muted hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg text-muted hover:bg-gray-100 transition-colors lg:hidden"
             aria-label="Cerrar menú"
           >
             <X size={16} />
@@ -183,17 +183,15 @@ export default function AdminLayout() {
 
       {/* ── Main content ─────────────────────────────────────────────────────── */}
       <div
-        className={`flex-1 flex flex-col min-h-screen transition-[margin] duration-200 ${
-          sidebarOpen ? 'lg:ml-55' : 'ml-0'
-        }`}
+        className="flex-1 flex flex-col min-h-screen transition-[margin] duration-200 lg:ml-55"
       >
         {/* Sticky top bar */}
         <header className="sticky top-0 z-20 bg-white border-b border-border h-14 flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-3">
-            {/* Hamburger toggle */}
+            {/* Hamburger toggle — mobile only */}
             <button
               onClick={() => setSidebarOpen((v) => !v)}
-              className="p-2 rounded-lg text-muted hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-lg text-muted hover:bg-gray-100 transition-colors lg:hidden"
               aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
             >
               <Menu size={18} />

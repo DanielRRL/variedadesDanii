@@ -283,6 +283,7 @@ export default function CartPage() {
 
       const paymentUrl: string = paymentRes.data?.paymentUrl ?? '';
 
+      const gramsEarned = gramPreview;
       clearCart();
 
       if (paymentMethod === 'BREB' && paymentUrl) {
@@ -291,7 +292,7 @@ export default function CartPage() {
       }
 
       navigate('/pago-pendiente', {
-        state: { orderId, orderNumber, total: finalTotal, paymentMethod },
+        state: { orderId, orderNumber, total: finalTotal, paymentMethod, gramsEarned },
         replace: true,
       });
     } catch (err: unknown) {

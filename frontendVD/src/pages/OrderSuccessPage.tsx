@@ -27,6 +27,7 @@ interface SuccessState {
   orderNumber:   string;
   total:         number;
   paymentMethod: string;
+  gramsEarned?:  number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,8 +40,9 @@ export default function OrderSuccessPage() {
   const state    = (location.state ?? {}) as Partial<SuccessState>;
 
   const {
-    orderNumber = 'VD-0000',
-    total       = 0,
+    orderNumber  = 'VD-0000',
+    total        = 0,
+    gramsEarned  = 0,
   } = state;
 
   // Re-fetch gram account to show updated balance
@@ -89,24 +91,32 @@ export default function OrderSuccessPage() {
         </div>
 
         {/* Gram earned badge */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-6 py-4 flex items-center gap-3 w-full max-w-xs">
-          <Scale size={22} className="text-brand-gold flex-none" />
-          <div className="text-left flex-1">
-            <p className="font-heading font-bold text-yellow-800 text-sm">
-              +1g acumulado
-            </p>
-            <p className="text-xs text-yellow-700 mt-0.5">
-              {currentGrams}/{GRAMS_PER_OZ}g hacia tu próxima oz gratis
-            </p>
-            {/* Mini progress bar */}
-            <div className="w-full h-1.5 bg-yellow-200 rounded-full overflow-hidden mt-1.5">
-              <div
-                className="h-full bg-brand-gold rounded-full transition-all duration-700"
-                style={{ width: `${pct}%` }}
-              />
+        {gramsEarned > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-6 py-4 flex items-center gap-3 w-full max-w-xs">
+            <Scale size={22} className="text-brand-gold flex-none" />
+            <div className="text-left flex-1">
+              <p className="font-heading font-bold text-yellow-800 text-sm">
+                +{gramsEarned}g acumulado{gramsEarned !== 1 ? 's' : ''}
+              </p>
+              {currentGrams >= GRAMS_PER_OZ ? (
+                <p className="text-xs text-emerald-600 font-semibold mt-0.5">
+                  🎉 ¡Tienes {currentGrams}g! Ya puedes canjear 1 oz de esencia gratis.
+                </p>
+              ) : (
+                <p className="text-xs text-yellow-700 mt-0.5">
+                  {currentGrams}/{GRAMS_PER_OZ}g hacia tu próxima oz gratis
+                </p>
+              )}
+              {/* Mini progress bar */}
+              <div className="w-full h-1.5 bg-yellow-200 rounded-full overflow-hidden mt-1.5">
+                <div
+                  className="h-full bg-brand-gold rounded-full transition-all duration-700"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Game token notification */}
         <div className="bg-pink-50 border border-pink-200 rounded-2xl px-6 py-4 flex items-center gap-3 w-full max-w-xs">
