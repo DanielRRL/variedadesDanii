@@ -386,6 +386,86 @@ export class AuthService {
   }
 
   /**
+   * Autentica (o registra) un usuario mediante Google Sign-In.
+   * 1. Verifica el ID token con la libreria de Google.
+   * 2. Si el email ya existe en la BD, inicia sesion.
+   * 3. Si no existe, crea una cuenta nueva con emailVerified=true
+   *    (Google ya verifico el correo) y password aleatorio.
+   * @param idToken - Token JWT de Google devuelto por Sign In with Google.
+   * @throws AppError 401 si el token es invalido o no contiene email.
+   */
+  async googleLogin(idToken: string): Promise<AuthResponse> {
+    const { OAuth2Client } = await import("google-auth-library");
+    const client = new OAuth2Client(env.google.clientId);
+
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: env.google.clientId,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw AppError.unauthorized("Invalid Google token");
+    }
+
+    if (!payload || !payload.email) {
+      throw AppError.unauthorized("Google token does not contain email");
+    }
+
+    const { email, name, sub: googleId } = payload;
+
+    // Buscar usuario existente por email
+    let user = await this.userRepo.findByEmail(email);
+
+    if (user) {
+      // Si la cuenta existe pero esta desactivada
+      if (!user.active) {
+        throw AppError.unauthorized("Account is deactivated");
+      }
+    } else {
+      // Crear cuenta nueva — password aleatorio (el usuario no lo usa)
+      const randomPassword = crypto.randomBytes(32).toString("hex");
+      const hashedPassword = await bcrypt.hash(randomPassword, 12);
+
+      user = await this.userRepo.create({
+        name: name || email.split("@")[0],
+        phone: "",
+        email,
+        password: hashedPassword,
+        role: UserRole.CLIENT,
+        active: true,
+      });
+
+      // Marcar email como verificado (Google ya lo verifico)
+      await this.userRepo.update(user.id!, { emailVerified: true });
+      user.emailVerified = true;
+
+      logger.info("New user created via Google Sign-In", { userId: user.id, email });
+    }
+
+    // Si el usuario existia pero no habia verificado email, verificarlo ahora
+    if (!user.emailVerified) {
+      await this.userRepo.update(user.id!, { emailVerified: true });
+      user.emailVerified = true;
+    }
+
+    const token = this.generateToken(user.id!, user.role);
+
+    return {
+      user: {
+        id: user.id!,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        emailVerified: true,
+      },
+      token,
+    };
+  }
+
+  /**
    * Genera un JWT firmado con el secret y expiracion de las env vars.
    * El payload contiene userId y role para autorizar en middleware.
    * @param userId - UUID del usuario autenticado.

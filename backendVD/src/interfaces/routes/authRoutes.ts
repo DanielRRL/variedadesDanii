@@ -78,6 +78,9 @@ export const createAuthRoutes = (authController: AuthController): Router => {
     authController.resetPassword
   );
 
+  // POST /google - Login/registro con Google Sign-In (no requiere validadores)
+  router.post("/google", authController.googleLogin);
+
   return router;
 };
 

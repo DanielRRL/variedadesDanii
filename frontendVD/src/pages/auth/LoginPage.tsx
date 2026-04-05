@@ -5,6 +5,7 @@ import axios from 'axios';
 import { login, resendVerification } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
+import GoogleSignInButton from '../../components/auth/GoogleSignInButton';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -151,6 +152,16 @@ export default function LoginPage() {
           >
             {loading ? 'Ingresando...' : 'Iniciar sesión'}
           </button>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted">o</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* Google Sign-In */}
+          <GoogleSignInButton />
         </form>
 
         <p className="text-center text-sm text-muted mt-6">

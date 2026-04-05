@@ -122,6 +122,14 @@ export const login = (email: string, password: string) =>
   api.post('/api/auth/login', { email, password });
 
 /**
+ * Authenticate (or register) using a Google Sign-In ID token.
+ * POST /api/auth/google
+ * Returns: { user, token }
+ */
+export const googleLogin = (idToken: string) =>
+  api.post('/api/auth/google', { idToken });
+
+/**
  * Register a new CLIENT account.
  * POST /api/auth/register
  * Returns: { message: string }

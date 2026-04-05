@@ -214,12 +214,12 @@ function ClientSearchDropdown({
   const { data: res, isFetching } = useQuery({
     queryKey: ['search-clients', debouncedSearch],
     queryFn: () => searchRegisteredClients(debouncedSearch),
-    enabled: debouncedSearch.length >= 2,
+    enabled: debouncedSearch.length >= 1,
   });
 
   const raw = res?.data;
   const users: Array<{ id: string; name: string; email: string; phone?: string; gramAccount?: { currentGrams: number } }> =
-    Array.isArray(raw) ? raw : (raw?.data ?? []);
+    Array.isArray(raw) ? raw : (raw?.users ?? []);
 
   return (
     <div className="relative">
@@ -232,7 +232,7 @@ function ClientSearchDropdown({
       {isFetching && (
         <Loader2 size={14} className="absolute right-3 top-2.5 animate-spin text-muted" />
       )}
-      {users.length > 0 && debouncedSearch.length >= 2 && (
+      {users.length > 0 && debouncedSearch.length >= 1 && (
         <div className="absolute z-20 mt-1 w-full bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
           {users.map((u) => (
             <button

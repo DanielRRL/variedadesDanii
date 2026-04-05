@@ -60,6 +60,9 @@ const envSchema = z.object({
 
   // Email (SMTP) — opcionales, el servicio maneja la ausencia gracefully
   EMAIL_HOST: z.string().default("smtp-relay.brevo.com"),
+
+  // Google OAuth — opcional, habilita login con Google si se configura
+  GOOGLE_CLIENT_ID: z.string().default(""),
   EMAIL_PORT: numericString(587),
   EMAIL_USER: z.string().default(""),
   EMAIL_PASS: z.string().default(""),
@@ -157,5 +160,9 @@ export const env = {
     password: v.ADMIN_PASSWORD,
     name: v.ADMIN_NAME,
     phone: v.ADMIN_PHONE,
+  },
+
+  google: {
+    clientId: v.GOOGLE_CLIENT_ID,
   },
 } as const;

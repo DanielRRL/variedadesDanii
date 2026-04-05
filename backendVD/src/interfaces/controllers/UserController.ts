@@ -69,10 +69,12 @@ export class UserController {
 
       res.json({
         success: true,
-        data: sanitized,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-        page,
+        data: {
+          users: sanitized,
+          total,
+          totalPages: Math.ceil(total / pageSize),
+          page,
+        },
       });
     } catch (error) {
       next(error);

@@ -130,5 +130,26 @@ export class AuthController {
       next(error);
     }
   };
-}
 
+  /** POST /auth/google - Autentica con Google ID token. */
+  googleLogin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { idToken } = req.body;
+      if (!idToken) {
+        res.status(400).json({ success: false, message: "idToken is required" });
+        return;
+      }
+      const result = await this.authService.googleLogin(idToken);
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+}
