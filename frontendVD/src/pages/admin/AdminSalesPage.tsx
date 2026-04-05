@@ -211,15 +211,19 @@ function ClientSearchDropdown({
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: res, isFetching } = useQuery({
+  const { data: users = [], isFetching } = useQuery({
     queryKey: ['search-clients', debouncedSearch],
-    queryFn: () => searchRegisteredClients(debouncedSearch),
+    queryFn: async () => {
+      const res = await searchRegisteredClients(debouncedSearch);
+      const d = res?.data;
+      // After axios interceptor unwrap, d = { users: [...], total, ... } OR the array directly
+      if (Array.isArray(d)) return d;
+      if (d && Array.isArray(d.users)) return d.users;
+      if (d && Array.isArray(d.data)) return d.data;
+      return [];
+    },
     enabled: debouncedSearch.length >= 1,
   });
-
-  const raw = res?.data;
-  const users: Array<{ id: string; name: string; email: string; phone?: string; gramAccount?: { currentGrams: number } }> =
-    Array.isArray(raw) ? raw : (raw?.users ?? []);
 
   return (
     <div className="relative">
@@ -234,7 +238,7 @@ function ClientSearchDropdown({
       )}
       {users.length > 0 && debouncedSearch.length >= 1 && (
         <div className="absolute z-20 mt-1 w-full bg-white border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
-          {users.map((u) => (
+          {users.map((u: any) => (
             <button
               key={u.id}
               onClick={() => {
