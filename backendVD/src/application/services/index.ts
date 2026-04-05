@@ -38,13 +38,10 @@ export {
   REFERRAL_DISCOUNT_PCT,
 } from "./GramService";
 
-// GameTokenService - Fichas de juego (ruleta y puzzle).
+// GameTokenService - Fichas de juego (ruleta, puzzle, memoria, raspadita, dados).
 export {
   GameTokenService,
   MAX_PENDING_TOKENS,
   TOKEN_EXPIRY_HOURS,
-  ROULETTE_GRAM_RANGE,
-  ROULETTE_PROBABILITIES,
-  PUZZLE_GRAM_RANGE,
-  PUZZLE_PROBABILITIES,
+  GAME_CONFIGS,
 } from "./GameTokenService";

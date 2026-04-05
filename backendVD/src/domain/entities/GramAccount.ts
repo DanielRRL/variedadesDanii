@@ -11,6 +11,9 @@ export enum GramSourceType {
   ESSENCE_OZ_BONUS     = "ESSENCE_OZ_BONUS",     // +1g al canjear 1 oz o mas de esencia.
   GAME_ROULETTE        = "GAME_ROULETTE",        // Gramos ganados jugando ruleta (1-3g).
   GAME_PUZZLE          = "GAME_PUZZLE",           // Gramos ganados resolviendo puzzle (1-4g).
+  GAME_MEMORY          = "GAME_MEMORY",           // Gramos ganados jugando memoria (1-4g).
+  GAME_SCRATCH         = "GAME_SCRATCH",          // Gramos ganados con raspadita (1-3g).
+  GAME_DICE            = "GAME_DICE",             // Gramos ganados con dados (1-3g).
   WEEKLY_CHALLENGE     = "WEEKLY_CHALLENGE",      // Gramos ganados al completar reto semanal.
   MONTHLY_RANKING      = "MONTHLY_RANKING",       // Gramos otorgados al top 10 mensual.
   ADMIN_ADJUSTMENT     = "ADMIN_ADJUSTMENT",      // Ajuste manual por administrador.

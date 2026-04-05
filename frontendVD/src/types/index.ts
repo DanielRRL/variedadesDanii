@@ -114,6 +114,7 @@ export interface GramTransaction {
   id: string;
   /** Tipo de fuente que genero esta transaccion. */
   sourceType: 'PRODUCT_PURCHASE' | 'ESSENCE_OZ_BONUS' | 'GAME_ROULETTE' | 'GAME_PUZZLE' |
+              'GAME_MEMORY' | 'GAME_SCRATCH' | 'GAME_DICE' |
               'WEEKLY_CHALLENGE' | 'MONTHLY_RANKING' | 'ADMIN_ADJUSTMENT' | 'REDEMPTION';
   /** Positivo = ganancia, negativo = canje. */
   gramsDelta: number;
@@ -131,7 +132,7 @@ export interface GameToken {
   /** PENDING = sin usar, USED = ya jugado, EXPIRED = venció sin usar. */
   status: 'PENDING' | 'USED' | 'EXPIRED';
   /** Tipo de juego elegido al jugar la ficha. Solo presente cuando status !== PENDING. */
-  gameType?: 'ROULETTE' | 'PUZZLE';
+  gameType?: 'ROULETTE' | 'PUZZLE' | 'MEMORY' | 'SCRATCH' | 'DICE';
   /** Gramos ganados al jugar (0 si perdio). */
   gramsWon: number;
   /** ISO string — el frontend muestra cuenta regresiva hasta esta fecha. */

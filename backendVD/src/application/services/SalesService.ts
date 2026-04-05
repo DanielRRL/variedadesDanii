@@ -95,7 +95,8 @@ export class SalesService {
           );
         }
       } else {
-        const productStock = await this.inventoryService.getProductStock(product.id);
+        // Use product.stockUnits directly (source of truth for non-essence products)
+        const productStock = product.stockUnits ?? 0;
         if (productStock < item.quantity) {
           throw AppError.badRequest(
             `Stock insuficiente para "${product.name}". Disponible: ${productStock}, Necesario: ${item.quantity}`

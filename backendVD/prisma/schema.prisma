@@ -125,6 +125,9 @@ enum GramSourceType {
   ESSENCE_OZ_BONUS     /// +1g al canjear 1 oz o mas de esencia (no aplica a recargas menores a 13g)
   GAME_ROULETTE        /// Gramos ganados jugando ruleta (1-3g)
   GAME_PUZZLE          /// Gramos ganados resolviendo puzzle (1-4g)
+  GAME_MEMORY          /// Gramos ganados jugando memoria (1-4g)
+  GAME_SCRATCH         /// Gramos ganados con raspadita (1-3g)
+  GAME_DICE            /// Gramos ganados con dados de la suerte (1-3g)
   WEEKLY_CHALLENGE     /// Gramos ganados al completar reto semanal
   MONTHLY_RANKING      /// Gramos otorgados al top 10 mensual
   ADMIN_ADJUSTMENT     /// Ajuste manual por administrador
@@ -142,6 +145,9 @@ enum GameTokenStatus {
 enum GameType {
   ROULETTE /// Ruleta: premio aleatorio 1-3g
   PUZZLE   /// Puzzle de logica: premio 1-4g segun dificultad
+  MEMORY   /// Memoria: encuentra los pares, premio 1-4g
+  SCRATCH  /// Raspadita: raspa y descubre tu premio 1-3g
+  DICE     /// Dados de la suerte: lanza los dados, premio 1-3g
 }
 
 /// Estado del progreso de un usuario en un reto semanal.

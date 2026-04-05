@@ -33,17 +33,26 @@ export const MAX_PENDING_TOKENS = 3;
 /** Horas de vigencia de una ficha de juego. */
 export const TOKEN_EXPIRY_HOURS = 72;
 
-/** Gramos posibles en la ruleta. */
-export const ROULETTE_GRAM_RANGE = [1, 2, 3];
+/**
+ * Configuracion de premios por tipo de juego.
+ * Cada entrada tiene un rango de gramos y sus probabilidades correspondientes.
+ */
+export const GAME_CONFIGS: Record<string, { range: number[]; probabilities: number[] }> = {
+  ROULETTE: { range: [1, 2, 3],    probabilities: [0.50, 0.35, 0.15] },
+  PUZZLE:   { range: [1, 2, 3, 4], probabilities: [0.40, 0.30, 0.20, 0.10] },
+  MEMORY:   { range: [1, 2, 3, 4], probabilities: [0.35, 0.30, 0.25, 0.10] },
+  SCRATCH:  { range: [1, 2, 3],    probabilities: [0.55, 0.30, 0.15] },
+  DICE:     { range: [1, 2, 3],    probabilities: [0.50, 0.35, 0.15] },
+};
 
-/** Probabilidades acumulativas de la ruleta: 50% → 1g, 35% → 2g, 15% → 3g. */
-export const ROULETTE_PROBABILITIES = [0.5, 0.35, 0.15];
-
-/** Gramos posibles en el puzzle. */
-export const PUZZLE_GRAM_RANGE = [1, 2, 3, 4];
-
-/** Probabilidades acumulativas del puzzle: 40% → 1g, 30% → 2g, 20% → 3g, 10% → 4g. */
-export const PUZZLE_PROBABILITIES = [0.4, 0.3, 0.2, 0.1];
+/** Mapeo de GameType a GramSourceType para acreditar gramos. */
+const GAME_SOURCE_MAP: Record<string, GramSourceType> = {
+  ROULETTE: GramSourceType.GAME_ROULETTE,
+  PUZZLE:   GramSourceType.GAME_PUZZLE,
+  MEMORY:   GramSourceType.GAME_MEMORY,
+  SCRATCH:  GramSourceType.GAME_SCRATCH,
+  DICE:     GramSourceType.GAME_DICE,
+};
 
 export class GameTokenService {
   /**
@@ -156,10 +165,9 @@ export class GameTokenService {
     await this.gameTokenRepo.markAsUsed(tokenId, gameType, gramsWon);
 
     // Paso 4: Acreditar gramos via GramService
+    const sourceType = GAME_SOURCE_MAP[gameType] ?? GramSourceType.GAME_ROULETTE;
     const result = await this.gramService.earnGrams(userId, {
-      sourceType: gameType === GameType.ROULETTE
-        ? GramSourceType.GAME_ROULETTE
-        : GramSourceType.GAME_PUZZLE,
+      sourceType,
       grams:       gramsWon,
       description: `Juego ${gameType}: ganaste ${gramsWon}g`,
       referenceId: tokenId,
@@ -222,10 +230,8 @@ export class GameTokenService {
    * @returns Gramos ganados.
    */
   private resolveWeightedRandom(gameType: GameType): number {
-    const range =
-      gameType === GameType.ROULETTE ? ROULETTE_GRAM_RANGE : PUZZLE_GRAM_RANGE;
-    const probabilities =
-      gameType === GameType.ROULETTE ? ROULETTE_PROBABILITIES : PUZZLE_PROBABILITIES;
+    const config = GAME_CONFIGS[gameType] ?? GAME_CONFIGS.ROULETTE;
+    const { range, probabilities } = config;
 
     const random = Math.random();
     let cumulative = 0;

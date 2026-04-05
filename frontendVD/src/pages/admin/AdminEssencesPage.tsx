@@ -524,8 +524,9 @@ export default function AdminEssencesPage() {
       });
       queryClient.invalidateQueries({ queryKey: ['admin-essences'] });
       setCreateOpen(false);
-    } catch {
-      alert('Error al crear esencia.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error desconocido';
+      alert(`Error al crear esencia: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -547,8 +548,9 @@ export default function AdminEssencesPage() {
       });
       queryClient.invalidateQueries({ queryKey: ['admin-essences'] });
       setEditTarget(null);
-    } catch {
-      alert('Error al actualizar esencia.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error desconocido';
+      alert(`Error al actualizar esencia: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -561,8 +563,9 @@ export default function AdminEssencesPage() {
     try {
       await updateEssence(e.id, { active: newActive });
       queryClient.invalidateQueries({ queryKey: ['admin-essences'] });
-    } catch {
-      alert('Error al cambiar estado.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error desconocido';
+      alert(`Error al cambiar estado: ${msg}`);
     }
   };
 

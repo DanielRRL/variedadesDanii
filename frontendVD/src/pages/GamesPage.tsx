@@ -1,15 +1,18 @@
 /**
- * GamesPage — Game room where users spend game tokens to earn grams.
+ * GamesPage — Casino-style game room where users spend game tokens to earn grams.
  *
  * Route: /juegos (ProtectedRoute)
  * Data: GET /api/game-tokens/my, GET /api/challenges/current, GET /api/grams/account
  *
- * Contains three fully interactive visual games:
- *  1. RouletteGame — spinning wheel with CSS animations
- *  2. NumberPuzzleGame — classic 15-puzzle (3×3 with 8 tiles)
- *  3. MemoryGame — card-matching concentration game (4×4, 8 pairs)
+ * Contains five fully interactive visual games:
+ *  1. RouletteGame — spinning neon wheel
+ *  2. NumberPuzzleGame — classic 15-puzzle (4x4)
+ *  3. MemoryGame — card-matching (5x4, 10 pairs)
+ *  4. ScratchCardGame — scratch-to-reveal canvas
+ *  5. DiceGame — animated dice roll
  *
  * Prize is ALWAYS determined by the server. Frontend is purely visual.
+ * Dark neon casino aesthetic with heavy dopamine-inducing visual stimuli.
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -17,7 +20,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Gem, Clock, Puzzle, Trophy,
-  ChevronRight, X, Brain,
+  ChevronRight, X, Brain, Sparkles, Dice5, Lock,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getMyGameTokens, getCurrentChallenge, getMyGramAccount, playGame } from '../services/api';
@@ -27,10 +30,10 @@ import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SHARED CSS (injected once)
+// CASINO CSS — neon glow, animated particles, dopamine-heavy effects
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const GAME_STYLES = `
+const CASINO_STYLES = `
 @keyframes celebratePop {
   0% { transform: scale(0.3); opacity: 0; }
   50% { transform: scale(1.15); opacity: 1; }
@@ -41,8 +44,8 @@ const GAME_STYLES = `
   50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
 }
 @keyframes coinPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.12); }
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(249,168,37,0.3)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 20px rgba(249,168,37,0.8)); }
 }
 @keyframes confettiFall {
   0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
@@ -65,28 +68,118 @@ const GAME_STYLES = `
   50% { box-shadow: 0 0 24px rgba(249,168,37,0.8); }
 }
 @keyframes spinBtn {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.06); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(216,27,96,0.4); }
+  50% { transform: scale(1.06); box-shadow: 0 0 30px rgba(216,27,96,0.8); }
 }
 @keyframes tileJump {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
 }
+@keyframes neonFlicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; text-shadow: 0 0 10px #F9A825, 0 0 20px #F9A825, 0 0 40px #F9A825; }
+  20%, 24%, 55% { opacity: 0.7; text-shadow: none; }
+}
+@keyframes floatParticle {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+}
+@keyframes cardGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(216,27,96,0.3), inset 0 0 5px rgba(216,27,96,0.1); }
+  50% { box-shadow: 0 0 20px rgba(216,27,96,0.6), inset 0 0 10px rgba(216,27,96,0.2); }
+}
+@keyframes jackpotFlash {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes bounceIn {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(3deg); }
+  80% { transform: scale(0.95) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes pulseRing {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes diceShake {
+  0%,100% { transform: rotate(0deg) scale(1); }
+  10% { transform: rotate(-15deg) scale(1.1); }
+  20% { transform: rotate(15deg) scale(0.95); }
+  30% { transform: rotate(-10deg) scale(1.05); }
+  40% { transform: rotate(10deg) scale(1); }
+  50% { transform: rotate(-5deg) scale(1.08); }
+  60% { transform: rotate(5deg) scale(0.98); }
+  70% { transform: rotate(-3deg) scale(1.02); }
+  80% { transform: rotate(3deg) scale(1); }
+  90% { transform: rotate(-1deg) scale(1.01); }
+}
+@keyframes scratchShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
 `;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFETTI — reusable celebration particles
+// FLOATING NEON PARTICLES — background casino ambience
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CONFETTI_COLORS = ['#D81B60', '#F9A825', '#FFFFFF', '#FF6F91', '#FFC75F', '#FF9671'];
+const PARTICLE_COLORS = ['#D81B60', '#F9A825', '#00E5FF', '#76FF03', '#FF6F91', '#E040FB'];
+
+function FloatingParticles({ count = 20 }: { count?: number }) {
+  const particles = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        size: 3 + Math.random() * 6,
+        color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+        delay: Math.random() * 8,
+        duration: 8 + Math.random() * 12,
+      })),
+    [count],
+  );
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            left: `${p.left}%`,
+            width: p.size,
+            height: p.size,
+            background: p.color,
+            boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+            animation: `floatParticle ${p.duration}s linear ${p.delay}s infinite`,
+            opacity: 0,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFETTI — celebration blast
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CONFETTI_COLORS = ['#D81B60', '#F9A825', '#00E5FF', '#76FF03', '#FF6F91', '#FFC75F', '#E040FB'];
 
 function Confetti() {
   const particles = useMemo(
     () =>
-      Array.from({ length: 50 }, (_, i) => ({
+      Array.from({ length: 60 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
-        size: 6 + Math.random() * 8,
+        size: 6 + Math.random() * 10,
         color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
         delay: Math.random() * 1.5,
         duration: 2 + Math.random() * 2,
@@ -99,16 +192,15 @@ function Confetti() {
       {particles.map((p) => (
         <div
           key={p.id}
+          className="absolute"
           style={{
-            position: 'absolute',
             left: `${p.left}%`,
-            top: 0,
             width: p.size,
             height: p.size * 0.6,
-            backgroundColor: p.color,
-            borderRadius: 2,
+            background: p.color,
+            boxShadow: `0 0 6px ${p.color}`,
+            borderRadius: '2px',
             animation: `confettiFall ${p.duration}s ease-in ${p.delay}s forwards`,
-            opacity: 0,
           }}
         />
       ))}
@@ -117,7 +209,7 @@ function Confetti() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RESULT MODAL — full-screen celebration overlay
+// RESULT MODAL — neon jackpot-style win screen
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface ResultModalProps {
@@ -129,68 +221,98 @@ interface ResultModalProps {
 }
 
 function ResultModal({ gramsWon, newBalance, ozCompleted, onClose, onGoToGrams }: ResultModalProps) {
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { setVisible(true); }, []);
   useEffect(() => {
-    timerRef.current = setTimeout(onClose, 8000);
-    return () => clearTimeout(timerRef.current);
+    const t = setTimeout(onClose, 10000);
+    return () => clearTimeout(t);
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm font-body">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <Confetti />
-
-      <div className="text-center px-6" style={{ animation: 'celebratePop 0.6s ease-out forwards' }}>
-        <div className="relative w-28 h-28 mx-auto mb-4">
-          <Gem size={54} className="text-brand-gold absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" strokeWidth={1.5} />
-          {[0, 60, 120, 180, 240, 300].map((deg) => (
-            <span
-              key={deg}
-              className="absolute w-3 h-3 bg-brand-gold rounded-full"
-              style={{
-                top: `${50 - 45 * Math.cos((deg * Math.PI) / 180)}%`,
-                left: `${50 + 45 * Math.sin((deg * Math.PI) / 180)}%`,
-                animation: `sparkle 1.2s ease-in-out ${deg / 360}s infinite`,
-              }}
-            />
-          ))}
-        </div>
-
-        <p className="font-heading font-extrabold text-[56px] text-white leading-none">
-          ¡+{gramsWon}g!
-        </p>
-        <p className="text-white/80 text-base mt-2">
-          Se agregaron {gramsWon} gramos a tu billetera
-        </p>
-
-        <div className="mt-5 bg-white/20 rounded-full h-3.5 overflow-hidden mx-auto max-w-64">
-          <div
-            className="h-full rounded-full bg-brand-gold transition-all duration-700"
-            style={{ width: `${Math.min(100, (newBalance / 13) * 100)}%` }}
-          />
-        </div>
-        <p className="text-white/70 text-sm mt-1.5">{newBalance}g de 13g</p>
-
-        {ozCompleted && (
-          <div className="mt-4 bg-white/20 rounded-xl px-4 py-3 inline-block">
-            <p className="text-white font-heading font-bold text-sm">
-              🎉 ¡Completaste 1 onza! Puedes canjear una esencia
-            </p>
-          </div>
+      <div
+        className={clsx(
+          'relative w-[90%] max-w-sm rounded-3xl p-6 text-center transition-all duration-500',
+          visible ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
         )}
+        style={{
+          background: 'linear-gradient(135deg, #1a0a2e 0%, #0d0d1a 50%, #1a0a2e 100%)',
+          border: '2px solid rgba(249,168,37,0.5)',
+          boxShadow: '0 0 40px rgba(249,168,37,0.3), inset 0 0 40px rgba(216,27,96,0.1)',
+        }}
+      >
+        <div className="absolute inset-0 rounded-3xl" style={{ animation: 'pulseRing 2s ease-out infinite', border: '2px solid rgba(249,168,37,0.3)' }} />
 
-        <div className="flex gap-3 mt-6 justify-center">
-          <button
-            onClick={onGoToGrams}
-            className="bg-white text-brand-pink font-heading font-bold text-sm px-6 py-3 rounded-full"
+        <div className="relative z-10">
+          <p className="text-5xl mb-2" style={{ animation: 'bounceIn 0.8s ease-out' }}>🎰</p>
+          <h2
+            className="font-heading font-bold text-3xl mb-1"
+            style={{
+              background: 'linear-gradient(90deg, #F9A825, #FF6F91, #F9A825)',
+              backgroundSize: '200% auto',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              animation: 'jackpotFlash 2s linear infinite',
+            }}
           >
-            Ver mis gramos
-          </button>
-          <button
-            onClick={onClose}
-            className="border-2 border-white text-white font-heading font-bold text-sm px-6 py-3 rounded-full"
+            ¡GANASTE!
+          </h2>
+          <p
+            className="font-heading font-bold text-6xl my-3"
+            style={{ color: '#F9A825', animation: 'popIn 0.6s ease-out 0.3s both', textShadow: '0 0 20px rgba(249,168,37,0.5)' }}
           >
-            Seguir jugando
-          </button>
+            +{gramsWon}g
+          </p>
+
+          {ozCompleted && (
+            <div
+              className="mx-auto mb-4 px-5 py-2 rounded-full text-sm font-bold"
+              style={{
+                background: 'linear-gradient(90deg, #D81B60, #F9A825)',
+                animation: 'bounceIn 0.6s ease-out 0.5s both',
+                boxShadow: '0 0 20px rgba(216,27,96,0.5)',
+              }}
+            >
+              <span className="text-white">🏆 ¡COMPLETASTE 1 OZ DE ESENCIA!</span>
+            </div>
+          )}
+
+          <div className="mt-4 mb-5">
+            <div className="flex justify-between text-xs font-body text-white/60 mb-1">
+              <span>Gramos</span>
+              <span className="font-bold" style={{ color: '#F9A825' }}>{newBalance}g / 13g</span>
+            </div>
+            <div className="h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+              <div
+                className="h-full rounded-full transition-all duration-1000"
+                style={{
+                  width: `${Math.min(100, (newBalance / 13) * 100)}%`,
+                  background: 'linear-gradient(90deg, #D81B60, #F9A825)',
+                  boxShadow: '0 0 10px rgba(249,168,37,0.5)',
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 rounded-full font-heading font-bold text-sm text-white/70 border border-white/20 hover:border-white/40 transition-colors"
+            >
+              Seguir jugando
+            </button>
+            <button
+              onClick={onGoToGrams}
+              className="flex-1 py-3 rounded-full font-heading font-bold text-sm text-white"
+              style={{
+                background: 'linear-gradient(90deg, #D81B60, #F9A825)',
+                boxShadow: '0 0 15px rgba(216,27,96,0.4)',
+              }}
+            >
+              Ver gramos
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -198,97 +320,8 @@ function ResultModal({ gramsWon, newBalance, ozCompleted, onClose, onGoToGrams }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ROULETTE GAME
+// SHARED GAME PROPS
 // ═══════════════════════════════════════════════════════════════════════════════
-
-const ROULETTE_SEGMENTS = [
-  { value: 1, color: '#D81B60' },
-  { value: 2, color: '#F9A825' },
-  { value: 1, color: '#FFFFFF' },
-  { value: 3, color: '#D81B60' },
-  { value: 1, color: '#F9A825' },
-  { value: 2, color: '#FFFFFF' },
-  { value: 1, color: '#D81B60' },
-  { value: 3, color: '#F9A825' },
-];
-
-function RouletteWheel({ rotation }: { rotation: number }) {
-  const count = ROULETTE_SEGMENTS.length;
-  const segAngle = 360 / count;
-  const r = 140;
-  const cx = 150;
-  const cy = 150;
-
-  function describeArc(startAngle: number, endAngle: number) {
-    const s = ((startAngle - 90) * Math.PI) / 180;
-    const e = ((endAngle - 90) * Math.PI) / 180;
-    const x1 = cx + r * Math.cos(s);
-    const y1 = cy + r * Math.sin(s);
-    const x2 = cx + r * Math.cos(e);
-    const y2 = cy + r * Math.sin(e);
-    return `M${cx},${cy} L${x1},${y1} A${r},${r} 0 0,1 ${x2},${y2} Z`;
-  }
-
-  return (
-    <div className="relative mx-auto" style={{ width: 300, height: 300 }}>
-      {/* Pointer */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10">
-        <svg width="30" height="40" viewBox="0 0 30 40">
-          <polygon points="15,40 0,0 30,0" fill="#E53935" stroke="#B71C1C" strokeWidth="1" />
-        </svg>
-      </div>
-
-      {/* Wheel */}
-      <svg
-        width={300}
-        height={300}
-        viewBox="0 0 300 300"
-        style={{ transform: `rotate(${rotation}deg)`, transition: 'none' }}
-      >
-        <circle cx={cx} cy={cy} r={r + 4} fill="none" stroke="#F9A825" strokeWidth={6} />
-        {ROULETTE_SEGMENTS.map((seg, i) => {
-          const start = i * segAngle;
-          const end = start + segAngle;
-          const mid = ((start + segAngle / 2 - 90) * Math.PI) / 180;
-          const tx = cx + r * 0.62 * Math.cos(mid);
-          const ty = cy + r * 0.62 * Math.sin(mid);
-          const isLight = seg.color === '#FFFFFF';
-          return (
-            <g key={i}>
-              <path d={describeArc(start, end)} fill={seg.color} stroke="#F9A825" strokeWidth={1.5} />
-              <text
-                x={tx}
-                y={ty}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontFamily="Poppins, sans-serif"
-                fontWeight="700"
-                fontSize="18"
-                fill={isLight ? '#D81B60' : '#FFFFFF'}
-                style={{ textShadow: isLight ? 'none' : '0 1px 3px rgba(0,0,0,0.4)' }}
-              >
-                {seg.value}g
-              </text>
-            </g>
-          );
-        })}
-        <circle cx={cx} cy={cy} r={22} fill="#1a1a2e" stroke="#F9A825" strokeWidth={2} />
-        <text
-          x={cx}
-          y={cy}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontFamily="Poppins, sans-serif"
-          fontWeight="700"
-          fontSize="11"
-          fill="#F9A825"
-        >
-          DANII
-        </text>
-      </svg>
-    </div>
-  );
-}
 
 interface GameProps {
   token: GameToken;
@@ -296,158 +329,196 @@ interface GameProps {
   onBack: () => void;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROULETTE GAME — neon spinning wheel
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ROULETTE_SEGMENTS = [
+  { grams: 1, label: '1g', color: '#D81B60' },
+  { grams: 2, label: '2g', color: '#F9A825' },
+  { grams: 1, label: '1g', color: '#7B1FA2' },
+  { grams: 3, label: '3g', color: '#00E5FF' },
+  { grams: 1, label: '1g', color: '#D81B60' },
+  { grams: 2, label: '2g', color: '#F9A825' },
+  { grams: 1, label: '1g', color: '#7B1FA2' },
+  { grams: 3, label: '¡3g!', color: '#76FF03' },
+];
+
+function RouletteWheel({ rotation }: { rotation: number }) {
+  const n = ROULETTE_SEGMENTS.length;
+  const angle = 360 / n;
+  const r = 130;
+
+  return (
+    <div className="relative" style={{ width: r * 2, height: r * 2 }}>
+      <div
+        className="absolute -inset-3 rounded-full"
+        style={{ boxShadow: '0 0 30px rgba(216,27,96,0.4), 0 0 60px rgba(249,168,37,0.2)', animation: 'cardGlow 3s ease-in-out infinite' }}
+      />
+      <svg
+        viewBox={`0 0 ${r * 2} ${r * 2}`}
+        className="w-full h-full drop-shadow-2xl"
+        style={{ transform: `rotate(${rotation}deg)`, transition: rotation === 0 ? 'none' : 'transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99)' }}
+      >
+        {ROULETTE_SEGMENTS.map((seg, i) => {
+          const startAngle = (i * angle * Math.PI) / 180;
+          const endAngle = ((i + 1) * angle * Math.PI) / 180;
+          const x1 = r + r * Math.cos(startAngle);
+          const y1 = r + r * Math.sin(startAngle);
+          const x2 = r + r * Math.cos(endAngle);
+          const y2 = r + r * Math.sin(endAngle);
+          const midAngle = ((i + 0.5) * angle * Math.PI) / 180;
+          const tx = r + r * 0.65 * Math.cos(midAngle);
+          const ty = r + r * 0.65 * Math.sin(midAngle);
+          return (
+            <g key={i}>
+              <path
+                d={`M${r},${r} L${x1},${y1} A${r},${r} 0 0,1 ${x2},${y2} Z`}
+                fill={seg.color}
+                stroke="rgba(0,0,0,0.3)"
+                strokeWidth="1"
+              />
+              <text
+                x={tx}
+                y={ty}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="white"
+                fontWeight="bold"
+                fontSize="16"
+                style={{ textShadow: '0 0 8px rgba(0,0,0,0.8)' }}
+                transform={`rotate(${(i + 0.5) * angle}, ${tx}, ${ty})`}
+              >
+                {seg.label}
+              </text>
+            </g>
+          );
+        })}
+        <circle cx={r} cy={r} r="22" fill="url(#centerGrad)" stroke="#F9A825" strokeWidth="3" />
+        <defs>
+          <radialGradient id="centerGrad">
+            <stop offset="0%" stopColor="#2a1040" />
+            <stop offset="100%" stopColor="#0d0d1a" />
+          </radialGradient>
+        </defs>
+        <text x={r} y={r} textAnchor="middle" dominantBaseline="central" fill="#F9A825" fontWeight="bold" fontSize="14" style={{ textShadow: '0 0 10px #F9A825' }}>D</text>
+      </svg>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10">
+        <div className="w-0 h-0" style={{ borderLeft: '12px solid transparent', borderRight: '12px solid transparent', borderTop: '20px solid #F9A825', filter: 'drop-shadow(0 0 8px #F9A825)' }} />
+      </div>
+    </div>
+  );
+}
+
 function RouletteGame({ token, onComplete, onBack }: GameProps) {
   const addToast = useToastStore((s) => s.addToast);
-  const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const animRef = useRef<number>(0);
-  const apiResultRef = useRef<{ gramsWon: number; newBalance: number; ozCompleted: boolean } | null>(null);
-  const apiErrorRef = useRef(false);
-  const startTimeRef = useRef(0);
-  const baseRotRef = useRef(0);
+  const [spinning, setSpinning] = useState(false);
+  const [won, setWon] = useState(false);
 
   const handleSpin = useCallback(() => {
-    if (spinning) return;
+    if (spinning || won) return;
     setSpinning(true);
-    setShowConfetti(false);
-    apiResultRef.current = null;
-    apiErrorRef.current = false;
-    startTimeRef.current = performance.now();
-    baseRotRef.current = rotation;
 
-    // Fire API immediately
     playGame(token.id, 'ROULETTE')
       .then((res) => {
         const d = res.data;
-        apiResultRef.current = {
-          gramsWon: d.gramsWon ?? 0,
-          newBalance: d.newGramBalance ?? d.newBalance ?? 0,
-          ozCompleted: d.ozCompleted ?? false,
-        };
+        const grams = d.gramsWon ?? 0;
+        const segIndex = ROULETTE_SEGMENTS.findIndex((s) => s.grams === grams);
+        const segAngle = 360 / ROULETTE_SEGMENTS.length;
+        const targetAngle = 360 - (segIndex * segAngle + segAngle / 2) - 90;
+        const fullSpins = 360 * (6 + Math.floor(Math.random() * 3));
+        setRotation(fullSpins + targetAngle);
+
+        setTimeout(() => {
+          setWon(true);
+          setSpinning(false);
+          setTimeout(() => {
+            onComplete(grams, d.newGramBalance ?? d.newBalance ?? 0, d.ozCompleted ?? false);
+          }, 1500);
+        }, 5200);
       })
       .catch(() => {
-        apiErrorRef.current = true;
-      });
-
-    // Animate: spin for at least 4 seconds, 4+ full turns
-    const baseSpins = 4 * 360 + Math.random() * 360;
-    const duration = 5000;
-    const startRot = rotation;
-
-    const animate = (now: number) => {
-      const elapsed = now - startTimeRef.current;
-      const progress = Math.min(1, elapsed / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
-
-      if (progress < 1 && !apiErrorRef.current) {
-        setRotation(startRot + baseSpins * eased);
-        animRef.current = requestAnimationFrame(animate);
-      } else if (apiErrorRef.current) {
-        cancelAnimationFrame(animRef.current);
         setSpinning(false);
         addToast('Error al jugar. La ficha no fue consumida.', 'error');
-      } else {
-        const currentRot = startRot + baseSpins;
-        setRotation(currentRot);
-        // Wait for API result
-        const waitForApi = () => {
-          if (apiResultRef.current) {
-            const segAngle = 360 / ROULETTE_SEGMENTS.length;
-            const targetValue = apiResultRef.current.gramsWon;
-            const matchIdx = ROULETTE_SEGMENTS.findIndex((s) => s.value === targetValue);
-            const idx = matchIdx >= 0 ? matchIdx : 0;
-            const segCenter = idx * segAngle + segAngle / 2;
-            const finalRot = Math.ceil(currentRot / 360) * 360 + (360 - segCenter);
-            setRotation(finalRot);
-            setTimeout(() => {
-              setShowConfetti(true);
-              setTimeout(() => {
-                onComplete(
-                  apiResultRef.current!.gramsWon,
-                  apiResultRef.current!.newBalance,
-                  apiResultRef.current!.ozCompleted,
-                );
-              }, 1200);
-            }, 600);
-          } else if (apiErrorRef.current) {
-            setSpinning(false);
-            addToast('Error al jugar. La ficha no fue consumida.', 'error');
-          } else {
-            setTimeout(waitForApi, 100);
-          }
-        };
-        waitForApi();
-      }
-    };
-
-    animRef.current = requestAnimationFrame(animate);
-  }, [spinning, rotation, token.id, onComplete, addToast]);
-
-  useEffect(() => () => cancelAnimationFrame(animRef.current), []);
+      });
+  }, [spinning, won, token.id, onComplete, addToast]);
 
   return (
-    <div className="fixed inset-0 z-40 bg-[#0a0a0a] flex flex-col items-center justify-center font-body overflow-hidden">
-      {showConfetti && <Confetti />}
+    <div className="fixed inset-0 z-40 flex flex-col items-center justify-center font-body overflow-hidden" style={{ background: 'radial-gradient(ellipse at center, #1a0a2e 0%, #0a0a12 100%)' }}>
+      <FloatingParticles count={15} />
+      {won && <Confetti />}
 
-      <button
-        onClick={onBack}
-        disabled={spinning}
-        className="absolute top-4 left-4 text-white/70 hover:text-white p-2 z-50"
-      >
+      <button onClick={onBack} disabled={spinning || won} className="absolute top-4 left-4 text-white/70 hover:text-white p-2 z-50">
         <X size={24} />
       </button>
 
-      <h2 className="font-heading font-bold text-2xl text-white mb-2">Ruleta de la Suerte</h2>
-      <p className="text-white/60 text-sm mb-6">¡Gira para ganar gramos!</p>
+      <h2 className="font-heading font-bold text-2xl text-white mb-1 relative z-10" style={{ animation: 'neonFlicker 3s ease-in-out infinite' }}>
+        🎰 Ruleta de la Suerte
+      </h2>
+      <p className="text-white/50 text-sm mb-6 relative z-10">Gira para ganar hasta 3 gramos</p>
 
-      <RouletteWheel rotation={rotation} />
+      <div className="relative z-10 mb-8">
+        <RouletteWheel rotation={rotation} />
+      </div>
 
-      <button
-        onClick={handleSpin}
-        disabled={spinning}
-        className={clsx(
-          'mt-8 font-heading font-bold text-lg px-12 py-4 rounded-full text-white transition-all',
-          spinning
-            ? 'bg-gray-600 cursor-not-allowed'
-            : 'bg-brand-pink shadow-[0_0_20px_rgba(216,27,96,0.5)]',
-        )}
-        style={!spinning ? { animation: 'spinBtn 1.5s ease-in-out infinite' } : undefined}
-      >
-        {spinning ? 'Girando...' : '¡GIRAR!'}
-      </button>
+      {!won && (
+        <button
+          onClick={handleSpin}
+          disabled={spinning}
+          className={clsx(
+            'relative z-10 px-10 py-4 rounded-full font-heading font-bold text-lg text-white transition-all',
+            spinning ? 'bg-gray-700 cursor-not-allowed' : '',
+          )}
+          style={spinning ? undefined : {
+            background: 'linear-gradient(90deg, #D81B60, #F9A825)',
+            animation: 'spinBtn 2s ease-in-out infinite',
+          }}
+        >
+          {spinning ? '✨ Girando...' : '🎰 ¡GIRAR!'}
+        </button>
+      )}
+
+      {won && (
+        <p className="relative z-10 mt-4 font-heading font-bold text-2xl" style={{ color: '#F9A825', animation: 'popIn 0.5s ease-out forwards', textShadow: '0 0 20px rgba(249,168,37,0.5)' }}>
+          ¡Premio revelado!
+        </p>
+      )}
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NUMBER PUZZLE GAME (3×3 slide puzzle)
+// NUMBER PUZZLE GAME (4x4, 15 tiles) — harder difficulty
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const SOLVED = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+const PUZZLE_SIZE = 4;
+const PUZZLE_TILES = PUZZLE_SIZE * PUZZLE_SIZE;
 
 function shufflePuzzle(): number[] {
-  const tiles = [...SOLVED];
-  let emptyIdx = 8;
-  const dirs = [-1, 1, -3, 3];
-  for (let i = 0; i < 200; i++) {
-    const validMoves = dirs
-      .map((d) => emptyIdx + d)
-      .filter((ni) => {
-        if (ni < 0 || ni > 8) return false;
-        if (Math.abs(emptyIdx % 3 - ni % 3) > 1) return false;
-        return true;
-      });
-    const pick = validMoves[Math.floor(Math.random() * validMoves.length)];
-    tiles[emptyIdx] = tiles[pick];
-    tiles[pick] = 0;
-    emptyIdx = pick;
+  const tiles = Array.from({ length: PUZZLE_TILES }, (_, i) => (i + 1) % PUZZLE_TILES);
+  let blankIdx = PUZZLE_TILES - 1;
+  const moves = 400 + Math.floor(Math.random() * 200);
+  for (let m = 0; m < moves; m++) {
+    const neighbors: number[] = [];
+    const row = Math.floor(blankIdx / PUZZLE_SIZE);
+    const col = blankIdx % PUZZLE_SIZE;
+    if (row > 0) neighbors.push(blankIdx - PUZZLE_SIZE);
+    if (row < PUZZLE_SIZE - 1) neighbors.push(blankIdx + PUZZLE_SIZE);
+    if (col > 0) neighbors.push(blankIdx - 1);
+    if (col < PUZZLE_SIZE - 1) neighbors.push(blankIdx + 1);
+    const pick = neighbors[Math.floor(Math.random() * neighbors.length)];
+    [tiles[blankIdx], tiles[pick]] = [tiles[pick], tiles[blankIdx]];
+    blankIdx = pick;
   }
   return tiles;
 }
 
 function isSolved(tiles: number[]): boolean {
-  return tiles.every((v, i) => v === SOLVED[i]);
+  for (let i = 0; i < PUZZLE_TILES - 1; i++) {
+    if (tiles[i] !== i + 1) return false;
+  }
+  return tiles[PUZZLE_TILES - 1] === 0;
 }
 
 function NumberPuzzleGame({ token, onComplete, onBack }: GameProps) {
@@ -469,27 +540,23 @@ function NumberPuzzleGame({ token, onComplete, onBack }: GameProps) {
   const handleTap = useCallback(
     (idx: number) => {
       if (won) return;
-      const emptyIdx = tiles.indexOf(0);
-      const row = Math.floor(idx / 3);
-      const col = idx % 3;
-      const eRow = Math.floor(emptyIdx / 3);
-      const eCol = emptyIdx % 3;
-      const isAdjacent =
-        (row === eRow && Math.abs(col - eCol) === 1) ||
-        (col === eCol && Math.abs(row - eRow) === 1);
-      if (!isAdjacent) return;
+      const blankIdx = tiles.indexOf(0);
+      const rowT = Math.floor(idx / PUZZLE_SIZE);
+      const colT = idx % PUZZLE_SIZE;
+      const rowB = Math.floor(blankIdx / PUZZLE_SIZE);
+      const colB = blankIdx % PUZZLE_SIZE;
+      const isAdj = (rowT === rowB && Math.abs(colT - colB) === 1) || (colT === colB && Math.abs(rowT - rowB) === 1);
+      if (!isAdj) return;
 
       const next = [...tiles];
-      next[emptyIdx] = next[idx];
-      next[idx] = 0;
+      [next[idx], next[blankIdx]] = [next[blankIdx], next[idx]];
       setTiles(next);
       setMoves((m) => m + 1);
 
       if (isSolved(next)) {
         setWon(true);
-        clearInterval(timerRef.current);
         setCelebrating(true);
-
+        clearInterval(timerRef.current);
         playGame(token.id, 'PUZZLE')
           .then((res) => {
             const d = res.data;
@@ -515,28 +582,27 @@ function NumberPuzzleGame({ token, onComplete, onBack }: GameProps) {
   const secs = (elapsed / 1000).toFixed(1);
 
   return (
-    <div className="fixed inset-0 z-40 bg-[#0a0a0a] flex flex-col items-center justify-center font-body overflow-hidden">
+    <div className="fixed inset-0 z-40 flex flex-col items-center justify-center font-body overflow-hidden" style={{ background: 'radial-gradient(ellipse at center, #0a1628 0%, #0a0a12 100%)' }}>
+      <FloatingParticles count={12} />
       {celebrating && <Confetti />}
 
-      <button
-        onClick={onBack}
-        disabled={won}
-        className="absolute top-4 left-4 text-white/70 hover:text-white p-2 z-50"
-      >
+      <button onClick={onBack} disabled={won} className="absolute top-4 left-4 text-white/70 hover:text-white p-2 z-50">
         <X size={24} />
       </button>
 
-      <h2 className="font-heading font-bold text-2xl text-white mb-1">Puzzle Numérico</h2>
-      <p className="text-white/60 text-sm mb-4">Ordena los números del 1 al 8</p>
+      <h2 className="font-heading font-bold text-2xl text-white mb-1 relative z-10" style={{ textShadow: '0 0 15px rgba(0,229,255,0.5)' }}>
+        🧩 Puzzle 15
+      </h2>
+      <p className="text-white/50 text-sm mb-4 relative z-10">Ordena los números del 1 al 15</p>
 
-      <div className="flex gap-6 mb-5 text-white/80 text-sm font-body">
-        <span>⏱ {secs}s</span>
-        <span>🔄 {moves} movimientos</span>
+      <div className="flex gap-6 mb-4 text-white/70 text-sm font-body relative z-10">
+        <span className="px-3 py-1 rounded-full" style={{ background: 'rgba(0,229,255,0.1)', border: '1px solid rgba(0,229,255,0.3)' }}>⏱ {secs}s</span>
+        <span className="px-3 py-1 rounded-full" style={{ background: 'rgba(118,255,3,0.1)', border: '1px solid rgba(118,255,3,0.3)' }}>🔄 {moves}</span>
       </div>
 
       <div
-        className="grid grid-cols-3 gap-2 p-2 rounded-xl"
-        style={{ background: 'rgba(255,255,255,0.05)' }}
+        className="grid gap-1.5 p-2 rounded-xl relative z-10"
+        style={{ gridTemplateColumns: `repeat(${PUZZLE_SIZE}, 1fr)`, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}
       >
         {tiles.map((val, idx) => (
           <button
@@ -544,17 +610,24 @@ function NumberPuzzleGame({ token, onComplete, onBack }: GameProps) {
             onClick={() => handleTap(idx)}
             disabled={val === 0 || won}
             className={clsx(
-              'w-[80px] h-[80px] sm:w-[90px] sm:h-[90px] rounded-xl font-heading font-bold text-2xl transition-all duration-150',
+              'w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-xl font-heading font-bold text-xl transition-all duration-150',
               val === 0
                 ? 'bg-transparent'
                 : won
-                  ? 'bg-gradient-to-br from-brand-pink to-brand-gold text-white shadow-lg'
-                  : 'bg-[#1a1a2e] text-white hover:bg-[#2a2a4e] active:scale-95 shadow-md',
+                  ? 'text-white'
+                  : 'text-white hover:brightness-125 active:scale-95',
             )}
             style={
-              won && val !== 0
-                ? { animation: `tileJump 0.5s ease-in-out ${idx * 0.08}s` }
-                : undefined
+              val === 0 ? undefined :
+              won ? {
+                background: 'linear-gradient(135deg, #D81B60, #F9A825)',
+                boxShadow: '0 0 15px rgba(249,168,37,0.4)',
+                animation: `tileJump 0.5s ease-in-out ${idx * 0.05}s`,
+              } : {
+                background: 'linear-gradient(135deg, #1a1a3e, #2a2a5e)',
+                border: '1px solid rgba(0,229,255,0.2)',
+                boxShadow: '0 0 8px rgba(0,229,255,0.1)',
+              }
             }
           >
             {val !== 0 ? val : ''}
@@ -563,20 +636,14 @@ function NumberPuzzleGame({ token, onComplete, onBack }: GameProps) {
       </div>
 
       {!won && (
-        <button
-          onClick={handleShuffle}
-          className="mt-6 text-white/60 hover:text-white text-sm underline font-body"
-        >
+        <button onClick={handleShuffle} className="relative z-10 mt-5 text-white/50 hover:text-white text-sm underline font-body">
           Mezclar de nuevo
         </button>
       )}
 
       {won && (
-        <p
-          className="mt-6 font-heading font-bold text-xl text-brand-gold"
-          style={{ animation: 'popIn 0.5s ease-out forwards' }}
-        >
-          ¡Lo lograste en {secs}s!
+        <p className="relative z-10 mt-5 font-heading font-bold text-xl" style={{ color: '#00E5FF', animation: 'popIn 0.5s ease-out forwards', textShadow: '0 0 15px rgba(0,229,255,0.5)' }}>
+          ¡Resuelto en {moves} movimientos!
         </p>
       )}
     </div>
@@ -584,10 +651,12 @@ function NumberPuzzleGame({ token, onComplete, onBack }: GameProps) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MEMORY GAME (4×4 card matching)
+// MEMORY GAME (5x4, 10 pairs) — harder difficulty
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const MEMORY_EMOJIS = ['🌸', '🌹', '🌺', '🌻', '🌷', '💐', '🪷', '✨'];
+const MEMORY_EMOJIS = ['🎰', '💎', '🃏', '🎲', '👑', '🔥', '⚡', '🌟', '🎯', '🏆'];
+const MEMORY_PAIRS = 10;
+const MEMORY_COLS = 5;
 
 interface MemoryCard {
   id: number;
@@ -658,10 +727,10 @@ function MemoryGame({ token, onComplete, onBack }: GameProps) {
             setSelected([]);
             setLocked(false);
 
-            if (newMatched === 8) {
+            if (newMatched === MEMORY_PAIRS) {
               setWon(true);
               clearInterval(timerRef.current);
-              playGame(token.id, 'PUZZLE')
+              playGame(token.id, 'MEMORY')
                 .then((res) => {
                   const d = res.data;
                   setTimeout(() => {
@@ -694,26 +763,25 @@ function MemoryGame({ token, onComplete, onBack }: GameProps) {
   const secs = (elapsed / 1000).toFixed(1);
 
   return (
-    <div className="fixed inset-0 z-40 bg-[#0a0a0a] flex flex-col items-center justify-center font-body overflow-hidden">
+    <div className="fixed inset-0 z-40 flex flex-col items-center justify-center font-body overflow-hidden" style={{ background: 'radial-gradient(ellipse at center, #1a0a28 0%, #0a0a12 100%)' }}>
+      <FloatingParticles count={12} />
       {won && <Confetti />}
 
-      <button
-        onClick={onBack}
-        disabled={won}
-        className="absolute top-4 left-4 text-white/70 hover:text-white p-2 z-50"
-      >
+      <button onClick={onBack} disabled={won} className="absolute top-4 left-4 text-white/70 hover:text-white p-2 z-50">
         <X size={24} />
       </button>
 
-      <h2 className="font-heading font-bold text-2xl text-white mb-1">Memoria</h2>
-      <p className="text-white/60 text-sm mb-4">Encuentra los 8 pares de flores</p>
+      <h2 className="font-heading font-bold text-2xl text-white mb-1 relative z-10" style={{ textShadow: '0 0 15px rgba(224,64,251,0.5)' }}>
+        🃏 Memoria Casino
+      </h2>
+      <p className="text-white/50 text-sm mb-3 relative z-10">Encuentra los {MEMORY_PAIRS} pares</p>
 
-      <div className="flex gap-6 mb-5 text-white/80 text-sm font-body">
-        <span>⏱ {secs}s</span>
-        <span>✓ {matchedPairs}/8 pares</span>
+      <div className="flex gap-4 mb-4 text-white/70 text-sm font-body relative z-10">
+        <span className="px-3 py-1 rounded-full" style={{ background: 'rgba(224,64,251,0.1)', border: '1px solid rgba(224,64,251,0.3)' }}>⏱ {secs}s</span>
+        <span className="px-3 py-1 rounded-full" style={{ background: 'rgba(249,168,37,0.1)', border: '1px solid rgba(249,168,37,0.3)' }}>✓ {matchedPairs}/{MEMORY_PAIRS}</span>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 p-2">
+      <div className="relative z-10 p-2" style={{ display: 'grid', gridTemplateColumns: `repeat(${MEMORY_COLS}, 1fr)`, gap: '6px' }}>
         {cards.map((card, idx) => {
           const isShaking = shakeIds.includes(idx);
           return (
@@ -722,8 +790,8 @@ function MemoryGame({ token, onComplete, onBack }: GameProps) {
               onClick={() => handleFlip(idx)}
               className="relative"
               style={{
-                width: 70,
-                height: 70,
+                width: 58,
+                height: 58,
                 perspective: 600,
                 animation: isShaking ? 'shake 0.4s ease-in-out' : undefined,
               }}
@@ -735,30 +803,27 @@ function MemoryGame({ token, onComplete, onBack }: GameProps) {
                   transform: card.flipped || card.matched ? 'rotateY(180deg)' : 'rotateY(0deg)',
                 }}
               >
-                {/* Front (face down) */}
                 <div
                   className="absolute inset-0 rounded-xl flex items-center justify-center"
                   style={{
                     backfaceVisibility: 'hidden',
-                    background: 'linear-gradient(135deg, #1a1a2e, #2a2a4e)',
-                    border: '2px solid rgba(249,168,37,0.3)',
+                    background: 'linear-gradient(135deg, #1a1a3e, #2a2050)',
+                    border: '1.5px solid rgba(224,64,251,0.3)',
+                    boxShadow: '0 0 8px rgba(224,64,251,0.15)',
                   }}
                 >
-                  <span className="font-heading font-bold text-brand-gold/60 text-xs">D</span>
+                  <span className="font-heading font-bold text-xs" style={{ color: 'rgba(224,64,251,0.5)' }}>D</span>
                 </div>
-
-                {/* Back (face up) */}
                 <div
-                  className={clsx(
-                    'absolute inset-0 rounded-xl flex items-center justify-center text-3xl',
-                    card.matched && 'ring-2 ring-brand-gold',
-                  )}
+                  className="absolute inset-0 rounded-xl flex items-center justify-center text-2xl"
                   style={{
                     backfaceVisibility: 'hidden',
                     transform: 'rotateY(180deg)',
                     background: card.matched
                       ? 'linear-gradient(135deg, #D81B60, #F9A825)'
-                      : 'linear-gradient(135deg, #2a1a3e, #3a2a5e)',
+                      : 'linear-gradient(135deg, #2a1a40, #3a2a60)',
+                    border: card.matched ? '1.5px solid #F9A825' : '1.5px solid rgba(224,64,251,0.4)',
+                    boxShadow: card.matched ? '0 0 15px rgba(249,168,37,0.4)' : '0 0 5px rgba(224,64,251,0.2)',
                     animation: card.matched ? 'glowPulse 2s ease-in-out infinite' : undefined,
                   }}
                 >
@@ -771,10 +836,7 @@ function MemoryGame({ token, onComplete, onBack }: GameProps) {
       </div>
 
       {won && (
-        <p
-          className="mt-6 font-heading font-bold text-xl text-brand-gold"
-          style={{ animation: 'popIn 0.5s ease-out forwards' }}
-        >
+        <p className="relative z-10 mt-5 font-heading font-bold text-xl" style={{ color: '#E040FB', animation: 'popIn 0.5s ease-out forwards', textShadow: '0 0 15px rgba(224,64,251,0.5)' }}>
           ¡Memoria perfecta en {secs}s!
         </p>
       )}
@@ -783,86 +845,447 @@ function MemoryGame({ token, onComplete, onBack }: GameProps) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GAME SELECTOR — card-based game picker
+// SCRATCH CARD GAME (raspadita)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type GameType = 'roulette' | 'puzzle' | 'memory';
+function ScratchCardGame({ token, onComplete, onBack }: GameProps) {
+  const addToast = useToastStore((s) => s.addToast);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [scratched, setScratched] = useState(0);
+  const [won, setWon] = useState(false);
+  const [prizeText, setPrizeText] = useState('');
+  const [celebrating, setCelebrating] = useState(false);
+  const isDrawingRef = useRef(false);
+  const calledApiRef = useRef(false);
+  const resultRef = useRef<{ grams: number; balance: number; oz: boolean } | null>(null);
 
-interface GameSelectorProps {
-  onSelect: (game: GameType) => void;
-}
+  useEffect(() => {
+    if (calledApiRef.current) return;
+    calledApiRef.current = true;
+    playGame(token.id, 'SCRATCH')
+      .then((res) => {
+        const d = res.data;
+        const grams = d.gramsWon ?? 0;
+        setPrizeText(`¡${grams}g!`);
+        resultRef.current = { grams, balance: d.newGramBalance ?? d.newBalance ?? 0, oz: d.ozCompleted ?? false };
+      })
+      .catch(() => {
+        setPrizeText('Error');
+        addToast('Error al jugar. La ficha no fue consumida.', 'error');
+      });
+  }, [token.id, addToast]);
 
-function GameSelector({ onSelect }: GameSelectorProps) {
-  const games: { type: GameType; icon: React.ReactNode; name: string; desc: string; range: string; color: string; bg: string }[] = [
-    {
-      type: 'roulette',
-      icon: <Gem size={28} className="text-brand-gold" strokeWidth={1.5} />,
-      name: 'Ruleta de la Suerte',
-      desc: 'Gira y descubre tu premio',
-      range: '1-3 gramos',
-      color: 'bg-brand-pink',
-      bg: 'bg-brand-gold/10',
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, '#D81B60');
+    grad.addColorStop(0.3, '#F9A825');
+    grad.addColorStop(0.5, '#FFD54F');
+    grad.addColorStop(0.7, '#F9A825');
+    grad.addColorStop(1, '#D81B60');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    for (let i = 0; i < 40; i++) {
+      const sx = Math.random() * w;
+      const sy = Math.random() * h;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1 + Math.random() * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = 'bold 20px Poppins, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✨ RASPA AQUÍ ✨', w / 2, h / 2 - 14);
+    ctx.font = '13px Inter, sans-serif';
+    ctx.fillText('Desliza para descubrir tu premio', w / 2, h / 2 + 16);
+  }, []);
+
+  const scratch = useCallback(
+    (x: number, y: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas || won) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const rect = canvas.getBoundingClientRect();
+      const cx = ((x - rect.left) / rect.width) * canvas.width;
+      const cy = ((y - rect.top) / rect.height) * canvas.height;
+
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+      ctx.fill();
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      let transparent = 0;
+      for (let i = 3; i < imgData.data.length; i += 4) {
+        if (imgData.data[i] === 0) transparent++;
+      }
+      const pct = transparent / (imgData.data.length / 4);
+      setScratched(pct);
+
+      if (pct > 0.45 && !won) {
+        setWon(true);
+        setCelebrating(true);
+        const res = resultRef.current;
+        if (res) {
+          setTimeout(() => {
+            onComplete(res.grams, res.balance, res.oz);
+          }, 2000);
+        }
+      }
     },
-    {
-      type: 'puzzle',
-      icon: <Puzzle size={28} className="text-blue-400" strokeWidth={1.5} />,
-      name: 'Puzzle Numérico',
-      desc: 'Ordena los números',
-      range: '1-4 gramos',
-      color: 'bg-blue-500',
-      bg: 'bg-blue-500/10',
-    },
-    {
-      type: 'memory',
-      icon: <Brain size={28} className="text-purple-400" strokeWidth={1.5} />,
-      name: 'Memoria',
-      desc: 'Encuentra los pares',
-      range: '1-4 gramos',
-      color: 'bg-purple-500',
-      bg: 'bg-purple-500/10',
-    },
-  ];
+    [won, onComplete],
+  );
+
+  const handleMouseDown = () => { isDrawingRef.current = true; };
+  const handleMouseUp = () => { isDrawingRef.current = false; };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDrawingRef.current) scratch(e.clientX, e.clientY);
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    scratch(t.clientX, t.clientY);
+  };
 
   return (
-    <div className="space-y-3">
-      <h2 className="font-heading font-bold text-lg text-text-primary">¿Cómo quieres jugar?</h2>
-      <div className="grid grid-cols-1 gap-3">
-        {games.map((g) => (
-          <button
-            key={g.type}
-            onClick={() => onSelect(g.type)}
-            className="bg-surface rounded-xl border border-border p-4 flex items-center gap-4 text-left hover:shadow-md transition-shadow active:scale-[0.98]"
-          >
-            <div className={clsx('w-14 h-14 rounded-full flex items-center justify-center flex-none', g.bg)}>
-              {g.icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-heading font-bold text-sm text-text-primary">{g.name}</p>
-              <p className="text-[12px] text-muted mt-0.5">{g.desc}</p>
-              <p className="text-[11px] text-muted mt-0.5">Premio: {g.range}</p>
-            </div>
-            <div className={clsx('px-4 py-2 rounded-full text-white font-heading font-bold text-sm flex-none', g.color)}>
-              Jugar
-            </div>
-          </button>
-        ))}
+    <div className="fixed inset-0 z-40 flex flex-col items-center justify-center font-body overflow-hidden" style={{ background: 'radial-gradient(ellipse at center, #1a1a0a 0%, #0a0a12 100%)' }}>
+      <FloatingParticles count={15} />
+      {celebrating && <Confetti />}
+
+      <button onClick={onBack} disabled={won} className="absolute top-4 left-4 text-white/70 hover:text-white p-2 z-50">
+        <X size={24} />
+      </button>
+
+      <h2 className="font-heading font-bold text-2xl text-white mb-1 relative z-10" style={{ textShadow: '0 0 15px rgba(249,168,37,0.5)' }}>
+        ✨ Raspadita Dorada
+      </h2>
+      <p className="text-white/50 text-sm mb-6 relative z-10">Raspa para descubrir tu premio</p>
+
+      <div className="relative z-10" style={{ width: 300, height: 190 }}>
+        <div
+          className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center"
+          style={{
+            background: 'linear-gradient(135deg, #1a0a2e, #2a1a40)',
+            border: '2px solid rgba(249,168,37,0.3)',
+            boxShadow: '0 0 30px rgba(249,168,37,0.15)',
+          }}
+        >
+          <p className="text-4xl mb-1">💎</p>
+          <p className="font-heading font-bold text-5xl" style={{ color: '#F9A825', animation: won ? 'popIn 0.5s ease-out forwards' : undefined, textShadow: '0 0 20px rgba(249,168,37,0.5)' }}>
+            {prizeText || '???'}
+          </p>
+          <p className="text-white/40 text-sm mt-1">gramos ganados</p>
+        </div>
+
+        <canvas
+          ref={canvasRef}
+          width={600}
+          height={380}
+          className="absolute inset-0 w-full h-full rounded-2xl cursor-crosshair touch-none"
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          onTouchStart={handleMouseDown}
+          onTouchEnd={handleMouseUp}
+          onTouchMove={handleTouchMove}
+        />
       </div>
+
+      <div className="relative z-10 mt-4 w-[300px]">
+        <div className="flex justify-between text-xs text-white/40 mb-1">
+          <span>Progreso</span>
+          <span style={{ color: '#F9A825' }}>{Math.round(scratched * 100)}%</span>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${Math.min(100, scratched * 100)}%`, background: 'linear-gradient(90deg, #D81B60, #F9A825)' }}
+          />
+        </div>
+      </div>
+
+      {won && (
+        <p className="relative z-10 mt-4 font-heading font-bold text-xl" style={{ color: '#F9A825', animation: 'popIn 0.5s ease-out forwards', textShadow: '0 0 20px rgba(249,168,37,0.5)' }}>
+          ¡Felicidades!
+        </p>
+      )}
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE
+// DICE GAME (dados de la suerte)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type PageState = 'idle' | 'roulette' | 'puzzle' | 'memory' | 'result';
+const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+function DiceGame({ token, onComplete, onBack }: GameProps) {
+  const addToast = useToastStore((s) => s.addToast);
+  const [rolling, setRolling] = useState(false);
+  const [die1, setDie1] = useState(0);
+  const [die2, setDie2] = useState(0);
+  const [won, setWon] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
+  const [resultText, setResultText] = useState('');
+  const animFrameRef = useRef<ReturnType<typeof setInterval>>(undefined);
+
+  const handleRoll = useCallback(() => {
+    if (rolling || won) return;
+    setRolling(true);
+    setResultText('');
+
+    let ticks = 0;
+    animFrameRef.current = setInterval(() => {
+      setDie1(Math.floor(Math.random() * 6));
+      setDie2(Math.floor(Math.random() * 6));
+      ticks++;
+      if (ticks > 25) clearInterval(animFrameRef.current);
+    }, 70);
+
+    playGame(token.id, 'DICE')
+      .then((res) => {
+        const d = res.data;
+        const grams = d.gramsWon ?? 0;
+
+        setTimeout(() => {
+          clearInterval(animFrameRef.current);
+          const finalDie1 = Math.min(grams, 5);
+          const finalDie2 = Math.max(0, Math.min(grams - 1, 5));
+          setDie1(finalDie1);
+          setDie2(finalDie2);
+          setRolling(false);
+          setWon(true);
+          setCelebrating(true);
+          setResultText(`¡Ganaste ${grams}g!`);
+
+          setTimeout(() => {
+            onComplete(grams, d.newGramBalance ?? d.newBalance ?? 0, d.ozCompleted ?? false);
+          }, 2500);
+        }, 2000);
+      })
+      .catch(() => {
+        clearInterval(animFrameRef.current);
+        setRolling(false);
+        addToast('Error al jugar. La ficha no fue consumida.', 'error');
+      });
+  }, [rolling, won, token.id, onComplete, addToast]);
+
+  useEffect(() => {
+    return () => clearInterval(animFrameRef.current);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-40 flex flex-col items-center justify-center font-body overflow-hidden" style={{ background: 'radial-gradient(ellipse at center, #0a1a0a 0%, #0a0a12 100%)' }}>
+      <FloatingParticles count={15} />
+      {celebrating && <Confetti />}
+
+      <button onClick={onBack} disabled={won || rolling} className="absolute top-4 left-4 text-white/70 hover:text-white p-2 z-50">
+        <X size={24} />
+      </button>
+
+      <h2 className="font-heading font-bold text-2xl text-white mb-1 relative z-10" style={{ textShadow: '0 0 15px rgba(118,255,3,0.5)' }}>
+        🎲 Dados de la Suerte
+      </h2>
+      <p className="text-white/50 text-sm mb-8 relative z-10">Lanza los dados y gana gramos</p>
+
+      <div className="flex gap-8 mb-8 relative z-10">
+        {[die1, die2].map((face, i) => (
+          <div
+            key={i}
+            className="w-28 h-28 rounded-2xl flex items-center justify-center text-7xl"
+            style={{
+              background: won
+                ? 'linear-gradient(135deg, #D81B60, #F9A825)'
+                : 'linear-gradient(135deg, #1a1a3e, #2a2a5e)',
+              border: won ? '2px solid #F9A825' : '2px solid rgba(118,255,3,0.3)',
+              boxShadow: won ? '0 0 25px rgba(249,168,37,0.5)' : '0 0 15px rgba(118,255,3,0.15)',
+              animation: rolling ? 'diceShake 0.4s ease-in-out infinite' : undefined,
+            }}
+          >
+            <span style={{ filter: won ? 'drop-shadow(0 0 10px rgba(249,168,37,0.8))' : undefined }}>
+              {DICE_FACES[face]}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {!won && (
+        <button
+          onClick={handleRoll}
+          disabled={rolling}
+          className="relative z-10 px-10 py-4 rounded-full font-heading font-bold text-lg text-white transition-all"
+          style={rolling ? { background: '#333', cursor: 'not-allowed' } : {
+            background: 'linear-gradient(90deg, #76FF03, #00E5FF)',
+            animation: 'spinBtn 2s ease-in-out infinite',
+            color: '#0a0a12',
+          }}
+        >
+          {rolling ? '🎲 Lanzando...' : '🎲 ¡LANZAR!'}
+        </button>
+      )}
+
+      {resultText && (
+        <p className="relative z-10 mt-6 font-heading font-bold text-3xl" style={{ color: '#76FF03', animation: 'popIn 0.5s ease-out forwards', textShadow: '0 0 20px rgba(118,255,3,0.5)' }}>
+          {resultText}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GAME SELECTOR — casino-style card grid with neon effects
+// ═══════════════════════════════════════════════════════════════════════════════
+
+type GameType = 'roulette' | 'puzzle' | 'memory' | 'scratch' | 'dice';
+
+interface GameSelectorProps {
+  onSelect: (game: GameType) => void;
+  disabled?: boolean;
+}
+
+function GameSelector({ onSelect, disabled }: GameSelectorProps) {
+  const games: { type: GameType; emoji: string; name: string; desc: string; range: string; gradient: string; glowColor: string; delay: string }[] = [
+    {
+      type: 'roulette',
+      emoji: '🎰',
+      name: 'Ruleta de la Suerte',
+      desc: 'Gira la ruleta y gana',
+      range: '1-3g',
+      gradient: 'linear-gradient(135deg, #D81B60 0%, #880E4F 100%)',
+      glowColor: 'rgba(216,27,96,0.4)',
+      delay: '0s',
+    },
+    {
+      type: 'scratch',
+      emoji: '✨',
+      name: 'Raspadita Dorada',
+      desc: 'Raspa y descubre',
+      range: '1-3g',
+      gradient: 'linear-gradient(135deg, #F9A825 0%, #F57F17 100%)',
+      glowColor: 'rgba(249,168,37,0.4)',
+      delay: '0.1s',
+    },
+    {
+      type: 'dice',
+      emoji: '🎲',
+      name: 'Dados de la Suerte',
+      desc: 'Lanza y gana',
+      range: '1-3g',
+      gradient: 'linear-gradient(135deg, #76FF03 0%, #33691E 100%)',
+      glowColor: 'rgba(118,255,3,0.4)',
+      delay: '0.2s',
+    },
+    {
+      type: 'puzzle',
+      emoji: '🧩',
+      name: 'Puzzle 15',
+      desc: 'Ordena los números',
+      range: '1-4g',
+      gradient: 'linear-gradient(135deg, #00E5FF 0%, #006064 100%)',
+      glowColor: 'rgba(0,229,255,0.4)',
+      delay: '0.3s',
+    },
+    {
+      type: 'memory',
+      emoji: '🃏',
+      name: 'Memoria Casino',
+      desc: 'Encuentra los pares',
+      range: '1-4g',
+      gradient: 'linear-gradient(135deg, #E040FB 0%, #6A1B9A 100%)',
+      glowColor: 'rgba(224,64,251,0.4)',
+      delay: '0.4s',
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <h2 className="font-heading font-bold text-lg text-white" style={{ textShadow: '0 0 10px rgba(249,168,37,0.3)' }}>
+        🎮 Elige tu juego
+      </h2>
+      <div className="grid grid-cols-2 gap-3">
+        {games.map((g, i) => (
+          <button
+            key={g.type}
+            onClick={() => !disabled && onSelect(g.type)}
+            disabled={disabled}
+            className={clsx(
+              'relative rounded-2xl p-4 text-left transition-all overflow-hidden',
+              i === 0 && 'col-span-2',
+              disabled ? 'opacity-50 cursor-not-allowed grayscale' : 'active:scale-[0.97] hover:brightness-110',
+            )}
+            style={{
+              background: disabled ? '#1a1a2e' : g.gradient,
+              boxShadow: disabled ? 'none' : `0 0 20px ${g.glowColor}`,
+              animation: disabled ? undefined : `slideUp 0.5s ease-out ${g.delay} both`,
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            {!disabled && (
+              <div
+                className="absolute inset-0 opacity-20"
+                style={{
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'scratchShimmer 3s linear infinite',
+                }}
+              />
+            )}
+
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-2">
+                <span className={clsx('text-3xl', i === 0 && 'text-4xl')}>{disabled ? '🔒' : g.emoji}</span>
+                <span
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                  style={{ background: 'rgba(0,0,0,0.3)', color: 'rgba(255,255,255,0.8)' }}
+                >
+                  {g.range}
+                </span>
+              </div>
+              <p className="font-heading font-bold text-sm text-white leading-tight">{g.name}</p>
+              <p className="text-[11px] text-white/60 mt-0.5">{g.desc}</p>
+            </div>
+
+            {disabled && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl">
+                <Lock size={24} className="text-white/40" />
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+      {disabled && (
+        <p className="text-center text-xs text-white/40 font-body">
+          Realiza una compra para desbloquear las fichas de juego
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE — Casino lobby
+// ═══════════════════════════════════════════════════════════════════════════════
+
+type PageState = 'idle' | 'roulette' | 'puzzle' | 'memory' | 'scratch' | 'dice' | 'result';
 
 export default function GamesPage() {
   const navigate = useNavigate();
   const addToast = useToastStore((s) => s.addToast);
   const queryClient = useQueryClient();
 
-  // ── Data ────────────────────────────────────────────────────────────────
   const { data: tokensRes, isLoading: tokensLoading } = useQuery({
     queryKey: ['my-game-tokens'],
     queryFn: getMyGameTokens,
@@ -885,15 +1308,10 @@ export default function GamesPage() {
   const challenge: WeeklyChallenge | null = challengeRes?.data?.challenge ?? challengeRes?.data ?? null;
   const gramBalance: number = gramRes?.data?.account?.currentGrams ?? gramRes?.data?.currentGrams ?? 0;
 
-  // ── UI state ────────────────────────────────────────────────────────────
   const [pageState, setPageState] = useState<PageState>('idle');
-  const [result, setResult] = useState<{
-    gramsWon: number; newBalance: number; ozCompleted: boolean;
-  } | null>(null);
-
+  const [result, setResult] = useState<{ gramsWon: number; newBalance: number; ozCompleted: boolean } | null>(null);
   const gameSelectorRef = useRef<HTMLDivElement>(null);
 
-  // ── Derived ─────────────────────────────────────────────────────────────
   const now = Date.now();
   const expiringTokens = pendingTokens.filter(
     (t) => new Date(t.expiresAt).getTime() - now < 12 * 60 * 60 * 1000,
@@ -906,7 +1324,6 @@ export default function GamesPage() {
     )[0];
   }, [pendingTokens]);
 
-  // ── Handlers ────────────────────────────────────────────────────────────
   const scrollToGames = () => {
     gameSelectorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -926,85 +1343,67 @@ export default function GamesPage() {
     queryClient.invalidateQueries({ queryKey: ['gram-account'] });
   };
 
-  const handleBackFromGame = () => {
-    setPageState('idle');
-  };
+  const handleBackFromGame = () => setPageState('idle');
+  const handleResultClose = () => { setResult(null); setPageState('idle'); };
 
-  const handleResultClose = () => {
-    setResult(null);
-    setPageState('idle');
-  };
-
-  // ── Full-screen game views (hide AppBar + BottomTabBar) ────────────────
   if (pageState === 'roulette' && activeToken) {
-    return (
-      <>
-        <style>{GAME_STYLES}</style>
-        <RouletteGame token={activeToken} onComplete={handleGameComplete} onBack={handleBackFromGame} />
-      </>
-    );
+    return (<><style>{CASINO_STYLES}</style><RouletteGame token={activeToken} onComplete={handleGameComplete} onBack={handleBackFromGame} /></>);
   }
-
   if (pageState === 'puzzle' && activeToken) {
-    return (
-      <>
-        <style>{GAME_STYLES}</style>
-        <NumberPuzzleGame token={activeToken} onComplete={handleGameComplete} onBack={handleBackFromGame} />
-      </>
-    );
+    return (<><style>{CASINO_STYLES}</style><NumberPuzzleGame token={activeToken} onComplete={handleGameComplete} onBack={handleBackFromGame} /></>);
   }
-
   if (pageState === 'memory' && activeToken) {
-    return (
-      <>
-        <style>{GAME_STYLES}</style>
-        <MemoryGame token={activeToken} onComplete={handleGameComplete} onBack={handleBackFromGame} />
-      </>
-    );
+    return (<><style>{CASINO_STYLES}</style><MemoryGame token={activeToken} onComplete={handleGameComplete} onBack={handleBackFromGame} /></>);
+  }
+  if (pageState === 'scratch' && activeToken) {
+    return (<><style>{CASINO_STYLES}</style><ScratchCardGame token={activeToken} onComplete={handleGameComplete} onBack={handleBackFromGame} /></>);
+  }
+  if (pageState === 'dice' && activeToken) {
+    return (<><style>{CASINO_STYLES}</style><DiceGame token={activeToken} onComplete={handleGameComplete} onBack={handleBackFromGame} /></>);
   }
 
-  // ── Render main page ────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background font-body pb-24">
-      <style>{GAME_STYLES}</style>
-      <AppBar title="Sala de Juegos" showBack />
+    <div className="min-h-screen font-body pb-24" style={{ background: 'linear-gradient(180deg, #0d0d1a 0%, #1a0a2e 50%, #0d0d1a 100%)' }}>
+      <style>{CASINO_STYLES}</style>
+      <FloatingParticles count={25} />
+      <AppBar title="🎰 Sala de Juegos" showBack />
 
-      <main className="px-4 py-4 space-y-5">
+      <main className="px-4 py-4 space-y-5 relative z-10">
 
-        {/* ── SECTION 1 — Pending tokens header ──────────────────────────── */}
         <div className="text-center py-6">
           {tokensLoading ? (
-            <div className="w-16 h-16 rounded-full bg-border animate-pulse mx-auto" />
+            <div className="w-16 h-16 rounded-full animate-pulse mx-auto" style={{ background: 'rgba(249,168,37,0.2)' }} />
           ) : pendingTokens.length > 0 ? (
             <>
               <Gem
-                size={56}
-                className="text-brand-gold mx-auto"
+                size={60}
+                className="mx-auto"
                 strokeWidth={1.5}
-                style={{ animation: 'coinPulse 2s ease-in-out infinite' }}
+                style={{ color: '#F9A825', animation: 'coinPulse 2s ease-in-out infinite' }}
               />
-              <p className="font-heading font-bold text-[60px] leading-none text-brand-gold mt-3">
+              <p className="font-heading font-bold text-[64px] leading-none mt-3" style={{ color: '#F9A825', textShadow: '0 0 30px rgba(249,168,37,0.5)' }}>
                 {pendingTokens.length}
               </p>
-              <p className="font-body text-muted text-base mt-1">
+              <p className="font-body text-white/60 text-base mt-1">
                 ficha{pendingTokens.length !== 1 ? 's' : ''} disponible{pendingTokens.length !== 1 ? 's' : ''}
               </p>
-              <p className="font-body text-muted text-sm mt-1.5 max-w-65 mx-auto">
-                Ganaste estas fichas por tus compras. ¡Juega para ganar gramos!
+              <p className="font-body text-white/40 text-sm mt-1.5 max-w-65 mx-auto">
+                ¡Juega y gana gramos de esencia!
               </p>
             </>
           ) : (
             <>
-              <Gem size={56} className="text-gray-300 mx-auto" strokeWidth={1.5} />
-              <p className="font-heading font-semibold text-lg text-text-primary mt-3">
-                No tienes fichas disponibles
+              <Gem size={56} className="mx-auto" style={{ color: 'rgba(255,255,255,0.2)' }} strokeWidth={1.5} />
+              <p className="font-heading font-semibold text-lg text-white/70 mt-3">
+                No tienes fichas
               </p>
-              <p className="font-body text-muted text-sm mt-1.5">
-                Realiza una compra para ganar una ficha de juego
+              <p className="font-body text-white/40 text-sm mt-1.5">
+                Cada compra te da una ficha de juego
               </p>
               <Link
                 to="/catalogo"
-                className="inline-block mt-4 bg-brand-pink text-white font-body font-semibold px-6 py-2.5 rounded-full text-sm"
+                className="inline-block mt-4 font-body font-semibold px-6 py-2.5 rounded-full text-sm text-white"
+                style={{ background: 'linear-gradient(90deg, #D81B60, #F9A825)', boxShadow: '0 0 15px rgba(216,27,96,0.4)' }}
               >
                 Ver catálogo
               </Link>
@@ -1012,67 +1411,63 @@ export default function GamesPage() {
           )}
         </div>
 
-        {/* ── SECTION 2 — Expiry warning ─────────────────────────────────── */}
         {expiringTokens.length > 0 && (
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
-            <Clock size={20} className="text-orange-500 flex-none mt-0.5" />
+          <div
+            className="rounded-xl p-4 flex items-start gap-3"
+            style={{ background: 'rgba(249,168,37,0.1)', border: '1px solid rgba(249,168,37,0.3)', animation: 'cardGlow 3s ease-in-out infinite' }}
+          >
+            <Clock size={20} style={{ color: '#F9A825' }} className="flex-none mt-0.5" />
             <div className="flex-1">
-              <p className="font-body text-sm text-orange-800 font-medium">
-                Tienes {expiringTokens.length} ficha{expiringTokens.length !== 1 ? 's' : ''} que{' '}
-                {expiringTokens.length !== 1 ? 'vencen' : 'vence'} en menos de 12 horas. ¡Juega ahora!
+              <p className="font-body text-sm font-medium" style={{ color: '#F9A825' }}>
+                {expiringTokens.length} ficha{expiringTokens.length !== 1 ? 's' : ''} {expiringTokens.length !== 1 ? 'vencen' : 'vence'} en menos de 12h
               </p>
-              <button
-                onClick={scrollToGames}
-                className="font-body text-sm text-orange-600 font-bold mt-1 underline"
-              >
-                Jugar ahora
+              <button onClick={scrollToGames} className="font-body text-sm font-bold mt-1 underline" style={{ color: '#F9A825' }}>
+                ¡Juega ahora!
               </button>
             </div>
           </div>
         )}
 
-        {/* ── SECTION 3 — Game selector ──────────────────────────────────── */}
-        {pendingTokens.length > 0 && (
-          <div ref={gameSelectorRef}>
-            <GameSelector onSelect={handleSelectGame} />
-          </div>
-        )}
+        <div ref={gameSelectorRef}>
+          <GameSelector onSelect={handleSelectGame} disabled={pendingTokens.length === 0} />
+        </div>
 
-        {/* ── SECTION 4 — Weekly challenge ───────────────────────────────── */}
         {challenge && (
-          <div className="bg-surface rounded-xl border border-border p-4">
+          <div
+            className="rounded-xl p-4"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(249,168,37,0.2)' }}
+          >
             <div className="flex items-center gap-2 mb-3">
-              <Trophy size={18} className="text-brand-gold" />
-              <h3 className="font-heading font-semibold text-sm text-text-primary">
-                Reto Semanal
-              </h3>
+              <Trophy size={18} style={{ color: '#F9A825' }} />
+              <h3 className="font-heading font-semibold text-sm text-white">Reto Semanal</h3>
             </div>
 
-            <p className="font-body text-sm text-text-primary">{challenge.description}</p>
+            <p className="font-body text-sm text-white/80">{challenge.description}</p>
 
             {challenge.myProgress?.completed ? (
-              <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-center">
-                <span className="font-body font-bold text-emerald-600 text-sm">Completado ✓</span>
+              <div className="mt-3 px-3 py-2 rounded-lg text-center" style={{ background: 'rgba(118,255,3,0.1)', border: '1px solid rgba(118,255,3,0.3)' }}>
+                <span className="font-body font-bold text-sm" style={{ color: '#76FF03' }}>✅ Completado</span>
               </div>
             ) : (
               <>
                 <div className="mt-3">
-                  <div className="flex justify-between text-[11px] font-body text-muted mb-1">
+                  <div className="flex justify-between text-[11px] font-body text-white/50 mb-1">
                     <span>{challenge.myProgress?.purchasesCount ?? 0} de {challenge.requiredPurchases} compras</span>
-                    <span>Premio: {challenge.gramReward}g</span>
+                    <span style={{ color: '#F9A825' }}>Premio: {challenge.gramReward}g</span>
                   </div>
-                  <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
                     <div
-                      className="h-full rounded-full bg-brand-gold transition-all"
+                      className="h-full rounded-full transition-all"
                       style={{
                         width: `${Math.min(100, ((challenge.myProgress?.purchasesCount ?? 0) / challenge.requiredPurchases) * 100)}%`,
+                        background: 'linear-gradient(90deg, #D81B60, #F9A825)',
+                        boxShadow: '0 0 8px rgba(249,168,37,0.4)',
                       }}
                     />
                   </div>
                 </div>
-
                 {challenge.weekEnd && (
-                  <p className="text-[11px] text-muted font-body mt-2">
+                  <p className="text-[11px] text-white/30 font-body mt-2">
                     Termina en {Math.max(0, Math.ceil((new Date(challenge.weekEnd).getTime() - now) / (1000 * 60 * 60 * 24)))} días
                   </p>
                 )}
@@ -1081,43 +1476,39 @@ export default function GamesPage() {
           </div>
         )}
 
-        {/* ── SECTION 5 — Gram balance mini-display ──────────────────────── */}
         <Link
           to="/mis-gramos"
-          className="flex items-center justify-between bg-surface rounded-xl border border-border p-4"
+          className="flex items-center justify-between rounded-xl p-4"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(249,168,37,0.2)' }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-              <Gem size={18} className="text-amber-600" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(249,168,37,0.15)' }}>
+              <Gem size={18} style={{ color: '#F9A825' }} />
             </div>
             <div>
-              <p className="font-body text-sm text-text-primary font-medium">
-                Tu saldo actual: <span className="font-heading font-bold text-brand-gold">{gramBalance}g</span> de 13g
+              <p className="font-body text-sm text-white/80 font-medium">
+                Tu saldo: <span className="font-heading font-bold" style={{ color: '#F9A825' }}>{gramBalance}g</span> / 13g
               </p>
-              <div className="h-1.5 w-32 bg-gray-100 rounded-full mt-1 overflow-hidden">
+              <div className="h-1.5 w-32 rounded-full mt-1 overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
                 <div
-                  className="h-full bg-brand-gold rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (gramBalance / 13) * 100)}%` }}
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${Math.min(100, (gramBalance / 13) * 100)}%`, background: 'linear-gradient(90deg, #D81B60, #F9A825)' }}
                 />
               </div>
             </div>
           </div>
-          <ChevronRight size={18} className="text-muted" />
+          <ChevronRight size={18} className="text-white/30" />
         </Link>
 
       </main>
 
-      {/* ── Result modal ───────────────────────────────────────────────────── */}
       {pageState === 'result' && result && (
         <ResultModal
           gramsWon={result.gramsWon}
           newBalance={result.newBalance}
           ozCompleted={result.ozCompleted}
           onClose={handleResultClose}
-          onGoToGrams={() => {
-            handleResultClose();
-            navigate('/mis-gramos');
-          }}
+          onGoToGrams={() => { handleResultClose(); navigate('/mis-gramos'); }}
         />
       )}
 

@@ -551,7 +551,7 @@ export const getMyGameTokens = () =>
  * Body: { gameType: 'ROULETTE' | 'PUZZLE' }
  * Returns: { gramsWon, newGramBalance, ozCompleted, message }
  */
-export const playGame = (tokenId: string, gameType: 'ROULETTE' | 'PUZZLE') =>
+export const playGame = (tokenId: string, gameType: 'ROULETTE' | 'PUZZLE' | 'MEMORY' | 'SCRATCH' | 'DICE') =>
   api.post(`/api/game-tokens/${tokenId}/play`, { gameType });
 
 // ─────────────────────────────────────────────────────────────────────────────

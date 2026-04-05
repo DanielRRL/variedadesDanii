@@ -15,6 +15,9 @@ export enum GameTokenStatus {
 export enum GameType {
   ROULETTE = "ROULETTE", // Ruleta: premio aleatorio 1-3g.
   PUZZLE   = "PUZZLE",   // Puzzle de logica: premio 1-4g segun dificultad.
+  MEMORY   = "MEMORY",   // Memoria: encuentra pares, premio 1-4g.
+  SCRATCH  = "SCRATCH",  // Raspadita: raspa y descubre, premio 1-3g.
+  DICE     = "DICE",     // Dados de la suerte: lanza dados, premio 1-3g.
 }
 
 /** Propiedades para construir una ficha de juego. */

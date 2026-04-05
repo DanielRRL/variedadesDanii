@@ -378,6 +378,9 @@ export default function AdminSalesPage() {
       setSaleResult(result);
       queryClient.invalidateQueries({ queryKey: ['admin-products-pos'] });
     },
+    onError: () => {
+      // Error is shown inline via saleMutation.isError
+    },
   });
 
   const handleSubmit = useCallback(() => {
@@ -550,10 +553,10 @@ export default function AdminSalesPage() {
         )}
 
         {/* ── Client section (collapsible) ── */}
-        <div className="border border-border rounded-xl overflow-hidden">
+        <div className="border border-border rounded-xl">
           <button
             onClick={() => setShowClient(!showClient)}
-            className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 text-sm font-semibold text-text-primary"
+            className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 rounded-t-xl text-sm font-semibold text-text-primary"
           >
             <span className="flex items-center gap-2">
               <User size={14} /> Cliente
@@ -745,7 +748,15 @@ export default function AdminSalesPage() {
 
         {saleMutation.isError && (
           <p className="text-xs text-red-500 text-center">
-            Error: {(saleMutation.error as Error)?.message ?? 'No se pudo registrar la venta'}
+            Error: {
+              (() => {
+                const err = saleMutation.error as any;
+                return err?.response?.data?.message
+                  ?? err?.response?.data?.errors?.[0]?.message
+                  ?? err?.message
+                  ?? 'No se pudo registrar la venta';
+              })()
+            }
           </p>
         )}
       </div>
