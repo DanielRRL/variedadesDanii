@@ -30,7 +30,7 @@ import { clsx } from 'clsx';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
-import { createOrder, initiatePayment, applyReferral, getMyGramAccount } from '../services/api';
+import { createOrder, applyReferral, getMyGramAccount } from '../services/api';
 import type { CartItem, Order } from '../types';
 import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
@@ -274,25 +274,19 @@ export default function CartPage() {
       const orderId = order.id;
       const orderNumber = order.orderNumber ?? '';
 
-      const paymentRes = await initiatePayment({
-        orderId,
-        amountInCents: Math.round(finalTotal * 100),
-        customerEmail: user!.email,
-        redirectUrl: `${window.location.origin}/pedido-exitoso`,
-      });
-
-      const paymentUrl: string = paymentRes.data?.paymentUrl ?? '';
-
       const gramsEarned = gramPreview;
       clearCart();
 
-      if (paymentMethod === 'BREB' && paymentUrl) {
-        window.location.href = paymentUrl;
-        return;
-      }
-
       navigate('/pago-pendiente', {
-        state: { orderId, orderNumber, total: finalTotal, paymentMethod, gramsEarned },
+        state: {
+          orderId,
+          orderNumber,
+          total: finalTotal,
+          paymentMethod,
+          gramsEarned,
+          deliveryType,
+          deliveryAddress: deliveryType === 'delivery' ? deliveryAddress.trim() : undefined,
+        },
         replace: true,
       });
     } catch (err: unknown) {
@@ -653,7 +647,7 @@ export default function CartPage() {
                 Procesando...
               </>
             ) : (
-              `Confirmar pedido — ${formatCOP(finalTotal)}`
+              `Realizar pedido — ${formatCOP(finalTotal)}`
             )}
           </button>
         </div>

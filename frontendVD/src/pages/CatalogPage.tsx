@@ -21,13 +21,14 @@ import {
   RefreshCw, SearchX, Trophy, ShoppingCart, Check,
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getProducts, getCurrentChallenge } from '../services/api';
+import { getProducts, getEssences, getCurrentChallenge } from '../services/api';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
 import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
-import type { Product } from '../types';
+import { EssenceCard } from '../components/catalog/EssenceCard';
+import type { Product, Essence } from '../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -46,6 +47,7 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
 
 const TYPE_CHIPS: { value: string; label: string }[] = [
   { value: 'ALL', label: 'Todos' },
+  { value: 'ESSENCE', label: 'Esencias' },
   { value: 'LOTION', label: 'Lociones' },
   { value: 'CREAM', label: 'Cremas' },
   { value: 'SHAMPOO', label: 'Shampoo' },
@@ -215,22 +217,23 @@ export default function CatalogPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedType, setSelectedType] = useState('ALL');
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [sortBy, _setSortBy] = useState<SortOption>('name');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const setSortBy = (v: SortOption) => { _setSortBy(v); setVisibleCount(PAGE_SIZE); };
+  const setSelectedTypeAndReset = (v: string) => { setSelectedType(v); setVisibleCount(PAGE_SIZE); };
 
   // ── Search debounce (500 ms) ────────────────────────────────────────────
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
     clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => setDebouncedSearch(value), 500);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(value);
+      setVisibleCount(PAGE_SIZE);
+    }, 500);
   }, []);
   useEffect(() => () => clearTimeout(searchTimerRef.current), []);
-
-  // Reset visible count on filter change
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [debouncedSearch, selectedType, sortBy]);
 
   // ── Data — GET /api/products ────────────────────────────────────────────
   const { data: productsRes, isLoading, isError, refetch } = useQuery({
@@ -243,6 +246,20 @@ export default function CatalogPage() {
     const body = productsRes?.data;
     return Array.isArray(body) ? body : (body?.products ?? []);
   }, [productsRes]);
+
+  // ── Data — GET /api/essences ────────────────────────────────────────────
+  const { data: essencesRes, isLoading: essencesLoading, isError: essencesError, refetch: retryEssences } = useQuery({
+    queryKey: ['essences'],
+    queryFn: () => getEssences(),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const allEssences: Essence[] = useMemo(() => {
+    const body = essencesRes?.data;
+    return Array.isArray(body) ? body : (body?.essences ?? []);
+  }, [essencesRes]);
+
+  const showingEssences = selectedType === 'ESSENCE';
 
   // ── Data — Weekly challenge (only if logged in) ─────────────────────────
   const { data: challengeRes } = useQuery({
@@ -258,11 +275,11 @@ export default function CatalogPage() {
     return null;
   }, [challengeRes]);
 
-  // ── Filtering, sorting, pagination ──────────────────────────────────────
+  // ── Filtering, sorting, pagination (products) ──────────────────────────
   const filtered = useMemo(() => {
     let list = allProducts.filter((p) => p.active);
 
-    if (selectedType !== 'ALL') {
+    if (selectedType !== 'ALL' && selectedType !== 'ESSENCE') {
       list = list.filter((p) => p.productType === selectedType);
     }
 
@@ -277,6 +294,22 @@ export default function CatalogPage() {
 
     return sortProducts(list, sortBy);
   }, [allProducts, selectedType, debouncedSearch, sortBy]);
+
+  // ── Filtering essences ──────────────────────────────────────────────────
+  const filteredEssences = useMemo(() => {
+    let list = allEssences.filter((e) => e.active !== false && e.isActive !== false);
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      list = list.filter(
+        (e) =>
+          e.name.toLowerCase().includes(q) ||
+          (e.inspirationBrand?.toLowerCase().includes(q)) ||
+          (e.olfactiveFamily?.name?.toLowerCase().includes(q)) ||
+          (e.house?.name?.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [allEssences, debouncedSearch]);
 
   const visibleProducts = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
@@ -337,7 +370,7 @@ export default function CatalogPage() {
           {TYPE_CHIPS.map((chip) => (
             <button
               key={chip.value}
-              onClick={() => setSelectedType(chip.value)}
+              onClick={() => setSelectedTypeAndReset(chip.value)}
               className={clsx(
                 'flex-none px-4 py-1.5 rounded-full text-[13px] font-body font-medium border transition-colors whitespace-nowrap',
                 selectedType === chip.value
@@ -350,7 +383,12 @@ export default function CatalogPage() {
               {chip.label}
               {chip.value === 'ALL' && !isLoading && !isError && (
                 <span className="ml-1.5 text-[11px] opacity-70">
-                  {allProducts.filter((p) => p.active).length}
+                  {allProducts.filter((p) => p.active).length + allEssences.filter((e) => e.active !== false).length}
+                </span>
+              )}
+              {chip.value === 'ESSENCE' && !essencesLoading && (
+                <span className="ml-1.5 text-[11px] opacity-70">
+                  {allEssences.filter((e) => e.active !== false).length}
                 </span>
               )}
             </button>
@@ -359,9 +397,14 @@ export default function CatalogPage() {
 
         {/* ── Section 4 — Sort + results count ─────────────────────────── */}
         <div className="flex items-center justify-between gap-2">
-          {!isLoading && !isError && (
+          {!isLoading && !isError && !showingEssences && (
             <span className="font-body text-[13px] text-muted">
               {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
+            </span>
+          )}
+          {showingEssences && !essencesLoading && !essencesError && (
+            <span className="font-body text-[13px] text-muted">
+              {filteredEssences.length} esencia{filteredEssences.length !== 1 ? 's' : ''}
             </span>
           )}
 
@@ -385,8 +428,72 @@ export default function CatalogPage() {
           </div>
         </div>
 
-        {/* ── Section 5 — Product grid ─────────────────────────────────── */}
+        {/* ── Section 5 — Product / Essence grid ──────────────────────── */}
 
+        {/* ── Essences mode ────────────────────────────────────────── */}
+        {showingEssences && (
+          <>
+            {essencesLoading && (
+              <div className="grid grid-cols-1 gap-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+              </div>
+            )}
+
+            {essencesError && (
+              <div className="flex flex-col items-center gap-3 py-10 text-center">
+                <AlertCircle size={36} className="text-orange-400" strokeWidth={1.5} />
+                <p className="font-body text-sm text-muted">
+                  No pudimos cargar las esencias.
+                </p>
+                <button
+                  onClick={() => retryEssences()}
+                  className="flex items-center gap-1.5 bg-brand-pink text-surface font-body font-medium text-sm px-5 py-2.5 rounded-full"
+                >
+                  <RefreshCw size={14} strokeWidth={2} />
+                  Reintentar
+                </button>
+              </div>
+            )}
+
+            {!essencesLoading && !essencesError && filteredEssences.length > 0 && (
+              <div className="space-y-3">
+                {filteredEssences.map((essence) => (
+                  <EssenceCard
+                    key={essence.id}
+                    essence={essence}
+                    onPress={() => navigate(`/esencia/${essence.id}`)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!essencesLoading && !essencesError && filteredEssences.length === 0 && (
+              <div className="flex flex-col items-center gap-4 py-14 text-center">
+                <SearchX size={44} className="text-brand-pink/40" strokeWidth={1.2} />
+                <div>
+                  <p className="font-heading font-semibold text-base text-text-primary">
+                    No encontramos esencias
+                  </p>
+                  <p className="font-body text-sm text-muted mt-1.5">
+                    Prueba ajustando la búsqueda.
+                  </p>
+                </div>
+                <button
+                  onClick={clearAllFilters}
+                  className="bg-brand-pink text-surface font-body font-medium text-sm px-7 py-2.5 rounded-full"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Products mode ────────────────────────────────────────── */}
+        {!showingEssences && (
+          <>
         {/* Loading — 6 skeleton cards */}
         {isLoading && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -452,6 +559,8 @@ export default function CatalogPage() {
             Ver {Math.min(PAGE_SIZE, remaining)} más ({remaining} restante
             {remaining !== 1 ? 's' : ''})
           </button>
+        )}
+          </>
         )}
 
         {/* ── Section 7 — Weekly challenge teaser ──────────────────────── */}
