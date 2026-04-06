@@ -28,6 +28,8 @@ interface AuthLayoutProps {
   features?: FeatureCard[];
   /** Background variant — defaults to 'pink' */
   variant?: 'pink' | 'green';
+  /** Optional custom card rendered at the bottom of the left panel */
+  bottomCard?: ReactNode;
   /** The form content */
   children: ReactNode;
 }
@@ -60,6 +62,7 @@ export default function AuthLayout({
   description,
   features = [],
   variant = 'pink',
+  bottomCard,
   children,
 }: AuthLayoutProps) {
   const isPink = variant === 'pink';
@@ -133,18 +136,18 @@ export default function AuthLayout({
 
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white/25 border border-white/30 backdrop-blur-sm flex items-center justify-center font-heading font-bold text-sm sm:text-lg text-gray-800">
+            <div className="w-11 h-11 rounded-xl bg-white/20 border border-white/30 backdrop-blur-sm flex items-center justify-center font-heading font-bold text-lg text-gray-800">
               VR
             </div>
             <div>
-              <p className="font-heading font-bold text-sm sm:text-base leading-tight">Variedades Danii</p>
+              <p className="font-heading font-bold text-base leading-tight">Variedades Danii</p>
               <p className="text-white/70 text-xs">Perfumería · Armenia, Quindío</p>
             </div>
           </div>
 
           {/* Headline + description */}
           <div className="mt-auto mb-auto py-4 sm:py-6 lg:py-0 lg:mt-0 lg:mb-0 flex flex-col items-start justify-center lg:justify-end lg:flex-1">
-            <h2 className="font-heading text-xl sm:text-2xl lg:text-[28px] font-bold leading-[1.2] max-w-[320px]">
+            <h2 className="font-heading text-2xl lg:text-3xl font-bold leading-tight max-w-[320px]">
               {headline}
             </h2>
             <p className="text-white/80 text-sm mt-3 max-w-[320px] leading-relaxed hidden sm:block">
@@ -160,7 +163,7 @@ export default function AuthLayout({
                   key={i}
                   className="flex items-center gap-3 bg-white/10 border border-white/15 backdrop-blur-sm rounded-xl px-4 py-3"
                 >
-                  <div className="flex-none w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white">
+                  <div className="flex-none w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white">
                     {f.icon}
                   </div>
                   <div>
@@ -171,6 +174,13 @@ export default function AuthLayout({
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Optional bottom card (glassmorphism) */}
+          {bottomCard && (
+            <div className="hidden sm:block mt-auto">
+              {bottomCard}
             </div>
           )}
         </div>

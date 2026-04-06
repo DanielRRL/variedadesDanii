@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Mail, ArrowLeft, ShieldCheck, Loader2 } from 'lucide-react';
 import { forgotPassword } from '../../services/api';
 import AuthLayout from '../../components/auth/AuthLayout';
 import type { FeatureCard } from '../../components/auth/AuthLayout';
@@ -45,8 +45,8 @@ export default function ForgotPasswordPage() {
       {!sent ? (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-6">
           {/* Email */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700" htmlFor="forgot-email">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="forgot-email">
               Correo electrónico
             </label>
             <div className="relative">
@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-border rounded-xl pl-11 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors"
+                className="w-full border border-border rounded-xl pl-11 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors placeholder:text-gray-400"
                 placeholder="tucorreo@gmail.com"
               />
             </div>
@@ -68,9 +68,11 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-pink hover:bg-pink-700 disabled:opacity-50 text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm mt-1"
+            className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm"
           >
-            {loading ? 'Enviando...' : 'Enviar enlace de recuperación'}
+            {loading
+              ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Enviando...</span>
+              : 'Enviar enlace de recuperación'}
           </button>
         </form>
       ) : (
@@ -87,25 +89,26 @@ export default function ForgotPasswordPage() {
       )}
 
       {/* Info card */}
-      <div className="mt-6 bg-gray-50 rounded-xl p-4 space-y-3">
+      <div className="mt-6 bg-gray-50 border border-gray-100 rounded-xl px-4 py-4 space-y-3">
         <h3 className="font-heading font-semibold text-sm text-text-primary">
           ¿Recuerdas cómo accediste?
         </h3>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-brand-pink" />
+          <span className="w-2.5 h-2.5 rounded-full bg-brand-pink flex-none" />
           <span className="text-sm text-text-primary">Si usaste email, recibirás el enlace ahí</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-brand-blue" />
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-none" />
           <span className="text-sm text-text-primary">Si usaste Google, inicia sesión normalmente con Google</span>
         </div>
       </div>
 
-      <p className="text-center text-sm text-muted mt-6">
-        <Link to="/login" className="text-brand-pink font-medium hover:underline flex items-center justify-center gap-1">
-          <ArrowLeft size={14} /> Volver al inicio de sesión
-        </Link>
-      </p>
+      <Link
+        to="/login"
+        className="flex items-center justify-center gap-1.5 text-sm text-brand-pink hover:text-pink-700 transition-colors font-medium mt-6"
+      >
+        <ArrowLeft size={14} /> Volver al inicio de sesión
+      </Link>
     </AuthLayout>
   );
 }

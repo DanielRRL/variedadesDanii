@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Check, Mail } from 'lucide-react';
+import { Eye, EyeOff, Lock, Check, Mail, ShieldCheck, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { resetPassword } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -22,12 +22,12 @@ const STRENGTH_COLORS = ['', 'bg-red-500', 'bg-orange-400', 'bg-yellow-400', 'bg
 
 function Requirement({ met, label }: { met: boolean; label: string }) {
   return (
-    <span className={`flex items-center gap-1.5 text-xs ${met ? 'text-green-600' : 'text-muted'}`}>
+    <div className={`flex items-center gap-2 text-xs ${met ? 'text-gray-700' : 'text-muted'}`}>
       {met
-        ? <Check size={12} className="text-green-600" />
-        : <span className="w-3 h-3 rounded-full border border-gray-300 inline-block" />}
+        ? <Check size={12} className="text-green-600 flex-none" />
+        : <span className="w-3 h-3 rounded-full border border-gray-300 flex-none" />}
       {label}
-    </span>
+    </div>
   );
 }
 
@@ -58,7 +58,8 @@ export default function ResetPasswordPage() {
   const score = strengthScore(password);
   const hasLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
-  const notSameAsOld = password.length > 0; // Can't check real old password client-side
+  const notSameAsOld = password.length > 0;
+  const passwordMatch = password === confirmPassword && confirmPassword.length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,11 +97,11 @@ export default function ResetPasswordPage() {
     return (
       <AuthLayout
         headline="¡Contraseña actualizada!"
-        description="¡Contraseña actualizada!"
+        description="Tu cuenta está protegida con la nueva contraseña."
         variant="green"
         features={[
           { icon: <Mail size={18} />, title: 'Notificación enviada', description: 'Te avisamos al correo del cambio' },
-          { icon: <Check size={18} />, title: 'Sesiones cerradas', description: 'Todas las anteriores fueron invalidadas' },
+          { icon: <ShieldCheck size={18} />, title: 'Sesiones cerradas', description: 'Todas las anteriores fueron invalidadas' },
         ]}
       >
         <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
@@ -115,22 +116,22 @@ export default function ResetPasswordPage() {
             Por tu seguridad se realizaron las siguientes acciones:
           </p>
           <div className="flex items-center gap-2 text-sm text-green-700">
-            <Check size={14} className="text-green-600" />
+            <Check size={14} className="text-green-600 flex-none" />
             Todas las sesiones activas anteriores fueron cerradas
           </div>
           <div className="flex items-center gap-2 text-sm text-green-700">
-            <Check size={14} className="text-green-600" />
+            <Check size={14} className="text-green-600 flex-none" />
             El enlace de recuperación fue invalidado
           </div>
           <div className="flex items-center gap-2 text-sm text-green-700">
-            <Check size={14} className="text-green-600" />
+            <Check size={14} className="text-green-600 flex-none" />
             Se envió una notificación al correo registrado
           </div>
         </div>
 
         <button
           onClick={() => navigate('/login')}
-          className="w-full bg-brand-pink hover:bg-pink-700 text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm mt-6"
+          className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm mt-6"
         >
           Iniciar sesión ahora
         </button>
@@ -149,17 +150,15 @@ export default function ResetPasswordPage() {
     <AuthLayout
       headline="Crea una nueva contraseña segura"
       description="Tu enlace de recuperación es válido. Elige una contraseña que no hayas usado antes."
-      features={[
-        {
-          icon: <span className="text-2xl font-mono font-bold">{min}:{sec}</span>,
-          title: 'Enlace válido por',
-          description: 'minutos restantes',
-        },
-      ]}
+      features={[]}
+      bottomCard={
+        <div className="bg-white/10 rounded-xl px-6 py-4 text-center">
+          <p className="text-sm text-white/80 mb-1">Enlace válido por</p>
+          <p className="font-heading font-bold text-4xl text-white">{min}:{sec}</p>
+          <p className="text-sm text-white/70 mt-1">minutos restantes</p>
+        </div>
+      }
     >
-      {/* Left panel timer rendered via features slot doesn't work well,
-          so the timer info is shown in the layout description above */}
-
       <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
         Crear nueva contraseña
       </h1>
@@ -171,8 +170,8 @@ export default function ResetPasswordPage() {
 
         {/* Password fields row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700" htmlFor="new-password">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="new-password">
               Contraseña
             </label>
             <div className="relative">
@@ -184,22 +183,37 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-border rounded-xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors"
+                className="w-full border border-border rounded-xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors placeholder:text-gray-400"
                 placeholder="Mínimo 8 caracteres"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <p className="text-xs text-muted">Escribe tu nueva contraseña</p>
+            <p className="text-xs text-muted mt-1">Escribe tu nueva contraseña</p>
+
+            {/* Strength bar */}
+            {password.length > 0 && (
+              <div className="flex gap-1 mt-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${score >= n ? STRENGTH_COLORS[score] : 'bg-gray-200'}`} />
+                ))}
+              </div>
+            )}
+            {password.length > 0 && score >= 4 && (
+              <span className="flex items-center gap-1 text-xs text-green-600 mt-1">
+                <Check size={12} /> Contraseña fuerte
+              </span>
+            )}
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700" htmlFor="confirm-new-password">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="confirm-new-password">
               Confirmar contraseña
             </label>
             <div className="relative">
@@ -211,28 +225,25 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full border border-border rounded-xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors"
+                className="w-full border border-border rounded-xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors placeholder:text-gray-400"
                 placeholder="Repite la contraseña"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                aria-label={showConfirm ? 'Ocultar contraseña' : 'Ver contraseña'}
               >
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {confirmPassword && (
+              <span className={`text-xs flex items-center gap-1 mt-1 ${passwordMatch ? 'text-green-600' : 'text-red-500'}`}>
+                {passwordMatch ? <><Check size={12} /> Las contraseñas coinciden</> : <><span>✕</span> Las contraseñas no coinciden</>}
+              </span>
+            )}
           </div>
         </div>
-
-        {/* Strength bar */}
-        {password.length > 0 && (
-          <div className="flex gap-1">
-            {[1, 2, 3, 4].map((n) => (
-              <div key={n} className={`h-1.5 flex-1 rounded-full ${score >= n ? STRENGTH_COLORS[score] : 'bg-gray-200'}`} />
-            ))}
-          </div>
-        )}
 
         {/* Requirements */}
         <div className="bg-gray-50 rounded-xl px-4 py-3 flex flex-col gap-1.5">
@@ -244,9 +255,11 @@ export default function ResetPasswordPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-pink hover:bg-pink-700 disabled:opacity-50 text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm"
+          className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm"
         >
-          {loading ? 'Guardando...' : 'Guardar nueva contraseña'}
+          {loading
+            ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Guardando...</span>
+            : 'Guardar nueva contraseña'}
         </button>
       </form>
 

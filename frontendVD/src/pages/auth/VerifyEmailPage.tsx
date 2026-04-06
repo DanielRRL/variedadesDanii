@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader, RefreshCcw, Bell, ShoppingBag } from 'lucide-react';
+import { XCircle, Loader2, RefreshCcw, Bell } from 'lucide-react';
 import { verifyEmail } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import AuthLayout from '../../components/auth/AuthLayout';
@@ -28,10 +28,14 @@ export default function VerifyEmailPage() {
     return (
       <AuthLayout
         headline="¡Cuenta activada con éxito!"
-        description={`Ya eres parte de la familia Variedades DANII. Te esperan fragancias increíbles al mejor precio.`}
+        description="Ya eres parte de la familia Variedades DANII. Te esperan fragancias increíbles al mejor precio."
         variant="green"
         features={[
-          { icon: <span className="text-sm">🏆</span>, title: 'Fichas de bienvenida acreditados', description: '+2 fichas en tu cuenta' },
+          {
+            icon: <span className="text-3xl font-heading font-bold text-yellow-300">+2</span>,
+            title: 'Fichas de bienvenida acreditados',
+            description: 'fichas en tu cuenta',
+          },
         ]}
       >
         <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
@@ -49,7 +53,7 @@ export default function VerifyEmailPage() {
             </div>
             <div>
               <p className="font-heading font-semibold text-sm text-text-primary">Bono de bienvenida activo</p>
-              <p className="text-xs text-muted">Por unirte al Variedades Danii</p>
+              <p className="text-xs text-muted">Por unirte a Variedades Danii</p>
             </div>
           </div>
           <div className="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-yellow-100">
@@ -75,7 +79,7 @@ export default function VerifyEmailPage() {
         {/* CTA */}
         <button
           onClick={() => navigate('/catalogo')}
-          className="w-full bg-brand-pink hover:bg-pink-700 text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm mt-6"
+          className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm mt-6"
         >
           Explorar el catálogo
         </button>
@@ -91,7 +95,7 @@ export default function VerifyEmailPage() {
     >
       {state === 'loading' && (
         <div className="flex flex-col items-center gap-4 py-12">
-          <Loader size={40} className="text-brand-pink animate-spin" />
+          <Loader2 size={40} className="text-brand-pink animate-spin" />
           <p className="text-gray-700 font-heading font-medium">Verificando tu cuenta…</p>
           <p className="text-muted text-sm">Por favor espera un momento.</p>
         </div>
@@ -106,7 +110,7 @@ export default function VerifyEmailPage() {
           </p>
           <Link
             to="/register"
-            className="mt-2 w-full border border-border hover:bg-gray-50 text-gray-700 font-medium py-3 rounded-full transition-colors text-sm text-center"
+            className="w-full border border-border hover:bg-gray-50 text-brand-pink font-heading font-semibold py-3 rounded-full transition-colors text-sm text-center block mt-2"
           >
             Volver al registro
           </Link>

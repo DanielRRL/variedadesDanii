@@ -1,11 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Mail, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Mail, Check, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
+import { useToastStore } from '../../stores/toastStore';
+import { verifyEmail, resendVerification } from '../../services/api';
 import AuthLayout from '../../components/auth/AuthLayout';
 
 export default function VerifyEmailSentPage() {
   const user = useAuthStore((s) => s.user);
+  const addToast = useToastStore((s) => s.addToast);
+  const navigate = useNavigate();
 
   // Mask email
   const email = user?.email ?? '';
@@ -23,9 +27,35 @@ export default function VerifyEmailSentPage() {
   const min = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
   const sec = (secondsLeft % 60).toString().padStart(2, '0');
 
-  // Digit input refs (6 digits for visual display matching screenshot)
+  // Resend countdown (45 seconds)
+  const [resendCooldown, setResendCooldown] = useState(45);
+  const [resending, setResending] = useState(false);
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setInterval(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [resendCooldown]);
+
+  async function handleResend() {
+    setResending(true);
+    try {
+      await resendVerification();
+      addToast('Código reenviado. Revisa tu correo.', 'success');
+      setResendCooldown(45);
+    } catch {
+      addToast('No se pudo reenviar el código.', 'error');
+    } finally {
+      setResending(false);
+    }
+  }
+
+  // Digit input refs (6 digits)
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [verifying, setVerifying] = useState(false);
+
+  const firstEmptyIndex = digits.findIndex((d) => !d);
+  const allFilled = digits.every((d) => d !== '');
 
   function handleDigitChange(index: number, value: string) {
     if (!/^\d?$/.test(value)) return;
@@ -53,6 +83,20 @@ export default function VerifyEmailSentPage() {
     inputRefs.current[focusIdx]?.focus();
   }
 
+  async function handleVerify() {
+    const token = digits.join('');
+    if (token.length !== 6) return;
+    setVerifying(true);
+    try {
+      await verifyEmail(token);
+      navigate('/verify-email?token=' + token);
+    } catch {
+      addToast('Código inválido o expirado. Intenta de nuevo.', 'error');
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   return (
     <AuthLayout
       headline="Casi listo, solo falta verificar tu correo"
@@ -66,7 +110,7 @@ export default function VerifyEmailSentPage() {
         },
       ]}
     >
-      <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
+      <h1 className="font-heading text-2xl lg:text-[30px] font-bold text-text-primary leading-tight">
         Ingresa el código
       </h1>
       <p className="text-muted text-sm mt-1">
@@ -74,41 +118,57 @@ export default function VerifyEmailSentPage() {
       </p>
 
       {/* Stepper */}
-      <div className="flex items-center gap-0 mt-5 mb-6">
-        {[1, 2, 3].map((n) => (
-          <div key={n} className="flex items-center">
-            {n > 1 && <div className={`w-10 h-0.5 mx-1 ${n <= 3 ? 'bg-green-500' : 'bg-gray-200'}`} />}
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-              n < 3 ? 'bg-green-500 text-white' : 'bg-brand-pink text-white'
-            }`}>
-              {n < 3 ? <Check size={14} /> : n}
-            </div>
-            <span className="ml-2 text-xs hidden sm:inline text-muted">
-              {n === 3 ? 'Verificar email' : ''}
-            </span>
-          </div>
-        ))}
+      <div className="flex items-center mt-5 mb-6">
+        {[1, 2, 3].map((n, i) => {
+          const done = n < 3;
+          const active = n === 3;
+          return (
+            <React.Fragment key={n}>
+              {i > 0 && (
+                <div className={`h-0.5 w-8 sm:w-12 mx-0.5 transition-colors duration-300 ${done ? 'bg-green-500' : 'bg-gray-200'}`} />
+              )}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                done   ? 'bg-green-500 text-white' :
+                active ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/30' :
+                         'bg-gray-100 text-gray-400 border border-gray-200'
+              }`}>
+                {done ? <Check size={14} strokeWidth={3} /> : n}
+              </div>
+              {n === 3 && (
+                <span className="ml-2 text-xs sm:text-sm font-medium text-text-primary">
+                  Verificar email
+                </span>
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
 
       {/* Code input */}
       <div className="flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
-        {digits.map((d, i) => (
-          <input
-            key={i}
-            ref={(el) => { inputRefs.current[i] = el; }}
-            type="text"
-            inputMode="numeric"
-            maxLength={1}
-            value={d}
-            onChange={(e) => handleDigitChange(i, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(i, e)}
-            className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-heading font-bold rounded-xl border-2 focus:outline-none transition-colors ${
-              d
-                ? 'border-brand-pink bg-pink-50 text-brand-pink'
-                : 'border-border bg-white text-text-primary focus:border-brand-pink'
-            }`}
-          />
-        ))}
+        {digits.map((d, i) => {
+          const isActiveEmpty = i === firstEmptyIndex && !d;
+          return (
+            <input
+              key={i}
+              ref={(el) => { inputRefs.current[i] = el; }}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={d}
+              onChange={(e) => handleDigitChange(i, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(i, e)}
+              placeholder={isActiveEmpty ? '—' : ''}
+              className={`w-11 h-14 sm:w-12 sm:h-16 rounded-xl border-2 text-center text-xl font-heading font-bold outline-none transition-all duration-200 ${
+                d
+                  ? 'border-brand-pink/60 bg-pink-50 text-brand-pink'
+                  : isActiveEmpty
+                  ? 'border-brand-pink/40 bg-pink-50/50 text-text-primary focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20'
+                  : 'border-gray-200 bg-white text-text-primary focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20'
+              }`}
+            />
+          );
+        })}
       </div>
       <p className="text-xs text-muted text-center mt-2">
         Los dígitos se completan automáticamente al pegar el código
@@ -116,19 +176,32 @@ export default function VerifyEmailSentPage() {
 
       {/* Verify button */}
       <button
-        disabled
-        className="w-full bg-brand-pink hover:bg-pink-700 disabled:opacity-50 text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm mt-5"
+        onClick={handleVerify}
+        disabled={!allFilled || verifying}
+        className="w-full bg-brand-pink hover:bg-[#c0154e] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold py-3 rounded-full transition-all text-sm mt-5"
       >
-        Verificar y activar cuenta
+        {verifying
+          ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Verificando...</span>
+          : 'Verificar y activar cuenta'}
       </button>
 
       {/* Resend info */}
       <div className="mt-5 text-center">
         <p className="text-sm text-muted">¿No recibiste el correo?</p>
-        <p className="text-sm mt-1">
-          <span className="text-brand-pink font-medium">Reenviar código</span>
-          <span className="text-muted"> — disponible en 45 segundos</span>
-        </p>
+        {resendCooldown > 0 ? (
+          <p className="text-sm mt-1">
+            <span className="text-brand-pink font-medium">Reenviar código</span>
+            <span className="text-muted"> — disponible en {resendCooldown} segundos</span>
+          </p>
+        ) : (
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            className="text-sm text-brand-pink font-medium hover:text-pink-700 transition-colors mt-1 disabled:opacity-50"
+          >
+            {resending ? 'Reenviando...' : 'Reenviar código'}
+          </button>
+        )}
       </div>
 
       {/* Spam note */}
@@ -139,7 +212,7 @@ export default function VerifyEmailSentPage() {
       </div>
 
       <p className="text-center text-sm text-muted mt-6">
-        <Link to="/login" className="text-brand-pink font-medium hover:underline">
+        <Link to="/login" className="text-brand-pink font-medium hover:text-pink-700 transition-colors">
           ← Volver a iniciar sesión
         </Link>
       </p>
