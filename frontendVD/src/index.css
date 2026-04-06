@@ -67,6 +67,14 @@ h1, h2, h3, h4, h5, h6 {
 /* ending in transparent, no mix-blend-mode). Blobs are slightly lighter /     */
 /* darker shades of the panel background so they contrast subtly.              */
 
+/* ── Utility animations ──────────────────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+
 /* ── Keyframes — 5 main morphing paths + 2 utility animations ────────────── */
 
 @keyframes lava-rise-1 {

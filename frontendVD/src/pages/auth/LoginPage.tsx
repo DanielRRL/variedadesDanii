@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, X, DollarSign, RefreshCcw } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, X, DollarSign, RefreshCcw, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { login, resendVerification } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -81,19 +81,23 @@ export default function LoginPage() {
     }
   }
 
-  // Left panel changes when unverified
-  const headline = unverified
+  // Left panel changes on error or unverified
+  const headline = error
+    ? 'Verifica tu correo y contraseña'
+    : unverified
     ? 'Verifica tu correo y contraseña'
     : 'Tu fragancia perfecta, al precio que mereces';
 
-  const description = unverified
+  const description = error
+    ? 'Asegúrate de usar el mismo correo con el que te registraste. Si olvidaste tu contraseña, puedes recuperarla fácilmente.'
+    : unverified
     ? 'Asegúrate de usar el mismo correo con el que te registraste. Si olvidaste tu contraseña, puedes recuperarla fácilmente.'
     : 'Esencias inspiradas en las mejores marcas del mundo, vendidas al granel exactamente como las necesitas.';
 
-  const features: FeatureCard[] = unverified
+  const features: FeatureCard[] = (error || unverified)
     ? [
         { icon: <Mail size={18} />, title: 'Recupera contraseña por email', description: '' },
-        { icon: <span className="text-sm">🔑</span>, title: 'Ingresar con Google', description: '' },
+        { icon: <span className="text-lg">🔑</span>, title: 'Ingresar con Google', description: '' },
       ]
     : LOGIN_FEATURES;
 
@@ -101,7 +105,7 @@ export default function LoginPage() {
     <AuthLayout headline={headline} description={description} features={features}>
 
       {/* Title */}
-      <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
+      <h1 className="font-heading text-2xl lg:text-[30px] font-bold text-text-primary leading-tight">
         ¡Bienvenido de vuelta!
       </h1>
       <p className="text-muted text-sm mt-1">
@@ -114,7 +118,7 @@ export default function LoginPage() {
           onClick={() => setActiveTab('login')}
           className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
             activeTab === 'login'
-              ? 'bg-white border border-brand-pink text-brand-pink shadow-sm'
+              ? 'bg-white border border-brand-pink text-brand-pink'
               : 'text-muted hover:text-text-primary'
           }`}
         >
@@ -124,7 +128,7 @@ export default function LoginPage() {
           onClick={() => { setActiveTab('register'); navigate('/register'); }}
           className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
             activeTab === 'register'
-              ? 'bg-white border border-brand-pink text-brand-pink shadow-sm'
+              ? 'bg-white border border-brand-pink text-brand-pink'
               : 'text-muted hover:text-text-primary'
           }`}
         >
@@ -134,15 +138,15 @@ export default function LoginPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-4">
-          <X size={16} className="flex-none text-red-400" />
+        <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-4 animate-fadeIn">
+          <X size={16} className="flex-none text-red-400 mt-0.5" />
           {error}
         </div>
       )}
 
       {/* Unverified banner */}
       {unverified && (
-        <div className="mb-4 bg-yellow-50 border border-yellow-300 text-yellow-800 rounded-xl px-4 py-3 text-sm flex flex-col gap-2">
+        <div className="mb-4 bg-yellow-50 border border-yellow-300 text-yellow-800 rounded-xl px-4 py-3 text-sm flex flex-col gap-2 animate-fadeIn">
           <span>Tu cuenta aún no está verificada. Revisa tu correo electrónico.</span>
           <button
             onClick={handleResend}
@@ -155,15 +159,15 @@ export default function LoginPage() {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
 
         {/* Email */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-700" htmlFor="email">
+        <div>
+          <label className="text-sm font-medium text-gray-700 block mb-1.5" htmlFor="email">
             Correo electrónico
           </label>
           <div className="relative">
-            <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+            <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               id="email"
               type="email"
@@ -171,26 +175,28 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => { setEmail(e.target.value); setFieldErrors({}); setError(''); }}
-              className={`w-full border rounded-xl pl-11 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors ${
-                fieldErrors.email ? 'border-red-400 bg-red-50' : 'border-border'
+              className={`w-full rounded-xl border pl-10 pr-3 py-3 text-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
+                fieldErrors.email
+                  ? 'border-red-400 bg-red-50 focus:ring-red-200 focus:border-red-400'
+                  : 'border-border focus:ring-brand-pink/20 focus:border-brand-pink'
               }`}
               placeholder="tucorreo@gmail.com"
             />
           </div>
           {fieldErrors.email && (
-            <span className="flex items-center gap-1 text-xs text-red-500">
+            <span className="flex items-center gap-1 text-xs text-red-500 mt-1">
               <X size={12} /> {fieldErrors.email}
             </span>
           )}
         </div>
 
         {/* Password */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-700" htmlFor="password">
+        <div>
+          <label className="text-sm font-medium text-gray-700 block mb-1.5" htmlFor="password">
             Contraseña
           </label>
           <div className="relative">
-            <Lock size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+            <Lock size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
@@ -198,32 +204,34 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => { setPassword(e.target.value); setFieldErrors({}); setError(''); }}
-              className={`w-full border rounded-xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors ${
-                fieldErrors.password ? 'border-red-400 bg-red-50' : 'border-border'
+              className={`w-full rounded-xl border pl-10 pr-10 py-3 text-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
+                fieldErrors.password
+                  ? 'border-red-400 bg-red-50 focus:ring-red-200 focus:border-red-400'
+                  : 'border-border focus:ring-brand-pink/20 focus:border-brand-pink'
               }`}
               placeholder="Tu contraseña"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-gray-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
               aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
           {fieldErrors.password && (
-            <span className="flex items-center gap-1 text-xs text-red-500">
+            <span className="flex items-center gap-1 text-xs text-red-500 mt-1">
               <X size={12} /> {fieldErrors.password}
             </span>
           )}
         </div>
 
         {/* Forgot password */}
-        <div className="flex justify-end">
+        <div className="flex justify-end mt-1">
           <Link
             to="/forgot-password"
-            className="text-sm text-brand-pink hover:underline"
+            className="text-sm text-brand-pink hover:text-pink-700 transition-colors"
           >
             ¿Olvidaste tu contraseña?
           </Link>
@@ -233,20 +241,20 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-pink hover:bg-pink-700 disabled:opacity-50 text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm mt-1"
+          className="w-full bg-brand-pink hover:bg-[#c0154e] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold py-3 rounded-full text-sm mt-2"
         >
           {loading
-            ? 'Ingresando...'
+            ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Ingresando...</span>
             : error
             ? 'Volver a intentar'
             : 'Iniciar Sesión'}
         </button>
 
         {/* Divider */}
-        <div className="flex items-center gap-3 my-1">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted">ó continua con</span>
-          <div className="flex-1 h-px bg-border" />
+        <div className="flex items-center gap-3 my-4">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-xs text-muted whitespace-nowrap">ó continua con</span>
+          <div className="flex-1 h-px bg-gray-200" />
         </div>
 
         {/* Google Sign-In */}
