@@ -1,26 +1,50 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, X, DollarSign, RefreshCcw } from 'lucide-react';
 import axios from 'axios';
 import { login, resendVerification } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import GoogleSignInButton from '../../components/auth/GoogleSignInButton';
+import AuthLayout from '../../components/auth/AuthLayout';
+import type { FeatureCard } from '../../components/auth/AuthLayout';
+
+// ── Feature cards for the left panel ──────────────────────────────────────────
+
+const LOGIN_FEATURES: FeatureCard[] = [
+  {
+    icon: <DollarSign size={18} />,
+    title: 'Precio justo al granel',
+    description: 'Elige 1oz, 2oz, 3oz o más',
+  },
+  {
+    icon: <RefreshCcw size={18} />,
+    title: 'Descuento por devolución',
+    description: 'Devuelve el frasco y ahorra $2.000',
+  },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
   const addToast = useToastStore((s) => s.addToast);
 
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [unverified, setUnverified] = useState(false);
   const [resending, setResending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError('');
+    setFieldErrors({});
     setUnverified(false);
     setLoading(true);
     try {
@@ -32,12 +56,13 @@ export default function LoginPage() {
         if (err.response?.status === 403) {
           setUnverified(true);
         } else if (err.response?.status === 401) {
-          addToast('Email o contraseña incorrectos.', 'error');
+          setError('Correo o contraseña incorrectos. Intenta de nuevo.');
+          setFieldErrors({ email: 'Verifica que el correo sea correcto', password: 'Contraseña incorrecta' });
         } else {
-          addToast('Ocurrió un error. Intenta de nuevo.', 'error');
+          setError('Ocurrió un error. Intenta de nuevo.');
         }
       } else {
-        addToast('Ocurrió un error. Intenta de nuevo.', 'error');
+        setError('Ocurrió un error. Intenta de nuevo.');
       }
     } finally {
       setLoading(false);
@@ -56,121 +81,184 @@ export default function LoginPage() {
     }
   }
 
+  // Left panel changes when unverified
+  const headline = unverified
+    ? 'Verifica tu correo y contraseña'
+    : 'Tu fragancia perfecta, al precio que mereces';
+
+  const description = unverified
+    ? 'Asegúrate de usar el mismo correo con el que te registraste. Si olvidaste tu contraseña, puedes recuperarla fácilmente.'
+    : 'Esencias inspiradas en las mejores marcas del mundo, vendidas al granel exactamente como las necesitas.';
+
+  const features: FeatureCard[] = unverified
+    ? [
+        { icon: <Mail size={18} />, title: 'Recupera contraseña por email', description: '' },
+        { icon: <span className="text-sm">🔑</span>, title: 'Ingresar con Google', description: '' },
+      ]
+    : LOGIN_FEATURES;
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        {/* Back to home */}
+    <AuthLayout headline={headline} description={description} features={features}>
+
+      {/* Title */}
+      <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
+        ¡Bienvenido de vuelta!
+      </h1>
+      <p className="text-muted text-sm mt-1">
+        Inicia sesión para acceder a tu cuenta y hacer tus pedidos
+      </p>
+
+      {/* Tabs */}
+      <div className="flex gap-1 mt-6 mb-5">
         <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-1 text-sm text-muted hover:text-text-primary mb-4 transition-colors"
-          aria-label="Volver al inicio"
+          onClick={() => setActiveTab('login')}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+            activeTab === 'login'
+              ? 'bg-white border border-brand-pink text-brand-pink shadow-sm'
+              : 'text-muted hover:text-text-primary'
+          }`}
         >
-          <ArrowLeft size={16} />
-          Inicio
+          Ingresar
         </button>
-
-        {/* Brand header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-brand-pink">Variedades DANII</h1>
-          <p className="text-muted text-sm mt-1">Inicia sesion en tu cuenta</p>
-        </div>
-
-        {/* Unverified banner */}
-        {unverified && (
-          <div className="mb-4 bg-yellow-50 border border-yellow-300 text-yellow-800 rounded-xl px-4 py-3 text-sm flex flex-col gap-2">
-            <span>Tu cuenta aún no está verificada. Revisa tu correo electrónico.</span>
-            <button
-              onClick={handleResend}
-              disabled={resending}
-              className="self-start font-medium underline hover:no-underline disabled:opacity-50"
-            >
-              {resending ? 'Enviando...' : 'Reenviar enlace de verificación'}
-            </button>
-          </div>
-        )}
-
-        {/* Card */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-surface rounded-2xl shadow-sm border border-border p-6 flex flex-col gap-4"
+        <button
+          onClick={() => { setActiveTab('register'); navigate('/register'); }}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+            activeTab === 'register'
+              ? 'bg-white border border-brand-pink text-brand-pink shadow-sm'
+              : 'text-muted hover:text-text-primary'
+          }`}
         >
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700" htmlFor="email">
-              Correo electrónico
-            </label>
+          Registrase
+        </button>
+      </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-4">
+          <X size={16} className="flex-none text-red-400" />
+          {error}
+        </div>
+      )}
+
+      {/* Unverified banner */}
+      {unverified && (
+        <div className="mb-4 bg-yellow-50 border border-yellow-300 text-yellow-800 rounded-xl px-4 py-3 text-sm flex flex-col gap-2">
+          <span>Tu cuenta aún no está verificada. Revisa tu correo electrónico.</span>
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            className="self-start font-medium underline hover:no-underline disabled:opacity-50"
+          >
+            {resending ? 'Enviando...' : 'Reenviar enlace de verificación'}
+          </button>
+        </div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+        {/* Email */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-700" htmlFor="email">
+            Correo electrónico
+          </label>
+          <div className="relative">
+            <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
             <input
               id="email"
               type="email"
               autoComplete="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors"
-              placeholder="tu@correo.com"
+              onChange={(e) => { setEmail(e.target.value); setFieldErrors({}); setError(''); }}
+              className={`w-full border rounded-xl pl-11 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors ${
+                fieldErrors.email ? 'border-red-400 bg-red-50' : 'border-border'
+              }`}
+              placeholder="tucorreo@gmail.com"
             />
           </div>
+          {fieldErrors.email && (
+            <span className="flex items-center gap-1 text-xs text-red-500">
+              <X size={12} /> {fieldErrors.email}
+            </span>
+          )}
+        </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700" htmlFor="password">
-              Contraseña
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-border rounded-xl px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors"
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-gray-700"
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-brand-pink hover:underline"
+        {/* Password */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-700" htmlFor="password">
+            Contraseña
+          </label>
+          <div className="relative">
+            <Lock size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setFieldErrors({}); setError(''); }}
+              className={`w-full border rounded-xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors ${
+                fieldErrors.password ? 'border-red-400 bg-red-50' : 'border-border'
+              }`}
+              placeholder="Tu contraseña"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-gray-700"
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
             >
-              ¿Olvidaste tu contraseña?
-            </Link>
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
+          {fieldErrors.password && (
+            <span className="flex items-center gap-1 text-xs text-red-500">
+              <X size={12} /> {fieldErrors.password}
+            </span>
+          )}
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-brand-pink hover:bg-pink-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
+        {/* Forgot password */}
+        <div className="flex justify-end">
+          <Link
+            to="/forgot-password"
+            className="text-sm text-brand-pink hover:underline"
           >
-            {loading ? 'Ingresando...' : 'Iniciar sesión'}
-          </button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-1">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted">o</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          {/* Google Sign-In */}
-          <GoogleSignInButton />
-        </form>
-
-        <p className="text-center text-sm text-muted mt-6">
-          ¿No tienes cuenta?{' '}
-          <Link to="/register" className="text-brand-pink font-medium hover:underline">
-            Regístrate aquí
+            ¿Olvidaste tu contraseña?
           </Link>
-        </p>
-      </div>
-    </div>
+        </div>
+
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-brand-pink hover:bg-pink-700 disabled:opacity-50 text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm mt-1"
+        >
+          {loading
+            ? 'Ingresando...'
+            : error
+            ? 'Volver a intentar'
+            : 'Iniciar Sesión'}
+        </button>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-1">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted">ó continua con</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        {/* Google Sign-In */}
+        <GoogleSignInButton />
+      </form>
+
+      <p className="text-center text-sm text-muted mt-6">
+        ¿No tienes cuenta?{' '}
+        <Link to="/register" className="text-brand-pink font-medium hover:underline">
+          Registrate gratis
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }
