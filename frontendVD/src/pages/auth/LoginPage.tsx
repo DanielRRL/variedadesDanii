@@ -108,17 +108,17 @@ export default function LoginPage() {
       <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
         ¡Bienvenido de vuelta!
       </h1>
-      <p className="text-muted text-sm mt-1">
+      <p className="text-muted text-sm mt-2">
         Inicia sesión para acceder a tu cuenta y hacer tus pedidos
       </p>
 
       {/* Tabs */}
-      <div className="flex gap-1 mt-6 mb-5">
+      <div className="inline-flex border border-border rounded-full p-1 mt-8 mb-8">
         <button
           onClick={() => setActiveTab('login')}
-          className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+          className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
             activeTab === 'login'
-              ? 'bg-white border border-brand-pink text-brand-pink shadow-sm'
+              ? 'text-brand-pink'
               : 'text-muted hover:text-text-primary'
           }`}
         >
@@ -126,9 +126,9 @@ export default function LoginPage() {
         </button>
         <button
           onClick={() => { setActiveTab('register'); navigate('/register'); }}
-          className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+          className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
             activeTab === 'register'
-              ? 'bg-white border border-brand-pink text-brand-pink shadow-sm'
+              ? 'text-brand-pink'
               : 'text-muted hover:text-text-primary'
           }`}
         >
@@ -159,15 +159,15 @@ export default function LoginPage() {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
         {/* Email */}
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1.5" htmlFor="email">
+          <label className="text-sm font-medium text-gray-700 block mb-2" htmlFor="email">
             Correo electrónico
           </label>
           <div className="relative">
-            <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+            <Mail size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input
               id="email"
               type="email"
@@ -175,7 +175,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => { setEmail(e.target.value); setFieldErrors({}); setError(''); }}
-              className={`w-full rounded-xl border pl-11 pr-3 py-3 text-sm focus:outline-none focus:ring-2 transition-colors ${
+              className={`w-full rounded-xl border pl-12 pr-4 py-3.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
                 fieldErrors.email
                   ? 'border-red-400 bg-red-50 focus:ring-red-200 focus:border-red-400'
                   : 'border-border focus:ring-brand-pink/40 focus:border-brand-pink'
@@ -192,11 +192,11 @@ export default function LoginPage() {
 
         {/* Password */}
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1.5" htmlFor="password">
+          <label className="text-sm font-medium text-gray-700 block mb-2" htmlFor="password">
             Contraseña
           </label>
           <div className="relative">
-            <Lock size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+            <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
@@ -204,7 +204,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => { setPassword(e.target.value); setFieldErrors({}); setError(''); }}
-              className={`w-full rounded-xl border pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 transition-colors ${
+              className={`w-full rounded-xl border pl-14 pr-10 py-3.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
                 fieldErrors.password
                   ? 'border-red-400 bg-red-50 focus:ring-red-200 focus:border-red-400'
                   : 'border-border focus:ring-brand-pink/40 focus:border-brand-pink'
@@ -228,7 +228,7 @@ export default function LoginPage() {
         </div>
 
         {/* Forgot password */}
-        <div className="flex justify-end mt-1">
+        <div className="flex justify-end -mt-2">
           <Link
             to="/forgot-password"
             className="text-sm text-brand-pink hover:underline"
@@ -241,7 +241,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold py-3 rounded-full text-sm mt-1"
+          className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold py-4 rounded-full text-sm mt-2"
         >
           {loading
             ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Ingresando...</span>
@@ -251,7 +251,7 @@ export default function LoginPage() {
         </button>
 
         {/* Divider */}
-        <div className="flex items-center gap-3 my-4">
+        <div className="flex items-center gap-4 my-2">
           <div className="flex-1 h-px bg-border" />
           <span className="text-xs text-muted whitespace-nowrap">ó continua con</span>
           <div className="flex-1 h-px bg-border" />

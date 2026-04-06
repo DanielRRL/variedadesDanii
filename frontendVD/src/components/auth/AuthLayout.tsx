@@ -89,8 +89,8 @@ export default function AuthLayout({
       <div
         className={`relative overflow-hidden ${panelBg} text-white
           flex flex-col
-          px-6 py-6 sm:py-8 lg:px-10 lg:py-12
-          lg:w-[42%] lg:sticky lg:top-0 lg:h-screen lg:overflow-hidden
+          px-8 py-10 sm:py-12 lg:px-16 lg:py-14
+          lg:w-[42%] lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto
           min-h-50 sm:min-h-65`}
       >
         {/* Lava lamp blobs — pink variant */}
@@ -136,17 +136,17 @@ export default function AuthLayout({
 
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-white/20 border border-white/30 backdrop-blur-sm flex items-center justify-center font-heading font-bold text-lg text-gray-800">
+            <div className="w-14 h-14 rounded-2xl bg-white backdrop-blur-sm flex items-center justify-center font-heading font-bold text-xl text-brand-pink shadow-sm">
               VR
             </div>
             <div>
-              <p className="font-heading font-bold text-base leading-tight">Variedades Danii</p>
+              <p className="font-heading font-bold text-lg leading-tight">Variedades Danii</p>
               <p className="text-white/70 text-xs">Perfumería · Armenia, Quindío</p>
             </div>
           </div>
 
           {/* Headline + description */}
-          <div className="mt-auto mb-auto py-4 sm:py-6 lg:py-0 lg:mt-0 lg:mb-0 flex flex-col items-start justify-center lg:justify-end lg:flex-1">
+          <div className="flex-1 flex flex-col items-start justify-center py-4 sm:py-6 lg:py-8">
             <h2 className="font-heading text-2xl lg:text-3xl font-bold leading-tight max-w-[320px]">
               {headline}
             </h2>
@@ -157,11 +157,11 @@ export default function AuthLayout({
 
           {/* Feature cards */}
           {features.length > 0 && (
-            <div className="hidden sm:flex flex-col gap-3 mt-4 lg:mt-6">
+            <div className="hidden sm:flex flex-col gap-3">
               {features.map((f, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 bg-white/10 border border-white/15 backdrop-blur-sm rounded-xl px-4 py-3"
+                  className="flex items-center gap-3 px-1 py-2"
                 >
                   <div className="flex-none w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white">
                     {f.icon}
