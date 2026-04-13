@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { googleLogin } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
+import "../../css/GoogleSignInButton.css";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 

@@ -10,6 +10,7 @@
  */
 
 import type { ReactNode } from 'react';
+import "../../css/AuthLayout.css"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -80,22 +81,18 @@ export default function AuthLayout({
     : 'bg-[#2E7D32]/20';
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row font-body">
+    <div className="auth-layout">
 
       {/* SVG filter definition (rendered once, hidden) */}
       <LavaGooFilter />
 
       {/* ── Left panel — branding + lava lamp ─────────────────────────────── */}
       <div
-        className={`relative overflow-hidden ${panelBg} text-white
-          flex flex-col
-          px-8 py-10 sm:py-12 lg:px-16 lg:py-14
-          lg:w-[42%] lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto
-          min-h-50 sm:min-h-65`}
+        className={`auth-left-panel ${panelBg}`}
       >
         {/* Lava lamp blobs — pink variant */}
         {isPink && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none lava-container" aria-hidden="true">
+          <div className="lava-container" aria-hidden="true">
             <div className="lava-blob lava-blob-1" />
             <div className="lava-blob lava-blob-2" />
             <div className="lava-blob lava-blob-3" />
@@ -111,7 +108,7 @@ export default function AuthLayout({
 
         {/* Lava lamp blobs — green variant */}
         {!isPink && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none lava-container" aria-hidden="true">
+          <div className="lava-container" aria-hidden="true">
             <div className="lava-blob lava-blob-green-1" />
             <div className="lava-blob lava-blob-green-2" />
             <div className="lava-blob lava-blob-green-3" />
@@ -123,53 +120,53 @@ export default function AuthLayout({
         )}
 
         {/* Overlay to unify blobs with background */}
-        <div className={`absolute inset-0 ${overlayClass} pointer-events-none z-5`} />
+        <div className={`overlay ${overlayClass}`} />
 
         {/* Vignette on edges */}
         <div
-          className="absolute inset-0 pointer-events-none z-6"
+          className="vignette"
           style={vignetteStyle}
         />
 
         {/* Content (z-10 to sit above blobs + overlays) */}
-        <div className="relative z-10 flex flex-col h-full justify-between">
+        <div className="auth-left-content">
 
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-white backdrop-blur-sm flex items-center justify-center font-heading font-bold text-xl text-brand-pink shadow-sm">
-              VR
+          <div className="auth-logo">
+            <div className="auth-logo-box">
+              VD
             </div>
             <div>
-              <p className="font-heading font-bold text-lg leading-tight">Variedades Danii</p>
-              <p className="text-white/70 text-xs">Perfumería · Armenia, Quindío</p>
+              <p className="auth-logo-title">Variedades DANII</p>
+              <p className="auth-logo-subtitle">Perfumería · Armenia, Quindío</p>
             </div>
           </div>
 
           {/* Headline + description */}
-          <div className="flex-1 flex flex-col items-start justify-center py-4 sm:py-6 lg:py-8">
-            <h2 className="font-heading text-2xl lg:text-3xl font-bold leading-tight max-w-[320px]">
+          <div className="auth-headline-container">
+            <h2 className="auth-headline">
               {headline}
             </h2>
-            <p className="text-white/80 text-sm mt-3 max-w-[320px] leading-relaxed hidden sm:block">
+            <p className="auth-description">
               {description}
             </p>
           </div>
 
           {/* Feature cards */}
           {features.length > 0 && (
-            <div className="hidden sm:flex flex-col gap-3">
+            <div className="auth-features">
               {features.map((f, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 px-1 py-2"
+                  className="feature-item"
                 >
-                  <div className="flex-none w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white">
+                  <div className="feature-icon">
                     {f.icon}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold leading-tight">{f.title}</p>
+                    <p className="feature-title">{f.title}</p>
                     {f.description && (
-                      <p className="text-white/70 text-xs">{f.description}</p>
+                      <p className="feature-description">{f.description}</p>
                     )}
                   </div>
                 </div>
@@ -179,7 +176,7 @@ export default function AuthLayout({
 
           {/* Optional bottom card (glassmorphism) */}
           {bottomCard && (
-            <div className="hidden sm:block mt-auto">
+            <div className="auth-bottom-card">
               {bottomCard}
             </div>
           )}
@@ -187,8 +184,8 @@ export default function AuthLayout({
       </div>
 
       {/* ── Right panel — form content ────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-4 py-8 sm:px-8 lg:px-12 bg-white overflow-y-auto">
-        <div className="w-full max-w-md">
+      <div className="auth-right-panel">
+        <div className="auth-right-content">
           {children}
         </div>
       </div>

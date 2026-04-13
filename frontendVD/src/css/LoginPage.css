@@ -1,0 +1,304 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins&display=swap');
+
+:root {
+  --brand-pink: #D81B60;
+  --text-inactive: #757575;
+  --error-banner: #FFF5F5;
+  --text-error: #C62828;
+  --text-primary: #212121;
+  --text-secundary: #1565C0;
+}
+
+/* Title */
+.heading-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 23px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+@media (min-width: 1024px) {
+  .heading-title {
+    font-size: 1.875rem;
+  }
+}
+
+.heading-subtitle {
+    color: var(--text-inactive);
+    font-size: 14px;
+}
+
+/* Tabs */
+.tabs {
+    width: auto;
+    display: inline-flex;
+    padding: 5px 5px;
+    border-radius: 10px;
+    background-color: #f5f5f5;
+    margin-top: 15px;
+}
+
+.tab-buttom {
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.tab-buttom--active {
+    background-color: #FFFFFF;
+    color: var(--brand-pink);
+}
+
+.tab-buttom--inactive {
+    background-color: transparent;
+    color: var(--text-inactive);
+}
+
+.tab-buttom--inactive:hover {
+    background-color: #f3f4f6;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+/* Error banner */
+.error-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    background-color: var(--error-banner);
+    border: 1px solid #FFCDD2;
+    color: var(--text-error);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 13px;
+    margin-bottom: 1rem;
+    animation: fadeIn 0.3s ease-in-out;
+    margin-top: 0.5rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Unverified banner */
+.unverified-banner {
+  margin-bottom: 1rem;
+  background-color: #fefce8;
+  border: 1px solid #fde047;
+  color: #854d0e;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* gap-2 */
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.unverified-button {
+  align-self: flex-start;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.unverified-button:hover {
+  text-decoration: none;
+}
+
+.unverified-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form */
+.form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 20px;
+}
+
+/* Label */
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem; /* mb-2 */
+    font-size: 12px; /* text-sm */
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Input Wrapper */
+.input-wrapper {
+    position: relative;
+}
+
+/* Icon Left */
+.input-icon-left {
+    position: absolute;
+    left: 1rem; 
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-inactive); 
+}
+
+/* Input Base */
+.input {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #E0E0E0; 
+    padding: 0.875rem 1rem; 
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+/* Paddings */
+.input-email {
+    padding-left: 3rem; 
+}
+
+.input-password {
+    padding-left: 3.5rem; 
+    padding-right: 2.5rem; 
+}
+
+/* Input Focus */
+.input:focus {
+    outline: none;
+    border-color: var(--brand-pink); /* brand-pink */
+}
+
+/* Input Error */
+.input-error {
+    border-color: var(--text-error);
+    background-color: var(--error-banner);
+}
+
+.input-error:focus {
+    border-color: var(--text-error);
+    box-shadow: 0 0 0 2px var(--error-banner);
+}
+
+/* Error Text */
+.input-error-text {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--text-error);
+    margin-top: 0.5rem;
+}
+
+/* Password Toggle Button */
+.password-toggle {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-inactive);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.password-toggle:hover {
+    color: var(--text-primary);
+}
+
+/* Forgot Password */
+.forgot-password {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -0.5rem;
+}
+
+.forgot-password a {
+    font-size: 12px;
+    color: var(--text-secundary);
+    text-decoration: none;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+}
+
+/* Submit Button */
+.submit-button {
+    width: 100%;
+    background-color: var(--brand-pink);
+    color: white;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 1rem;
+    font-size: 15px;
+    margin-top: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.submit-button:hover {
+    background-color: #be185d; 
+}
+
+.submit-button:active {
+    transform: scale(0.98);
+}
+
+.submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Divider */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.5rem 0;
+}
+
+.divider-line {
+    flex: 1;
+    height: 1px;
+    background-color: #E0E0E0; 
+}
+
+.divider-text {
+    font-size: 12px;
+    color: var(--text-inactive);
+    white-space: nowrap;
+}
+
+/* Auth Footer */
+.auth-footer {
+  text-align: center;
+  font-size: 13px; 
+  color: var(--text-inactive); 
+  margin-top: 1.5rem; 
+}
+
+/* Link */
+.auth-link {
+  color: var(--text-secundary); 
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}

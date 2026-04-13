@@ -8,6 +8,7 @@ import { useToastStore } from '../../stores/toastStore';
 import GoogleSignInButton from '../../components/auth/GoogleSignInButton';
 import AuthLayout from '../../components/auth/AuthLayout';
 import type { FeatureCard } from '../../components/auth/AuthLayout';
+import "../../css/LoginPage.css";
 
 // ── Feature cards for the left panel ──────────────────────────────────────────
 
@@ -105,31 +106,31 @@ export default function LoginPage() {
     <AuthLayout headline={headline} description={description} features={features}>
 
       {/* Title */}
-      <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
+      <h1 className="heading-title">
         ¡Bienvenido de vuelta!
       </h1>
-      <p className="text-muted text-sm mt-2">
+      <p className="heading-subtitle">
         Inicia sesión para acceder a tu cuenta y hacer tus pedidos
       </p>
 
       {/* Tabs */}
-      <div className="inline-flex border border-border rounded-full p-1 mt-8 mb-8">
+      <div className="tabs">
         <button
           onClick={() => setActiveTab('login')}
-          className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
+          className={`tab-buttom ${
             activeTab === 'login'
-              ? 'text-brand-pink'
-              : 'text-muted hover:text-text-primary'
+              ? 'tab-buttom--active'
+              : 'tab-buttom--inactive'
           }`}
         >
           Ingresar
         </button>
         <button
           onClick={() => { setActiveTab('register'); navigate('/register'); }}
-          className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
+          className={`tab-buttom ${
             activeTab === 'register'
-              ? 'text-brand-pink'
-              : 'text-muted hover:text-text-primary'
+              ? 'tab-buttom--active'
+              : 'tab-buttom--inactive'
           }`}
         >
           Registrase
@@ -138,20 +139,19 @@ export default function LoginPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-4 animate-fadeIn">
-          <X size={16} className="flex-none text-red-400 mt-0.5" />
+        <div className="error-container">
           {error}
         </div>
       )}
 
       {/* Unverified banner */}
       {unverified && (
-        <div className="mb-4 bg-yellow-50 border border-yellow-300 text-yellow-800 rounded-xl px-4 py-3 text-sm flex flex-col gap-2 animate-fadeIn">
+        <div className="unverified-banner">
           <span>Tu cuenta aún no está verificada. Revisa tu correo electrónico.</span>
           <button
             onClick={handleResend}
             disabled={resending}
-            className="self-start font-medium underline hover:no-underline disabled:opacity-50"
+            className="unverified-button"
           >
             {resending ? 'Enviando...' : 'Reenviar enlace de verificación'}
           </button>
@@ -159,15 +159,15 @@ export default function LoginPage() {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form onSubmit={handleSubmit} className="form-container">
 
         {/* Email */}
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-2" htmlFor="email">
+          <label className="form-label" htmlFor="email">
             Correo electrónico
           </label>
-          <div className="relative">
-            <Mail size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+          <div className="input-wrapper">
+            <Mail size={18} className="input-icon-left" />
             <input
               id="email"
               type="email"
@@ -175,16 +175,14 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => { setEmail(e.target.value); setFieldErrors({}); setError(''); }}
-              className={`w-full rounded-xl border pl-12 pr-4 py-3.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
+              className={`input input-email ${
                 fieldErrors.email
-                  ? 'border-red-400 bg-red-50 focus:ring-red-200 focus:border-red-400'
-                  : 'border-border focus:ring-brand-pink/40 focus:border-brand-pink'
-              }`}
+                  ? 'input-error' : ''}`}
               placeholder="tucorreo@gmail.com"
             />
           </div>
           {fieldErrors.email && (
-            <span className="flex items-center gap-1 text-xs text-red-500 mt-1">
+            <span className="input-error-text">
               <X size={12} /> {fieldErrors.email}
             </span>
           )}
@@ -192,11 +190,11 @@ export default function LoginPage() {
 
         {/* Password */}
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-2" htmlFor="password">
+          <label className="form-label" htmlFor="password">
             Contraseña
           </label>
-          <div className="relative">
-            <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+          <div className="input-wrapper">
+            <Lock size={18} className="input-icon-left" />
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
@@ -204,34 +202,29 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => { setPassword(e.target.value); setFieldErrors({}); setError(''); }}
-              className={`w-full rounded-xl border pl-14 pr-10 py-3.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
-                fieldErrors.password
-                  ? 'border-red-400 bg-red-50 focus:ring-red-200 focus:border-red-400'
-                  : 'border-border focus:ring-brand-pink/40 focus:border-brand-pink'
-              }`}
+              className={`input input-password ${fieldErrors.password ? 'input-error' : ''}`}
               placeholder="Tu contraseña"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+              className="password-toggle"
               aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
           {fieldErrors.password && (
-            <span className="flex items-center gap-1 text-xs text-red-500 mt-1">
+            <span className="input-error-text">
               <X size={12} /> {fieldErrors.password}
             </span>
           )}
         </div>
 
         {/* Forgot password */}
-        <div className="flex justify-end -mt-2">
+        <div className="forgot-password">
           <Link
             to="/forgot-password"
-            className="text-sm text-brand-pink hover:underline"
           >
             ¿Olvidaste tu contraseña?
           </Link>
@@ -241,7 +234,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold py-4 rounded-full text-sm mt-2"
+          className="submit-button"
         >
           {loading
             ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Ingresando...</span>
@@ -251,19 +244,19 @@ export default function LoginPage() {
         </button>
 
         {/* Divider */}
-        <div className="flex items-center gap-4 my-2">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted whitespace-nowrap">ó continua con</span>
-          <div className="flex-1 h-px bg-border" />
+        <div className="divider">
+          <div className="divider-line" />
+          <span className="divider-text">ó continua con</span>
+          <div className="divider-line" />
         </div>
 
         {/* Google Sign-In */}
         <GoogleSignInButton />
       </form>
 
-      <p className="text-center text-sm text-muted mt-6">
+      <p className="auth-footer">
         ¿No tienes cuenta?{' '}
-        <Link to="/register" className="text-brand-pink font-medium hover:underline">
+        <Link to="/register" className="auth-link">
           Registrate gratis
         </Link>
       </p>
