@@ -89,11 +89,11 @@ export default function GoogleSignInButton() {
   if (!GOOGLE_CLIENT_ID) return null;
 
   return (
-    <div className="relative w-full" style={{ height: 48 }}>
+    <div className="google-btn-container">
       {/* Hidden real Google button (rendered by GIS, sits on top for click handling) */}
       <div
         ref={googleBtnRef}
-        className="absolute inset-0 z-10 overflow-hidden"
+        className="google-btn-hidden"
         style={{ opacity: 0.01 }}
         aria-hidden="true"
       />
@@ -103,14 +103,10 @@ export default function GoogleSignInButton() {
         type="button"
         onClick={handleClick}
         disabled={loading || !gsiReady}
-        className="absolute inset-0 w-full flex items-center justify-center gap-3
-                   border border-gray-300 hover:bg-gray-50 active:bg-gray-100
-                   active:scale-[0.99] transition-all duration-150 rounded-xl
-                   text-sm font-medium text-gray-700
-                   disabled:opacity-60 disabled:cursor-not-allowed bg-white"
+        className="google-btn"
       >
         {loading ? (
-          <Loader2 size={18} className="animate-spin text-gray-400" />
+          <Loader2 className="google-btn-loader" />
         ) : (
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
