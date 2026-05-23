@@ -36,6 +36,7 @@ import {
   getHouses,
 } from '../../services/api';
 import { formatCOP } from '../../utils/format';
+import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
 import type { Product, Essence, House } from '../../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -350,11 +351,12 @@ export default function AdminProductsPage() {
   const [createOpen, setCreateOpen]   = useState(false);
   const [editTarget, setEditTarget]   = useState<Product | null>(null);
   const [stockTarget, setStockTarget] = useState<Product | null>(null);
-  const [saving, setSaving]           = useState(false);
+  const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
-  const [deleteError, setDeleteError] = useState('');
-  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError]   = useState('');
+  const [deleting, setDeleting]         = useState(false);
+  const [toggleTarget, setToggleTarget] = useState<Product | null>(null);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   const { data: res, isLoading } = useQuery({
@@ -430,8 +432,14 @@ export default function AdminProductsPage() {
   };
 
   // ── Toggle active ──
-  const handleToggle = async (p: Product) => {
-    if (!window.confirm(`¿${p.active ? 'Desactivar' : 'Activar'} "${p.name}"?`)) return;
+  const handleToggleClick = (p: Product) => {
+    setToggleTarget(p);
+  };
+
+  const handleToggleConfirm = async () => {
+    if (!toggleTarget) return;
+    const p = toggleTarget;
+    setToggleTarget(null);
     try {
       await adminToggleProduct(p.id);
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
@@ -617,7 +625,7 @@ export default function AdminProductsPage() {
                           <PackagePlus size={13} />
                         </button>
                         <button
-                          onClick={() => handleToggle(p)}
+                          onClick={() => handleToggleClick(p)}
                           className="p-1.5 text-muted hover:text-brand-pink rounded-lg hover:bg-brand-pink/10 transition-colors"
                           title={p.active ? 'Desactivar' : 'Activar'}
                         >
@@ -754,6 +762,16 @@ export default function AdminProductsPage() {
           </div>
         )}
       </Modal>
+
+      <AdminConfirmDialog
+        open={!!toggleTarget}
+        onClose={() => setToggleTarget(null)}
+        onConfirm={handleToggleConfirm}
+        title={toggleTarget?.active ? "Desactivar producto" : "Activar producto"}
+        message={`¿${toggleTarget?.active ? "Desactivar" : "Activar"} "${toggleTarget?.name ?? ""}"?`}
+        confirmLabel={toggleTarget?.active ? "Desactivar" : "Activar"}
+        variant="warning"
+      />
     </div>
   );
 }

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 
+import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
 import {
   getEssences,
   getOlfactiveFamilies,
@@ -472,7 +473,9 @@ export default function AdminEssencesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Essence | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
-  const [deleting, setDeleting] = useState(false);  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [toggleTarget, setToggleTarget] = useState<Essence | null>(null);
   // Data queries
   const { data: essencesRes, isLoading } = useQuery({
     queryKey: ['admin-essences'],
@@ -556,10 +559,15 @@ export default function AdminEssencesPage() {
     }
   };
 
-  // Toggle active
-  const handleToggle = async (e: Essence) => {
+  const handleToggleClick = (e: Essence) => {
+    setToggleTarget(e);
+  };
+
+  const handleToggleConfirm = async () => {
+    if (!toggleTarget) return;
+    const e = toggleTarget;
     const newActive = !(e.active ?? e.isActive);
-    if (!window.confirm(`¿${newActive ? 'Activar' : 'Desactivar'} "${e.name}"?`)) return;
+    setToggleTarget(null);
     try {
       await updateEssence(e.id, { active: newActive });
       queryClient.invalidateQueries({ queryKey: ['admin-essences'] });
@@ -732,7 +740,7 @@ export default function AdminEssencesPage() {
                     <Pencil size={13} />
                   </button>
                   <button
-                    onClick={() => handleToggle(essence)}
+                    onClick={() => handleToggleClick(essence)}
                     className="p-1.5 text-muted hover:text-brand-pink rounded-lg hover:bg-brand-pink/10 transition-colors"
                     title={isActive ? 'Desactivar' : 'Activar'}
                   >
@@ -852,6 +860,16 @@ export default function AdminEssencesPage() {
           </div>
         </div>
       )}
+
+      <AdminConfirmDialog
+        open={!!toggleTarget}
+        onClose={() => setToggleTarget(null)}
+        onConfirm={handleToggleConfirm}
+        title={toggleTarget?.active ?? toggleTarget?.isActive ? "Desactivar esencia" : "Activar esencia"}
+        message={`¿${toggleTarget?.active ?? toggleTarget?.isActive ? "Desactivar" : "Activar"} "${toggleTarget?.name ?? ""}"?`}
+        confirmLabel={toggleTarget?.active ?? toggleTarget?.isActive ? "Desactivar" : "Activar"}
+        variant="warning"
+      />
     </div>
   );
 }

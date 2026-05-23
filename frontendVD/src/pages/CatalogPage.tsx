@@ -18,15 +18,14 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Search, X, ChevronDown, AlertCircle,
-  RefreshCw, SearchX, Trophy, ShoppingCart, Check,
+  RefreshCw, SearchX, Trophy,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getProducts, getEssences, getCurrentChallenge } from '../services/api';
-import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
-import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
+import ProductCard from '../components/catalog/ProductCard';
 import { EssenceCard } from '../components/catalog/EssenceCard';
 import type { Product, Essence } from '../types';
 
@@ -35,15 +34,6 @@ import type { Product, Essence } from '../types';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
-
-const PRODUCT_TYPE_LABELS: Record<string, string> = {
-  LOTION: 'Lociones',
-  CREAM: 'Cremas',
-  SHAMPOO: 'Shampoo',
-  MAKEUP: 'Maquillaje',
-  SPLASH: 'Splash',
-  ACCESSORY: 'Accesorios',
-};
 
 const TYPE_CHIPS: { value: string; label: string }[] = [
   { value: 'ALL', label: 'Todos' },
@@ -83,123 +73,12 @@ function sortProducts(list: Product[], orderBy: SortOption): Product[] {
 
 function ProductCardSkeleton() {
   return (
-    <div className="bg-surface rounded-[12px] border border-border overflow-hidden animate-pulse">
-      <div className="aspect-4/3 bg-border" />
-      <div className="p-3 space-y-2">
-        <div className="h-4 bg-border rounded-md w-3/4" />
-        <div className="h-3 bg-border rounded-md w-1/2" />
-        <div className="h-5 bg-border rounded-md w-1/3" />
-        <div className="h-9 bg-border rounded-full w-full mt-2" />
-      </div>
-    </div>
-  );
-}
-
-function ProductCard({ product }: { product: Product }) {
-  const navigate = useNavigate();
-  const addItem = useCartStore((s) => s.addItem);
-  const [justAdded, setJustAdded] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const outOfStock = product.stockUnits <= 0;
-  const lowStock = product.stockUnits > 0 && product.stockUnits <= 5;
-
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (outOfStock) return;
-    addItem(product, 1);
-    setJustAdded(true);
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setJustAdded(false), 1500);
-  };
-
-  useEffect(() => () => clearTimeout(timerRef.current), []);
-
-  return (
-    <div
-      onClick={() => navigate(`/productos/${product.id}`)}
-      className={clsx(
-        'bg-surface rounded-[12px] border border-border overflow-hidden cursor-pointer transition-shadow hover:shadow-md',
-        outOfStock && 'opacity-50'
-      )}
-      role="article"
-      aria-label={product.name}
-    >
-      {/* Photo */}
-      <div className="relative aspect-4/3 bg-brand-pink/5">
-        {product.photoUrl ? (
-          <img
-            src={product.photoUrl}
-            alt={product.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ShoppingCart size={32} className="text-brand-pink/30" strokeWidth={1.5} />
-          </div>
-        )}
-
-        {/* Type badge — top left */}
-        <span className="absolute top-2 left-2 bg-surface/90 backdrop-blur-sm text-[10px] font-body font-medium text-muted px-2 py-0.5 rounded-full border border-border">
-          {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
-        </span>
-
-        {/* "Gana 1g" pill — top right */}
-        {product.generatesGram && (
-          <span className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-body font-semibold px-2 py-0.5 rounded-full">
-            Gana 1g
-          </span>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="p-3 space-y-1.5">
-        <h3 className="font-heading font-semibold text-[14px] text-text-primary leading-tight line-clamp-2">
-          {product.name}
-        </h3>
-
-        <p className="font-heading font-bold text-[15px] text-brand-gold">
-          {formatCOP(product.price)}
-        </p>
-
-        {/* Stock indicator */}
-        <div className="flex items-center gap-1.5">
-          <span
-            className={clsx(
-              'w-2 h-2 rounded-full flex-none',
-              outOfStock ? 'bg-red-400' : lowStock ? 'bg-orange-400' : 'bg-emerald-400'
-            )}
-          />
-          <span className="font-body text-[11px] text-muted">
-            {outOfStock ? 'Agotado' : lowStock ? `Quedan ${product.stockUnits}` : 'Disponible'}
-          </span>
-        </div>
-
-        {/* Add to cart */}
-        <button
-          onClick={handleAdd}
-          disabled={outOfStock}
-          className={clsx(
-            'w-full mt-1.5 py-2 rounded-full text-[13px] font-body font-medium transition-colors flex items-center justify-center gap-1.5',
-            outOfStock
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              : justAdded
-                ? 'bg-emerald-500 text-white'
-                : 'bg-brand-pink text-white active:bg-brand-pink/80'
-          )}
-        >
-          {outOfStock ? (
-            'Sin stock'
-          ) : justAdded ? (
-            <>
-              <Check size={14} strokeWidth={2.5} />
-              Agregado
-            </>
-          ) : (
-            'Agregar'
-          )}
-        </button>
+    <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden animate-pulse">
+      <div className="aspect-[4/3] bg-slate-100" />
+      <div className="p-3.5 space-y-2">
+        <div className="h-4 bg-slate-100 rounded-md w-3/4" />
+        <div className="h-3 bg-slate-100 rounded-md w-1/2" />
+        <div className="h-8 bg-slate-100 rounded-full w-full mt-2" />
       </div>
     </div>
   );
@@ -221,7 +100,6 @@ export default function CatalogPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const setSortBy = (v: SortOption) => { _setSortBy(v); setVisibleCount(PAGE_SIZE); };
-  const setSelectedTypeAndReset = (v: string) => { setSelectedType(v); setVisibleCount(PAGE_SIZE); };
 
   // ── Search debounce (500 ms) ────────────────────────────────────────────
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -326,14 +204,14 @@ export default function CatalogPage() {
   // Render
   // ───────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background pb-20 font-body">
+    <div className="min-h-screen bg-slate-50 pb-20 font-body">
       {/* ── Section 1 — AppBar ─────────────────────────────────────────── */}
       <AppBar title="Catálogo" showCart />
 
       {/* ── Section 2 — Sticky search bar ──────────────────────────────── */}
-      <div className="sticky top-14 z-20 bg-background border-b border-border px-4 py-2.5 shadow-sm">
+      <div className="sticky top-14 z-20 bg-slate-50/90 backdrop-blur-xl border-b border-slate-200/60 px-4 py-3">
         <div
-          className="relative flex items-center bg-surface border border-border rounded-xl overflow-hidden"
+          className="relative flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
           role="search"
         >
           <span className="pl-3 flex items-center pointer-events-none">
@@ -370,12 +248,12 @@ export default function CatalogPage() {
           {TYPE_CHIPS.map((chip) => (
             <button
               key={chip.value}
-              onClick={() => setSelectedTypeAndReset(chip.value)}
+              onClick={() => { setSelectedType(chip.value); setVisibleCount(PAGE_SIZE); }}
               className={clsx(
-                'flex-none px-4 py-1.5 rounded-full text-[13px] font-body font-medium border transition-colors whitespace-nowrap',
+                'shrink-0 font-body text-[13px] font-medium px-4 py-2 rounded-full transition-all duration-200 whitespace-nowrap',
                 selectedType === chip.value
-                  ? 'bg-brand-pink text-surface border-brand-pink'
-                  : 'bg-surface text-text-primary border-border'
+                  ? 'bg-brand-pink text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-brand-pink/30 hover:text-slate-800'
               )}
               role="option"
               aria-selected={selectedType === chip.value}
@@ -398,13 +276,13 @@ export default function CatalogPage() {
         {/* ── Section 4 — Sort + results count ─────────────────────────── */}
         <div className="flex items-center justify-between gap-2">
           {!isLoading && !isError && !showingEssences && (
-            <span className="font-body text-[13px] text-muted">
-              {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
+            <span className="text-[13px] text-slate-500">
+              {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
             </span>
           )}
           {showingEssences && !essencesLoading && !essencesError && (
-            <span className="font-body text-[13px] text-muted">
-              {filteredEssences.length} esencia{filteredEssences.length !== 1 ? 's' : ''}
+            <span className="text-[13px] text-slate-500">
+              {filteredEssences.length} esencia{filteredEssences.length !== 1 ? "s" : ""}
             </span>
           )}
 
@@ -414,7 +292,7 @@ export default function CatalogPage() {
               id="sort-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="appearance-none bg-surface border border-border rounded-xl pl-3 pr-8 py-2 text-[13px] font-body text-text-primary cursor-pointer outline-none focus:border-brand-pink"
+              className="appearance-none bg-white border border-slate-200 rounded-xl pl-3.5 pr-8 py-2 text-[13px] text-slate-600 cursor-pointer outline-none focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/10"
             >
               <option value="name">Nombre</option>
               <option value="price_asc">Menor precio</option>
@@ -496,7 +374,7 @@ export default function CatalogPage() {
           <>
         {/* Loading — 6 skeleton cards */}
         {isLoading && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
@@ -522,7 +400,7 @@ export default function CatalogPage() {
 
         {/* Product cards */}
         {!isLoading && !isError && visibleProducts.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {visibleProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -531,19 +409,21 @@ export default function CatalogPage() {
 
         {/* Empty state */}
         {!isLoading && !isError && filtered.length === 0 && (
-          <div className="flex flex-col items-center gap-4 py-14 text-center">
-            <SearchX size={44} className="text-brand-pink/40" strokeWidth={1.2} />
+          <div className="flex flex-col items-center gap-4 py-16 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-brand-pink/5 flex items-center justify-center">
+              <SearchX size={32} className="text-brand-pink/30" strokeWidth={1.5} />
+            </div>
             <div>
-              <p className="font-heading font-semibold text-base text-text-primary">
-                No encontramos productos
+              <p className="font-display font-semibold text-lg text-slate-700">
+                No encontramos fragancias
               </p>
-              <p className="font-body text-sm text-muted mt-1.5">
+              <p className="text-sm text-slate-400 mt-1.5 max-w-xs">
                 Prueba ajustando la búsqueda o los filtros.
               </p>
             </div>
             <button
               onClick={clearAllFilters}
-              className="bg-brand-pink text-surface font-body font-medium text-sm px-7 py-2.5 rounded-full"
+              className="bg-white text-slate-600 font-medium text-sm px-6 py-2.5 rounded-full border border-slate-200 hover:border-brand-pink/30 hover:text-brand-pink transition-all"
             >
               Limpiar filtros
             </button>
@@ -554,10 +434,10 @@ export default function CatalogPage() {
         {!isLoading && !isError && hasMore && (
           <button
             onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-            className="w-full py-3 border border-border rounded-xl font-body text-sm text-text-primary bg-surface active:bg-background transition-colors"
+            className="w-full py-3.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 hover:border-brand-pink/20 transition-all"
           >
             Ver {Math.min(PAGE_SIZE, remaining)} más ({remaining} restante
-            {remaining !== 1 ? 's' : ''})
+            {remaining !== 1 ? "s" : ""})
           </button>
         )}
           </>

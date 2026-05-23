@@ -102,14 +102,29 @@ Handlebars templates in `src/infrastructure/notifications/email-templates` are *
 ### TailwindCSS v4
 Uses `@tailwindcss/vite` plugin (not the PostCSS config from v3). Do **not** add `tailwind.config.js` — it does not exist and is not used.
 
+Design tokens are in `@theme` block in `src/index.css`:
+- **Fonts**: Poppins (headings), Inter (body), Fira Code (monospace data)
+- **Brand**: `brand-pink` (#D81B60), `brand-blue` (#1565C0), `brand-gold` (#F9A825)
+- **Sidebar**: `sidebar-bg` (#1E293B, dark), `sidebar-text` (#CBD5E1), `sidebar-hover` (#334155)
+- **Semantic**: `text-primary`, `muted`, `success`, `warning`, `danger`, `border`
+
 ### TypeScript strictness
 `tsconfig.app.json` enables: `strict`, `noUnusedLocals`, `noUnusedParameters`, `erasableSyntaxOnly`, `verbatimModuleSyntax`. Unused imports/vars will fail `tsc -b`.
 
 ### Key dependencies
 - **State**: Zustand (`src/stores/`)
 - **Data fetching**: TanStack React Query (`src/services/`)
-- **UI**: Radix UI primitives, Lucide React icons, Recharts (charts), CVA + tailwind-merge (class utilities)
+- **UI**: Radix UI primitives, Lucide React icons,   Recharts (charts), CVA + tailwind-merge (class utilities)
 - **Routing**: React Router v7 (`src/router/index.tsx`)
+- **Admin**: Shared component library in `src/components/admin/`
+  - `AdminModal` — animated backdrop, Esc close, focus management, size variants
+  - `AdminTable` — sticky header, skeleton rows, sort indicators, pagination
+  - `AdminKpiCard` — trend arrows, progress bar, loading state
+  - `AdminStatusBadge` — semantic color variants (default/info/success/warning/danger/neutral)
+  - `AdminPageHeader` — page title + description + action button
+  - `AdminEmptyState` — icon + message + optional CTA
+  - `AdminConfirmDialog` — branded confirm/cancel dialog (replaces `window.confirm`)
+  - `AdminSkeleton` — card, chart, table row, and block loading skeletons
 
 ### Vite dev quirks
 - `usePolling: true` is set in `vite.config.ts` for Docker volume sync compatibility.

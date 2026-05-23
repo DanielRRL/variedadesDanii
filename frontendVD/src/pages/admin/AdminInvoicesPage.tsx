@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, RefreshCw, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { getAdminInvoices, retryInvoice } from '../../services/api';
 import { formatCOP } from '../../utils/format';
+import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
 import type { AdminInvoice } from '../../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,9 +78,9 @@ function CopyButton({ text }: { text: string }) {
 function RetryButton({ orderId, onDone }: { orderId: string; onDone: () => void }) {
   const [busy, setBusy]   = useState(false);
   const [done, setDone]   = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const handleRetry = async () => {
-    if (!window.confirm('¿Reenviar esta factura a la DIAN?')) return;
+  const executeRetry = async () => {
     setBusy(true);
     try {
       await retryInvoice(orderId);
@@ -93,16 +94,32 @@ function RetryButton({ orderId, onDone }: { orderId: string; onDone: () => void 
   };
 
   return (
-    <button
-      disabled={busy || done}
-      onClick={handleRetry}
-      className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold border border-brand-pink text-brand-pink rounded-lg hover:bg-brand-pink/5 transition-colors disabled:opacity-50"
+    <>
+      <button
+        disabled={busy || done}
+        onClick={() => setConfirmOpen(true)}
+        className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold border border-brand-pink text-brand-pink rounded-lg hover:bg-brand-pink/5 transition-colors disabled:opacity-50"
     >
       {busy
         ? <span className="w-3 h-3 border border-t-transparent border-brand-pink rounded-full animate-spin" />
         : <RefreshCw size={11} />}
       {done ? 'Reenviado' : 'Reintentar'}
     </button>
+
+    <AdminConfirmDialog
+      open={confirmOpen}
+      onClose={() => setConfirmOpen(false)}
+      onConfirm={() => {
+        setConfirmOpen(false);
+        executeRetry();
+      }}
+      title="Reenviar factura"
+      message="¿Reenviar esta factura a la DIAN?"
+      confirmLabel="Reenviar"
+      variant="warning"
+      loading={busy}
+    />
+  </>
   );
 }
 

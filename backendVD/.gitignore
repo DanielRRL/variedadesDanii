@@ -8,3 +8,26 @@ logs/
 # Certificado digital DIAN — NUNCA commitear al repositorio.
 # Contiene la clave privada del contribuyente; su exposicion es una brecha de seguridad grave.
 certs/
+# Python cache
+__pycache__/
+*.py[cod]
+
+# OpenCode temp/cache
+.opencode/cache/
+.opencode/tmp/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Environment
+.env
+.env.local
+
+# Certificates
+*.pfx
+
+# OS
+.DS_Store
+Thumbs.db

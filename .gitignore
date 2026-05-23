@@ -10,3 +10,27 @@
 # OS
 .DS_Store
 Thumbs.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# OpenCode temp/cache
+.opencode/cache/
+.opencode/tmp/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Environment
+.env
+.env.local
+
+# Certificates
+*.pfx
+
+# OS
+.DS_Store
+Thumbs.db
