@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Check, Mail, ShieldCheck, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, Check, Mail, ShieldCheck, Loader2, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { resetPassword } from '../../services/api';
-import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import AuthLayout from '../../components/auth/AuthLayout';
+import '../../css/ResetPasswordPage.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -37,7 +37,6 @@ export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const addToast = useToastStore((s) => s.addToast);
-  const setAuth = useAuthStore((s) => s.setAuth);
 
   const token = searchParams.get('token') ?? '';
   const [password, setPassword] = useState('');
@@ -104,26 +103,29 @@ export default function ResetPasswordPage() {
           { icon: <ShieldCheck size={18} />, title: 'Sesiones cerradas', description: 'Todas las anteriores fueron invalidadas' },
         ]}
       >
-        <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
+        {/* Back link */}
+        <Link to="/" className="back-link">
+          <ArrowLeft size={14} /> Volver al inicio
+        </Link>
+
+        <h1 className="heading-title">
           Contraseña actualizada
         </h1>
-        <p className="text-muted text-sm mt-1">
+        <p className="heading-subtitle">
           Ya puedes iniciar sesión con tu nueva contraseña
         </p>
 
-        <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4 space-y-2">
-          <p className="text-sm font-medium text-green-800">
-            Por tu seguridad se realizaron las siguientes acciones:
-          </p>
-          <div className="flex items-center gap-2 text-sm text-green-700">
+        <div className="security-card">
+          <p className="security-card-title">Por tu seguridad se realizaron las siguientes acciones:</p>
+          <div className="security-card-item">
             <Check size={14} className="text-green-600 flex-none" />
             Todas las sesiones activas anteriores fueron cerradas
           </div>
-          <div className="flex items-center gap-2 text-sm text-green-700">
+          <div className="security-card-item">
             <Check size={14} className="text-green-600 flex-none" />
             El enlace de recuperación fue invalidado
           </div>
-          <div className="flex items-center gap-2 text-sm text-green-700">
+          <div className="security-card-item">
             <Check size={14} className="text-green-600 flex-none" />
             Se envió una notificación al correo registrado
           </div>
@@ -131,13 +133,13 @@ export default function ResetPasswordPage() {
 
         <button
           onClick={() => navigate('/login')}
-          className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm mt-6"
+          className="submit-button"
         >
           Iniciar sesión ahora
         </button>
 
-        <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
-          <p className="text-sm text-yellow-800">
+        <div className="warning-card">
+          <p className="warning-text">
             Si no solicitaste este cambio, contacta soporte inmediatamente: <strong>300 383 7442</strong>
           </p>
         </div>
@@ -159,23 +161,28 @@ export default function ResetPasswordPage() {
         </div>
       }
     >
-      <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
+      {/* Back link */}
+      <Link to="/" className="back-link">
+        <ArrowLeft size={14} /> Volver al inicio
+      </Link>
+
+      <h1 className="heading-title">
         Crear nueva contraseña
       </h1>
-      <p className="text-muted text-sm mt-1">
+      <p className="heading-subtitle">
         La nueva contraseña no puede ser igual a la anterior
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-6">
+      <form onSubmit={handleSubmit} className="form-container">
 
         {/* Password fields row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="form-row">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="new-password">
+            <label className="form-label" htmlFor="new-password">
               Contraseña
             </label>
-            <div className="relative">
-              <Lock size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+            <div className="input-wrapper">
+              <Lock size={16} className="input-icon" />
               <input
                 id="new-password"
                 type={showPassword ? 'text' : 'password'}
@@ -183,25 +190,24 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-border rounded-xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors placeholder:text-gray-400"
+                className="input"
                 placeholder="Mínimo 8 caracteres"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                className="input-toggle"
                 aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <p className="text-xs text-muted mt-1">Escribe tu nueva contraseña</p>
 
             {/* Strength bar */}
             {password.length > 0 && (
-              <div className="flex gap-1 mt-2">
+              <div className="strength-bar">
                 {[1, 2, 3, 4].map((n) => (
-                  <div key={n} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${score >= n ? STRENGTH_COLORS[score] : 'bg-gray-200'}`} />
+                  <div key={n} className={`strength-segment ${score >= n ? STRENGTH_COLORS[score] : ''}`} />
                 ))}
               </div>
             )}
@@ -213,11 +219,11 @@ export default function ResetPasswordPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="confirm-new-password">
+            <label className="form-label" htmlFor="confirm-new-password">
               Confirmar contraseña
             </label>
-            <div className="relative">
-              <Lock size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+            <div className="input-wrapper">
+              <Lock size={16} className="input-icon" />
               <input
                 id="confirm-new-password"
                 type={showConfirm ? 'text' : 'password'}
@@ -225,28 +231,30 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full border border-border rounded-xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors placeholder:text-gray-400"
+                className="input"
                 placeholder="Repite la contraseña"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                className="input-toggle"
                 aria-label={showConfirm ? 'Ocultar contraseña' : 'Ver contraseña'}
               >
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             {confirmPassword && (
-              <span className={`text-xs flex items-center gap-1 mt-1 ${passwordMatch ? 'text-green-600' : 'text-red-500'}`}>
-                {passwordMatch ? <><Check size={12} /> Las contraseñas coinciden</> : <><span>✕</span> Las contraseñas no coinciden</>}
+              <span className={`match-message ${passwordMatch ? 'text-green-600' : 'text-red-500'}`}>
+                {passwordMatch
+                  ? <><Check size={12} /> Las contraseñas coinciden</>
+                  : <><span>✕</span> Las contraseñas no coinciden</>}
               </span>
             )}
           </div>
         </div>
 
         {/* Requirements */}
-        <div className="bg-gray-50 rounded-xl px-4 py-3 flex flex-col gap-1.5">
+        <div className="requirements-box">
           <Requirement met={hasLength} label="Mínimo 8 caracteres" />
           <Requirement met={hasNumber} label="Al menos 1 número" />
           <Requirement met={notSameAsOld} label="No puede ser igual a la contraseña anterior" />
@@ -255,10 +263,10 @@ export default function ResetPasswordPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm"
+          className="submit-button"
         >
           {loading
-            ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Guardando...</span>
+            ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="spin" /> Guardando...</span>
             : 'Guardar nueva contraseña'}
         </button>
       </form>

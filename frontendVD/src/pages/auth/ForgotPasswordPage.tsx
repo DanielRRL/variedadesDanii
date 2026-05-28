@@ -4,6 +4,7 @@ import { Mail, ArrowLeft, ShieldCheck, Loader2 } from 'lucide-react';
 import { forgotPassword } from '../../services/api';
 import AuthLayout from '../../components/auth/AuthLayout';
 import type { FeatureCard } from '../../components/auth/AuthLayout';
+import '../../css/ForgotPasswordPage.css';
 
 const FEATURES: FeatureCard[] = [
   { icon: <Mail size={18} />, title: 'Enlace por email', description: 'Válido 30 min · un solo uso' },
@@ -34,23 +35,28 @@ export default function ForgotPasswordPage() {
       description="Recibirás un enlace seguro por correo para crear una nueva contraseña en minutos."
       features={FEATURES}
     >
+      {/* Back link */}
+      <Link to="/" className="back-link">
+        <ArrowLeft size={14} /> Volver al inicio
+      </Link>
+
       {/* Title */}
-      <h1 className="font-heading text-2xl lg:text-3xl font-bold text-text-primary">
+      <h1 className="heading-title">
         Recuperar contraseña
       </h1>
-      <p className="text-muted text-sm mt-1">
+      <p className="heading-subtitle">
         Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña
       </p>
 
       {!sent ? (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-6">
+        <form onSubmit={handleSubmit} className="form-container">
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="forgot-email">
+            <label className="form-label" htmlFor="forgot-email">
               Correo electrónico
             </label>
-            <div className="relative">
-              <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+            <div className="input-wrapper">
+              <Mail size={16} className="input-icon" />
               <input
                 id="forgot-email"
                 type="email"
@@ -58,7 +64,7 @@ export default function ForgotPasswordPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-border rounded-xl pl-11 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors placeholder:text-gray-400"
+                className="input"
                 placeholder="tucorreo@gmail.com"
               />
             </div>
@@ -68,7 +74,7 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-pink hover:bg-pink-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold py-3 rounded-full transition-colors text-sm"
+            className="submit-button"
           >
             {loading
               ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Enviando...</span>
@@ -76,12 +82,12 @@ export default function ForgotPasswordPage() {
           </button>
         </form>
       ) : (
-        <div className="mt-6 flex flex-col items-center gap-4 py-4">
-          <span className="text-4xl">✉️</span>
-          <h2 className="text-base font-heading font-semibold text-gray-900 text-center">
-            Revisa tu correo
-          </h2>
-          <p className="text-sm text-muted text-center leading-relaxed">
+        <div className="success-section">
+          <div className="success-icon-wrap">
+            <Mail size={24} className="text-green-600" />
+          </div>
+          <h2 className="success-title">Revisa tu correo</h2>
+          <p className="success-message">
             Si existe una cuenta con ese correo electrónico, recibirás las instrucciones
             para restablecer tu contraseña.
           </p>
@@ -89,23 +95,21 @@ export default function ForgotPasswordPage() {
       )}
 
       {/* Info card */}
-      <div className="mt-6 bg-gray-50 border border-gray-100 rounded-xl px-4 py-4 space-y-3">
-        <h3 className="font-heading font-semibold text-sm text-text-primary">
-          ¿Recuerdas cómo accediste?
-        </h3>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-brand-pink flex-none" />
-          <span className="text-sm text-text-primary">Si usaste email, recibirás el enlace ahí</span>
+      <div className="info-card">
+        <h3 className="info-card-title">¿Recuerdas cómo accediste?</h3>
+        <div className="info-card-row">
+          <span className="info-card-dot" style={{ backgroundColor: 'var(--brand-pink)' }} />
+          <span className="info-card-text">Si usaste email, recibirás el enlace ahí</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-none" />
-          <span className="text-sm text-text-primary">Si usaste Google, inicia sesión normalmente con Google</span>
+        <div className="info-card-row">
+          <span className="info-card-dot" style={{ backgroundColor: '#3B82F6' }} />
+          <span className="info-card-text">Si usaste Google, inicia sesión normalmente con Google</span>
         </div>
       </div>
 
       <Link
         to="/login"
-        className="flex items-center justify-center gap-1.5 text-sm text-brand-pink hover:text-pink-700 transition-colors font-medium mt-6"
+        className="back-link"
       >
         <ArrowLeft size={14} /> Volver al inicio de sesión
       </Link>
