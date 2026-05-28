@@ -28,6 +28,23 @@
     font-size: 14px;
 }
 
+/* Back link */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 13px;
+  color: var(--text-secundary);
+  text-decoration: none;
+  margin-bottom: 0.75rem;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
 /* Tabs */
 .tabs {
     width: auto;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Eye, EyeOff, User, Phone, Mail, Lock, Check, X, Loader2,
-  Gift, ClipboardList, History, ShieldCheck, ChevronDown, ChevronUp,
+  Gift, ClipboardList, History, ShieldCheck, ChevronDown, ChevronUp, ArrowLeft,
 } from 'lucide-react';
 import axios from 'axios';
 import { register, applyReferral } from '../../services/api';
@@ -187,6 +187,11 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout headline={cfg.headline} description={cfg.description} features={cfg.features}>
+
+      {/* Back link */}
+      <Link to="/" className="back-link">
+        <ArrowLeft size={14} /> Volver al inicio
+      </Link>
 
       {/* Title */}
       <h1 className="heading-title">

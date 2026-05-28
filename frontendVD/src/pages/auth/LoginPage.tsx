@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, X, DollarSign, RefreshCcw, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, X, DollarSign, RefreshCcw, Loader2, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { login, resendVerification } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -104,6 +104,11 @@ export default function LoginPage() {
 
   return (
     <AuthLayout headline={headline} description={description} features={features}>
+
+      {/* Back link */}
+      <Link to="/" className="back-link">
+        <ArrowLeft size={14} /> Volver al inicio
+      </Link>
 
       {/* Title */}
       <h1 className="heading-title">
