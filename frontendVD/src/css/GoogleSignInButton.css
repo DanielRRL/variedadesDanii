@@ -1,46 +1,51 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins&display=swap');
 
-/* Container */
+/* Container — full width, matches form width */
 .google-btn-container {
   position: relative;
   width: 100%;
   height: 48px;
 }
 
-/* Hidden Google Button */
+/* Hidden Google button — full width, Google iframe (300px, centered) is inside */
 .google-btn-hidden {
   position: absolute;
   inset: 0;
   z-index: 10;
-  overflow: hidden;
   opacity: 0.01;
 }
 
-/* Visible Button */
+/* Visible button — full width, sits on top of Google layer.
+   All clicks on this button are intercepted by handleClick in the TSX,
+   which delegates to the Google iframe/div programmatically.
+   This ensures clicks on the overhang (outside Google iframe bounds)
+   still trigger the OAuth popup. */
 .google-btn {
   position: absolute;
   inset: 0;
   width: 100%;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  border: 1px solid #d1d5db; 
+  border: 1px solid #d1d5db;
   background-color: #ffffff;
-  border-radius: 10px; 
+  border-radius: 10px;
   font-size: 0.875rem;
   font-weight: 500;
   color: #374151;
   cursor: pointer;
   transition: all 0.15s ease;
+  z-index: 20;
 }
 
 .google-btn:hover {
-  background-color: #f9fafb; 
+  background-color: #f9fafb;
 }
 
 .google-btn:active {
-  background-color: #f3f4f6; 
+  background-color: #f3f4f6;
   transform: scale(0.99);
 }
 

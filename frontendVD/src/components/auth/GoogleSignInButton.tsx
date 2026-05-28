@@ -13,7 +13,6 @@ export default function GoogleSignInButton() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
-  const [gsiReady, setGsiReady] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   const handleCredentialResponse = useCallback(
@@ -44,8 +43,6 @@ export default function GoogleSignInButton() {
         auto_select: false,
       });
 
-      // Render the real Google button inside a hidden container.
-      // We trigger its click programmatically from our custom button.
       window.google.accounts.id.renderButton(googleBtnRef.current, {
         type: 'standard',
         size: 'large',
@@ -53,15 +50,11 @@ export default function GoogleSignInButton() {
         text: 'continue_with',
         width: 300,
       });
-
-      setGsiReady(true);
     }
 
-    // The GSI script loads async — it may or may not be ready yet.
     if (window.google?.accounts?.id) {
       initGsi();
     } else {
-      // Poll until the script is loaded (typically < 1s).
       const interval = setInterval(() => {
         if (window.google?.accounts?.id) {
           clearInterval(interval);
@@ -73,7 +66,6 @@ export default function GoogleSignInButton() {
   }, [handleCredentialResponse]);
 
   function handleClick() {
-    // Trigger the real (hidden) Google button which opens the OAuth popup.
     const iframe = googleBtnRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
     const div = googleBtnRef.current?.querySelector('div[role="button"]') as HTMLElement | null;
     if (div) {
@@ -81,7 +73,6 @@ export default function GoogleSignInButton() {
     } else if (iframe) {
       iframe.click();
     } else {
-      // Last-resort fallback: One Tap prompt
       window.google?.accounts?.id?.prompt();
     }
   }
@@ -90,19 +81,18 @@ export default function GoogleSignInButton() {
 
   return (
     <div className="google-btn-container">
-      {/* Hidden real Google button (rendered by GIS, sits on top for click handling) */}
+      {/* Hidden Google-rendered button — clickable layer, opacity near 0 */}
       <div
         ref={googleBtnRef}
         className="google-btn-hidden"
-        style={{ opacity: 0.01 }}
         aria-hidden="true"
       />
 
-      {/* Visible custom-styled button (visual layer behind the Google iframe) */}
+      {/* Visible custom-styled button — sits on top, matches clickable zone */}
       <button
         type="button"
         onClick={handleClick}
-        disabled={loading || !gsiReady}
+        disabled={loading}
         className="google-btn"
       >
         {loading ? (
