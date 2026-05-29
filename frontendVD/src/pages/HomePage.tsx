@@ -8,6 +8,8 @@
  *  4. Loyalty teaser    — Conditional on auth state
  *
  * BottomTabBar fixed at bottom.
+ *
+ * Styling: Pure CSS in HomePage.css (no Tailwind).
  */
 
 import { useNavigate, Link } from "react-router-dom";
@@ -26,7 +28,7 @@ import {
   MapPin,
   ArrowDown,
 } from "lucide-react";
-import { clsx } from "clsx";
+import "../css/HomePage.css";
 import { getProducts, getMyGramAccount } from "../services/api";
 import { useAuthStore } from "../stores/authStore";
 import { useCartStore } from "../stores/cartStore";
@@ -59,12 +61,7 @@ function FeaturedProductCard({
   return (
     <article
       onClick={outOfStock ? undefined : onPress}
-      className={clsx(
-        "flex-none w-44 sm:w-56 bg-surface rounded-2xl border border-slate-200/60",
-        "shadow-sm overflow-hidden flex flex-col",
-        "transition-all duration-300",
-        !outOfStock && "cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-brand-pink/20"
-      )}
+      className={`home-product-card${outOfStock ? " home-product-card--disabled" : ""}`}
       role="button"
       tabIndex={outOfStock ? -1 : 0}
       onKeyDown={(e) => {
@@ -72,52 +69,40 @@ function FeaturedProductCard({
       }}
       aria-disabled={outOfStock}
     >
-      {/* Image */}
-      <div className="relative w-full aspect-[4/3] bg-brand-pink/5 overflow-hidden">
+      <div className="home-product-card__image-wrap">
         {product.photoUrl ? (
           <img
             src={product.photoUrl}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="home-product-card__image"
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="font-display font-bold text-5xl text-brand-pink/20 select-none">
-              {product.name[0]?.toUpperCase()}
-            </span>
+          <div className="home-product-card__placeholder">
+            <span>{product.name[0]?.toUpperCase()}</span>
           </div>
         )}
 
-        {/* Type badge */}
-        <span className="absolute top-2.5 left-2.5 bg-surface/90 backdrop-blur-sm text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
+        <span className="home-product-card__badge">
           {TYPE_LABELS[product.productType] ?? product.productType}
         </span>
 
-        {/* +1g badge */}
         {product.generatesGram && (
-          <span className="absolute top-2.5 right-2.5 bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+          <span className="home-product-card__badge home-product-card__badge--gram">
             +1g
           </span>
         )}
 
         {outOfStock && (
-          <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
-            <span className="bg-amber-500 text-white text-[11px] font-medium px-3 py-1 rounded-full">
-              Agotado
-            </span>
+          <div className="home-product-card__outofstock">
+            <span>Agotado</span>
           </div>
         )}
       </div>
 
-      {/* Content */}
-      <div className="p-3.5 flex flex-col gap-1.5 flex-1">
-        <p className="font-heading font-semibold text-[13px] sm:text-sm text-slate-800 leading-snug line-clamp-2">
-          {product.name}
-        </p>
-        <p className="font-heading font-semibold text-brand-gold text-sm sm:text-base mt-auto">
-          {formatCOP(product.price)}
-        </p>
+      <div className="home-product-card__content">
+        <p className="home-product-card__name">{product.name}</p>
+        <p className="home-product-card__price">{formatCOP(product.price)}</p>
       </div>
     </article>
   );
@@ -127,11 +112,7 @@ function FeaturedSkeleton() {
   return (
     <>
       {[1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="flex-none w-44 sm:w-56 rounded-2xl bg-slate-100 animate-pulse"
-          style={{ height: 240 }}
-        />
+        <div key={i} className="home-product-skeleton" />
       ))}
     </>
   );
@@ -149,7 +130,6 @@ export default function HomePage() {
     ? user.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()
     : null;
 
-  // Featured products
   const {
     data: productsData,
     isLoading: productsLoading,
@@ -168,7 +148,6 @@ export default function HomePage() {
     return raw.filter((p: Product) => p.active).slice(0, 6);
   })();
 
-  // Gram wallet (auth only)
   const { data: gramRes } = useQuery({
     queryKey: ["gramAccount", "home"],
     queryFn: getMyGramAccount,
@@ -180,40 +159,34 @@ export default function HomePage() {
   const pct = gramProgress(currentGrams);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 font-body">
+    <div className="home-page">
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 1 — Cinematic Hero
       ════════════════════════════════════════════════════════════════════════ */}
-      <section
-        className="relative w-full overflow-hidden bg-brand-pink"
-        style={{ minHeight: "min(520px, 100svh)" }}
-        aria-label="Hero"
-      >
-        {/* Animated glass blobs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-          <div className="hero-blob hero-blob-1" />
-          <div className="hero-blob hero-blob-2" />
-          <div className="hero-blob hero-blob-3" />
-        </div>
+      <section className="home-hero" aria-label="Hero">
+        <div className="home-hero__blob home-hero__blob-1" aria-hidden="true" />
+        <div className="home-hero__blob home-hero__blob-2" aria-hidden="true" />
+        <div className="home-hero__blob home-hero__blob-3" aria-hidden="true" />
+        <div className="home-hero__glass-overlay" aria-hidden="true" />
 
-        {/* Glass overlay */}
-        <div className="absolute inset-0 bg-brand-pink-dark/10 pointer-events-none" />
+        <div className="home-hero__topbar">
+          <div className="home-hero__logo">
+            <div className="home-hero__logo-box">VD</div>
+            <div>
+              <p className="home-hero__logo-title">Variedades DANII</p>
+              <p className="home-hero__logo-subtitle">Perfumería · Armenia, Quindío</p>
+            </div>
+          </div>
 
-        {/* Top bar */}
-        <div className="relative z-10 flex items-center justify-between px-4 sm:px-6 pt-8 sm:pt-12 pb-2">
-          <span className="font-display font-semibold text-white text-xl sm:text-2xl tracking-tight">
-            DANII
-          </span>
-
-          <div className="flex items-center gap-3">
+          <div className="home-hero__actions">
             <button
               onClick={() => navigate("/carrito")}
-              className="relative w-9 h-9 flex items-center justify-center"
+              className="home-hero__cart-btn"
               aria-label={`Carrito, ${cartCount} productos`}
             >
-              <ShoppingBag size={20} className="text-white" strokeWidth={1.5} />
+              <ShoppingBag size={20} />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-brand-pink text-[10px] font-bold flex items-center justify-center leading-none">
+                <span className="home-hero__cart-badge">
                   {cartCount > 9 ? "9+" : cartCount}
                 </span>
               )}
@@ -222,38 +195,37 @@ export default function HomePage() {
             {user ? (
               <button
                 onClick={() => navigate("/perfil")}
-                className="w-8 h-8 rounded-full bg-white/15 border border-white/20 flex items-center justify-center"
+                className="home-hero__avatar-btn"
                 aria-label="Perfil"
               >
-                <span className="font-heading font-bold text-[11px] text-white leading-none">
-                  {initials}
-                </span>
+                <span>{initials}</span>
               </button>
             ) : (
               <button
                 onClick={() => navigate("/login")}
-                className="w-8 h-8 flex items-center justify-center"
+                className="home-hero__user-btn"
                 aria-label="Iniciar sesión"
               >
-                <User size={20} className="text-white" strokeWidth={1.5} />
+                <User size={20} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Hero content */}
-        <div className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 pt-8 sm:pt-16 pb-10">
-          <h1 className="hero-text-delay-1 font-display font-bold text-white text-[32px] sm:text-[42px] lg:text-[52px] leading-[1.1] max-w-lg tracking-tight">
-            Tu fragancia perfecta
+        <div className="home-hero__content">
+          <h1 className="home-hero__headline">
+            <span className="home-hero__headline-line1">Tu fragancia</span>
+            <br />
+            <span className="home-hero__headline-line2">perfecta</span>
           </h1>
-          <p className="hero-text-delay-2 font-body text-white/70 text-sm sm:text-base max-w-xs sm:max-w-sm mt-4">
+          <p className="home-hero__sub">
             Lociones, cremas y más al mejor precio
           </p>
 
-          <div className="hero-text-delay-3 flex flex-col sm:flex-row gap-3 mt-8 w-full max-w-sm sm:max-w-none sm:w-auto">
+          <div className="home-hero__cta-group">
             <button
               onClick={() => navigate("/catalogo")}
-              className="bg-white text-brand-pink font-semibold text-sm sm:text-[15px] px-8 py-3 rounded-full hover:bg-white/95 active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2"
+              className="home-hero__btn-primary"
             >
               Descubrir colección
               <ChevronRight size={16} />
@@ -262,93 +234,71 @@ export default function HomePage() {
               href={`https://wa.me/${WA_NUMBER}?text=${WA_GREETING}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="border border-white/30 text-white font-medium text-sm sm:text-[15px] px-8 py-3 rounded-full hover:bg-white/10 active:scale-[0.98] transition-all text-center"
+              className="home-hero__btn-secondary"
             >
               Contactar por WhatsApp
             </a>
           </div>
         </div>
 
-        {/* Scroll indicator */}
-        <div className="hero-text-delay-4 absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1">
-          <span className="text-white/40 text-[10px] font-medium tracking-widest uppercase">
-            Desliza
-          </span>
-          <ArrowDown size={14} className="text-white/40 animate-scroll-indicator" />
+        <div className="home-hero__scroll-indicator">
+          <span className="home-hero__scroll-text">Desliza</span>
+          <ArrowDown size={14} className="home-hero__scroll-arrow" />
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 2 — Bento Grid: ¿Por qué elegirnos?
       ════════════════════════════════════════════════════════════════════════ */}
-      <section className="px-4 sm:px-6 -mt-6 relative z-10" aria-labelledby="why-heading">
-        <div className="max-w-5xl mx-auto">
-          <h2
-            id="why-heading"
-            className="font-display font-semibold text-[22px] sm:text-2xl text-slate-800 mb-6 text-center"
-          >
+      <section className="home-bento" aria-labelledby="why-heading">
+        <div className="home-bento__inner">
+          <h2 id="why-heading" className="home-bento__title">
             ¿Por qué elegirnos?
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="home-bento__grid">
             {[
               {
                 Icon: Gamepad2,
                 title: "Juega y gana gramos",
                 desc: "Cada compra te da una ficha. Gira la ruleta y gana gramos extra.",
                 accent: "pink",
+                featured: true,
               },
               {
                 Icon: CreditCard,
                 title: "Pagos sin comisión",
                 desc: "Nequi, Bancolombia o Bre-B con confirmación inmediata.",
                 accent: "blue",
+                featured: false,
               },
               {
                 Icon: MapPin,
                 title: "Recoge o recibe en casa",
                 desc: "Retira en tienda gratis o solicita envío a domicilio.",
                 accent: "gold",
+                featured: false,
               },
               {
                 Icon: Trophy,
                 title: "13g = 1 oz gratis",
                 desc: "Acumula gramos en cada compra y canjea esencias premium.",
                 accent: "pink",
+                featured: false,
               },
-            ].map(({ Icon, title, desc, accent }, i) => (
+            ].map(({ Icon, title, desc, accent, featured }) => (
               <div
                 key={title}
-                className={clsx(
-                  "bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5",
-                  "glass-card-hover cursor-default",
-                  i === 0 && "sm:col-span-2"
-                )}
+                className={`home-bento__card${featured ? " home-bento__card--featured" : ""}`}
               >
-                <div
-                  className={clsx(
-                    "w-10 h-10 rounded-xl flex items-center justify-center mb-3",
-                    accent === "pink" && "bg-brand-pink/10",
-                    accent === "blue" && "bg-brand-blue/10",
-                    accent === "gold" && "bg-brand-gold/10"
-                  )}
-                >
+                <div className={`home-bento__icon-wrap home-bento__icon-wrap--${accent}`}>
                   <Icon
-                    size={20}
-                    strokeWidth={1.5}
-                    className={clsx(
-                      accent === "pink" && "text-brand-pink",
-                      accent === "blue" && "text-brand-blue",
-                      accent === "gold" && "text-brand-gold"
-                    )}
+                    size={featured ? 24 : 20}
+                    className={`home-bento__icon home-bento__icon--${accent}`}
                   />
                 </div>
-                <p className="font-heading font-semibold text-[15px] text-slate-800 mb-1">
-                  {title}
-                </p>
-                <p className="font-body text-[13px] text-slate-500 leading-relaxed">
-                  {desc}
-                </p>
+                <p className="home-bento__card-title">{title}</p>
+                <p className="home-bento__card-desc">{desc}</p>
               </div>
             ))}
           </div>
@@ -358,46 +308,37 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 3 — Colección Destacada
       ════════════════════════════════════════════════════════════════════════ */}
-      <section className="mt-10 sm:mt-14 px-4 sm:px-6" aria-labelledby="collection-heading">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-end justify-between mb-5">
-            <div>
-              <p className="font-body text-xs text-brand-pink font-semibold uppercase tracking-[0.15em] mb-1">
-                Colección
-              </p>
-              <h2
-                id="collection-heading"
-                className="font-display font-semibold text-2xl sm:text-3xl text-slate-800"
-              >
+      <section className="home-collection" aria-labelledby="collection-heading">
+        <div className="home-collection__inner">
+          <div className="home-collection__header">
+            <div className="home-collection__header-left">
+              <p className="home-collection__label">Colección</p>
+              <h2 id="collection-heading" className="home-collection__title">
                 Nuestros destacados
               </h2>
             </div>
             <Link
               to="/catalogo"
-              className="flex items-center gap-1 text-sm font-medium text-brand-blue hover:text-brand-blue/80 transition-colors shrink-0"
+              className="home-collection__link"
             >
               Ver todo <ChevronRight size={16} strokeWidth={2} />
             </Link>
           </div>
 
-          {/* Horizontal scroll */}
-          <div
-            className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 sm:-mx-6 sm:px-6 scroll-smooth"
-            style={{ scrollbarWidth: "none" }}
-          >
+          <div className="home-collection__scroll">
             {productsLoading && <FeaturedSkeleton />}
 
             {productsError && (
-              <div className="flex flex-col items-center gap-4 py-12 w-full text-center">
-                <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
-                  <AlertCircle size={28} className="text-amber-500" strokeWidth={1.5} />
+              <div className="home-collection__error">
+                <div className="home-collection__error-icon">
+                  <AlertCircle size={28} />
                 </div>
-                <p className="text-slate-500 text-sm">
+                <p className="home-collection__error-text">
                   No pudimos cargar los productos. Intenta de nuevo.
                 </p>
                 <button
                   onClick={() => retryProducts()}
-                  className="inline-flex items-center gap-2 bg-brand-pink text-white font-medium text-sm px-5 py-2.5 rounded-full hover:bg-brand-pink/90 transition-colors"
+                  className="home-collection__error-btn"
                 >
                   <RefreshCw size={14} strokeWidth={2} />
                   Reintentar
@@ -416,7 +357,7 @@ export default function HomePage() {
               ))}
 
             {!productsLoading && !productsError && products.length === 0 && (
-              <p className="text-slate-400 text-sm py-6 w-full text-center">
+              <p className="home-collection__empty">
                 No hay productos disponibles por el momento.
               </p>
             )}
@@ -427,94 +368,84 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 4 — Loyalty teaser
       ════════════════════════════════════════════════════════════════════════ */}
-      <section className="mt-10 sm:mt-14 px-4 sm:px-6 mb-4" aria-labelledby="gram-heading">
-        <div className="max-w-2xl mx-auto">
+      <section className="home-loyalty" aria-labelledby="gram-heading">
+        <div className="home-loyalty__inner">
           {!isAuthenticated ? (
-            <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200/60 shadow-sm p-8 sm:p-10 text-center">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-pink/5 rounded-bl-full -mr-8 -mt-8 pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-brand-gold/5 rounded-tr-full -ml-6 -mb-6 pointer-events-none" />
+            <div className="home-loyalty__card">
+              <div className="home-loyalty__ornament-tl" aria-hidden="true" />
+              <div className="home-loyalty__ornament-bl" aria-hidden="true" />
 
-              <div className="relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-brand-gold/10 flex items-center justify-center mx-auto mb-5">
-                  <Sparkles size={26} className="text-brand-gold" strokeWidth={1.5} />
-                </div>
-
-                <h2 id="gram-heading" className="font-display font-semibold text-2xl text-slate-800 mb-2">
-                  Acumula gramos y gana esencias gratis
-                </h2>
-                <p className="text-slate-500 text-sm max-w-xs mx-auto">
-                  Cada compra te da 1g + una ficha de juego. Al llegar a {GRAMS_PER_OZ}g
-                  canjeas 1 oz de esencia premium.
-                </p>
-
-                <div className="flex items-center justify-center gap-5 my-7">
-                  {[
-                    { Icon: Scale, label: "Compra" },
-                    { Icon: Gamepad2, label: "Juega" },
-                    { Icon: Trophy, label: "Canjea" },
-                  ].map(({ Icon, label }, i) => (
-                    <div key={label} className="flex items-center gap-0">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                          <Icon size={20} className="text-slate-600" strokeWidth={1.5} />
-                        </div>
-                        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                          {label}
-                        </span>
-                      </div>
-                      {i < 2 && (
-                        <ChevronRight size={16} className="text-slate-300 ml-5 mr-1" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <Link
-                  to="/register"
-                  className="inline-flex items-center gap-2 bg-brand-pink text-white font-semibold text-sm px-10 py-3 rounded-full hover:bg-brand-pink/90 active:scale-[0.98] transition-all"
-                >
-                  Regístrate gratis
-                  <ChevronRight size={16} />
-                </Link>
+              <div className="home-loyalty__icon-wrap">
+                <Sparkles size={26} className="home-loyalty__icon" />
               </div>
+
+              <h2 id="gram-heading" className="home-loyalty__title">
+                Acumula gramos y gana esencias gratis
+              </h2>
+              <p className="home-loyalty__desc">
+                Cada compra te da 1g + una ficha de juego. Al llegar a {GRAMS_PER_OZ}g
+                canjeas 1 oz de esencia premium.
+              </p>
+
+              <div className="home-loyalty__steps">
+                {[
+                  { Icon: Scale, label: "Compra" },
+                  { Icon: Gamepad2, label: "Juega" },
+                  { Icon: Trophy, label: "Canjea" },
+                ].map(({ Icon, label }, i) => (
+                  <div key={label} className="home-loyalty__step">
+                    <div className="home-loyalty__step-icon">
+                      <Icon size={20} />
+                    </div>
+                    <span className="home-loyalty__step-label">{label}</span>
+                    {i < 2 && (
+                      <div className={`home-loyalty__step-connector${i === 0 ? " home-loyalty__step-connector--active" : ""}`}>
+                        <ChevronRight size={16} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <Link to="/register" className="home-loyalty__btn">
+                Regístrate gratis
+                <ChevronRight size={16} />
+              </Link>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-brand-gold/20 shadow-sm p-6 sm:p-8">
-              <div className="flex items-start justify-between mb-4">
+            <div className="home-loyalty__card home-loyalty__card--auth">
+              <div className="home-loyalty__auth-header">
                 <div>
-                  <h2 id="gram-heading" className="font-display font-semibold text-xl text-slate-800">
+                  <h2 id="gram-heading" className="home-loyalty__auth-title">
                     Mis gramos
                   </h2>
-                  <p className="text-sm text-slate-500">{user?.name?.split(" ")[0]}</p>
+                  <p className="home-loyalty__auth-subtitle">
+                    {user?.name?.split(" ")[0]}
+                  </p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center">
-                  <Scale size={20} className="text-brand-gold" strokeWidth={1.5} />
+                <div className="home-loyalty__auth-gold-icon">
+                  <Scale size={20} />
                 </div>
               </div>
 
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="font-display font-bold text-[40px] text-brand-gold leading-none">
-                  {currentGrams}
-                </span>
-                <span className="font-body text-base text-slate-400">/ {GRAMS_PER_OZ}g</span>
+              <div className="home-loyalty__auth-balance">
+                <span className="home-loyalty__auth-grams">{currentGrams}</span>
+                <span className="home-loyalty__auth-grams-total">/ {GRAMS_PER_OZ}g</span>
               </div>
-              <p className="text-sm text-slate-500 mb-5">
+              <p className="home-loyalty__auth-message">
                 {currentGrams >= GRAMS_PER_OZ
                   ? "¡Puedes canjear 1 oz de esencia gratis!"
                   : `${GRAMS_PER_OZ - currentGrams}g más para tu próxima oz gratis`}
               </p>
 
-              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-5">
+              <div className="home-loyalty__progress">
                 <div
-                  className="h-full bg-brand-gold rounded-full transition-all duration-700"
+                  className="home-loyalty__progress-bar"
                   style={{ width: `${pct}%` }}
                 />
               </div>
 
-              <Link
-                to="/mis-gramos"
-                className="inline-flex items-center gap-1.5 text-brand-blue text-sm font-medium hover:text-brand-blue/80 transition-colors"
-              >
+              <Link to="/mis-gramos" className="home-loyalty__auth-link">
                 Ver mi billetera de gramos
                 <ChevronRight size={14} strokeWidth={2} />
               </Link>
