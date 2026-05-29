@@ -476,7 +476,7 @@
 
 @media (min-width: 1024px) {
   .home-bento__grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -486,13 +486,8 @@
   border: 1px solid rgba(224, 224, 224, 0.6);
   padding: 1.25rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, opacity 0.6s ease;
   cursor: default;
-}
-
-.home-bento__card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08);
 }
 
 .home-bento__card--featured {
@@ -503,7 +498,7 @@
 
 @media (min-width: 640px) {
   .home-bento__card--featured {
-    grid-column: span 2;
+    grid-column: span 1;
   }
 }
 
@@ -1210,6 +1205,277 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   Scroll Reveal Animations — Multiple Types
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Base scroll-reveal */
+.scroll-reveal {
+  opacity: 0;
+  transition: opacity 0.6s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scroll-reveal.in-view {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.scroll-reveal.out-view {
+  opacity: 0;
+  transform: translateY(40px) scale(0.95);
+}
+
+/* Slide Up — para cards */
+.sr-slide-up {
+  transform: translateY(40px);
+}
+
+.sr-slide-up.in-view {
+  transform: translateY(0);
+}
+
+/* Scale — para loyalty card */
+.sr-scale {
+  transform: scale(0.9);
+}
+
+.sr-scale.in-view {
+  transform: scale(1);
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.6s ease;
+}
+
+/* Fade — para labels, texto pequeño */
+.sr-fade {
+  transform: translateY(20px);
+}
+
+.sr-fade.in-view {
+  transform: translateY(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* Bounce — para elementos destacados */
+.sr-bounce {
+  transform: scale(0.8) translateY(30px);
+}
+
+.sr-bounce.in-view {
+  transform: scale(1) translateY(0);
+  transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.6s ease;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Lava Lamp Dynamic Background — Bento Section
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.home-bento__lava-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.7;
+}
+
+.home-bento__blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform, border-radius;
+  animation: lava-float 15s ease-in-out infinite;
+}
+
+.home-bento__blob--1 {
+  width: 300px;
+  height: 300px;
+  background: rgba(216, 27, 96, 0.15);
+  top: 20%;
+  left: -5%;
+  animation-delay: 0s;
+  filter: blur(60px);
+}
+
+.home-bento__blob--2 {
+  width: 200px;
+  height: 200px;
+  background: rgba(249, 168, 37, 0.12);
+  top: 50%;
+  right: -3%;
+  animation-delay: -5s;
+  filter: blur(50px);
+}
+
+.home-bento__blob--3 {
+  width: 250px;
+  height: 250px;
+  background: rgba(21, 101, 192, 0.1);
+  bottom: 10%;
+  left: 30%;
+  animation-delay: -10s;
+  filter: blur(55px);
+}
+
+.home-bento__blob--4 {
+  width: 180px;
+  height: 180px;
+  background: rgba(216, 27, 96, 0.1);
+  top: 60%;
+  right: 20%;
+  animation-delay: -7s;
+  filter: blur(45px);
+}
+
+@keyframes lava-float {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); border-radius: 40% 60% 55% 45% / 45% 55% 40% 60%; }
+  25%  { transform: translate(20px, -30px) scale(1.1) rotate(90deg); border-radius: 55% 45% 40% 60% / 60% 40% 55% 45%; }
+  50%  { transform: translate(-15px, 20px) scale(0.95) rotate(180deg); border-radius: 45% 55% 60% 40% / 40% 60% 45% 55%; }
+  75%  { transform: translate(25px, 10px) scale(1.05) rotate(270deg); border-radius: 60% 40% 45% 55% / 55% 45% 60% 40%; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Floating Particles
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.home-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.home-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  will-change: transform, opacity;
+  animation: particle-float 8s ease-in-out infinite;
+}
+
+.home-particle--1 { top: 15%; left: 8%; animation-delay: 0s; animation-duration: 7s; width: 6px; height: 6px; }
+.home-particle--2 { top: 35%; left: 85%; animation-delay: -2s; animation-duration: 9s; width: 4px; height: 4px; background: rgba(249, 168, 37, 0.4); }
+.home-particle--3 { top: 55%; left: 15%; animation-delay: -4s; animation-duration: 6s; width: 8px; height: 8px; }
+.home-particle--4 { top: 75%; left: 75%; animation-delay: -6s; animation-duration: 10s; width: 5px; height: 5px; background: rgba(216, 27, 96, 0.3); }
+.home-particle--5 { top: 25%; left: 55%; animation-delay: -3s; animation-duration: 8s; width: 5px; height: 5px; }
+.home-particle--6 { top: 65%; left: 45%; animation-delay: -5s; animation-duration: 7s; width: 7px; height: 7px; background: rgba(255, 255, 255, 0.3); }
+.home-particle--7 { top: 85%; left: 25%; animation-delay: -1s; animation-duration: 9s; width: 4px; height: 4px; }
+.home-particle--8 { top: 45%; left: 65%; animation-delay: -7s; animation-duration: 8s; width: 6px; height: 6px; background: rgba(249, 168, 37, 0.3); }
+
+@keyframes particle-float {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  25%  { transform: translate(10px, -20px) scale(1.2); opacity: 0.8; }
+  50%  { transform: translate(-5px, -10px) scale(0.9); opacity: 0.6; }
+  75%  { transform: translate(15px, -5px) scale(1.1); opacity: 0.7; }
+}
+
+/* Particles sutiles para Colección */
+.home-particles--subtle .home-particle {
+  opacity: 0.3;
+  animation-duration: 10s;
+}
+
+.home-particles--subtle .home-particle--2,
+.home-particles--subtle .home-particle--4,
+.home-particles--subtle .home-particle--8 {
+  background: rgba(216, 27, 96, 0.2);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Glassmorphism + Shimmer Effects
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Card con glass effect */
+.home-loyalty__card {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glass shimmer effect */
+.home-loyalty__card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.home-loyalty__card.in-view::before {
+  animation: glass-shimmer 1.2s ease-out;
+}
+
+@keyframes glass-shimmer {
+  0% { opacity: 0; transform: translateX(-100%); }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(100%); }
+}
+
+/* Borde brillante en hover para cards */
+.home-bento__card:hover {
+  border-color: rgba(216, 27, 96, 0.3);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(216, 27, 96, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.home-product-card:hover {
+  border-color: rgba(216, 27, 96, 0.2);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(216, 27, 96, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Stagger Animations for Cards
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Stagger en Bento cards */
+.home-bento.scroll-reveal.in-view .home-bento__card:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
+.home-bento.scroll-reveal.in-view .home-bento__card:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0); }
+.home-bento.scroll-reveal.in-view .home-bento__card:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0); }
+.home-bento.scroll-reveal.in-view .home-bento__card:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
+
+/* Stagger en Colección cards */
+.home-collection.scroll-reveal.in-view .home-product-card:nth-child(1) { transition-delay: 0ms; }
+.home-collection.scroll-reveal.in-view .home-product-card:nth-child(2) { transition-delay: 80ms; }
+.home-collection.scroll-reveal.in-view .home-product-card:nth-child(3) { transition-delay: 160ms; }
+.home-collection.scroll-reveal.in-view .home-product-card:nth-child(4) { transition-delay: 240ms; }
+.home-collection.scroll-reveal.in-view .home-product-card:nth-child(5) { transition-delay: 320ms; }
+.home-collection.scroll-reveal.in-view .home-product-card:nth-child(6) { transition-delay: 400ms; }
+
+/* Stagger en Loyalty steps */
+.home-loyalty.scroll-reveal.in-view .home-loyalty__step:nth-child(1) { transition-delay: 0ms; }
+.home-loyalty.scroll-reveal.in-view .home-loyalty__step:nth-child(2) { transition-delay: 150ms; }
+.home-loyalty.scroll-reveal.in-view .home-loyalty__step:nth-child(3) { transition-delay: 300ms; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Loyalty Auth Card — Premium Scale Effect
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.home-loyalty__card--auth {
+  border: 2px solid rgba(249, 168, 37, 0.4);
+  box-shadow: 0 8px 32px rgba(249, 168, 37, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.home-loyalty__card--auth.in-view {
+  box-shadow: 0 16px 48px rgba(249, 168, 37, 0.2);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    Reduced motion
    ════════════════════════════════════════════════════════════════════════════ */
 
@@ -1218,11 +1484,16 @@
   .home-hero__blob-2,
   .home-hero__blob-3,
   .home-hero__headline,
-  .home-hero__scroll-indicator {
+  .home-hero__scroll-indicator,
+  .home-bento__blob,
+  .home-particle {
     animation: none !important;
   }
   .home-product-card,
-  .home-bento__card {
+  .home-bento__card,
+  .scroll-reveal {
     transition: none;
+    opacity: 1;
+    transform: none;
   }
 }

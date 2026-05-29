@@ -35,6 +35,7 @@ import { useCartStore } from "../stores/cartStore";
 import { BottomTabBar } from "../components/layout/BottomTabBar";
 import { formatCOP } from "../utils/format";
 import { GRAMS_PER_OZ, gramProgress } from "../utils/priceCalculator";
+import { useScrollReveal } from "../hooks/useScrollReveal";
 import type { Product, GramAccount } from "../types";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -129,6 +130,8 @@ export default function HomePage() {
   const initials = user?.name
     ? user.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()
     : null;
+
+  const addRef = useScrollReveal();
 
   const {
     data: productsData,
@@ -250,7 +253,25 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 2 — Bento Grid: ¿Por qué elegirnos?
       ════════════════════════════════════════════════════════════════════════ */}
-      <section className="home-bento" aria-labelledby="why-heading">
+      <section ref={addRef} className="home-bento scroll-reveal" aria-labelledby="why-heading">
+        {/* Lava lamp dynamic background */}
+        <div className="home-bento__lava-bg" aria-hidden="true">
+          <div className="home-bento__blob home-bento__blob--1" />
+          <div className="home-bento__blob home-bento__blob--2" />
+          <div className="home-bento__blob home-bento__blob--3" />
+          <div className="home-bento__blob home-bento__blob--4" />
+        </div>
+        {/* Floating particles */}
+        <div className="home-particles" aria-hidden="true">
+          <div className="home-particle home-particle--1" />
+          <div className="home-particle home-particle--2" />
+          <div className="home-particle home-particle--3" />
+          <div className="home-particle home-particle--4" />
+          <div className="home-particle home-particle--5" />
+          <div className="home-particle home-particle--6" />
+          <div className="home-particle home-particle--7" />
+          <div className="home-particle home-particle--8" />
+        </div>
         <div className="home-bento__inner">
           <h2 id="why-heading" className="home-bento__title">
             ¿Por qué elegirnos?
@@ -308,7 +329,13 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 3 — Colección Destacada
       ════════════════════════════════════════════════════════════════════════ */}
-      <section className="home-collection" aria-labelledby="collection-heading">
+      <section ref={addRef} className="home-collection scroll-reveal" aria-labelledby="collection-heading">
+        {/* Subtle floating particles */}
+        <div className="home-particles home-particles--subtle" aria-hidden="true">
+          <div className="home-particle home-particle--1" />
+          <div className="home-particle home-particle--2" />
+          <div className="home-particle home-particle--3" />
+        </div>
         <div className="home-collection__inner">
           <div className="home-collection__header">
             <div className="home-collection__header-left">
@@ -368,10 +395,15 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 4 — Loyalty teaser
       ════════════════════════════════════════════════════════════════════════ */}
-      <section className="home-loyalty" aria-labelledby="gram-heading">
+      <section ref={addRef} className="home-loyalty scroll-reveal" aria-labelledby="gram-heading">
         <div className="home-loyalty__inner">
           {!isAuthenticated ? (
             <div className="home-loyalty__card">
+              {/* Lava blobs for loyalty */}
+              <div className="home-bento__lava-bg" aria-hidden="true" style={{ opacity: 0.5 }}>
+                <div className="home-bento__blob home-bento__blob--1" style={{ background: 'rgba(249, 168, 37, 0.15)', width: '200px', height: '200px' }} />
+                <div className="home-bento__blob home-bento__blob--2" style={{ background: 'rgba(216, 27, 96, 0.1)', width: '150px', height: '150px' }} />
+              </div>
               <div className="home-loyalty__ornament-tl" aria-hidden="true" />
               <div className="home-loyalty__ornament-bl" aria-hidden="true" />
 
