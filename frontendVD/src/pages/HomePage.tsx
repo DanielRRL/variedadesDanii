@@ -268,9 +268,6 @@ export default function HomePage() {
           <div className="home-particle home-particle--3" />
           <div className="home-particle home-particle--4" />
           <div className="home-particle home-particle--5" />
-          <div className="home-particle home-particle--6" />
-          <div className="home-particle home-particle--7" />
-          <div className="home-particle home-particle--8" />
         </div>
         <div className="home-bento__inner">
           <h2 id="why-heading" className="home-bento__title">
