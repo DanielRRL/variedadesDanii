@@ -623,43 +623,7 @@
   z-index: 2;
 }
 
-/* Hero-style blobs for Collection */
-.home-collection .hero-blob {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(55px);
-}
-
-.home-collection .hero-blob--1 {
-  width: 300px;
-  height: 300px;
-  background: rgba(216, 27, 96, 0.08);
-  top: -8%;
-  right: -10%;
-  animation: hero-blob-1 20s ease-in-out -3s infinite;
-  z-index: 0;
-}
-
-.home-collection .hero-blob--2 {
-  width: 200px;
-  height: 200px;
-  background: rgba(249, 168, 37, 0.07);
-  bottom: -5%;
-  left: -8%;
-  animation: hero-blob-2 18s ease-in-out -9s infinite;
-  z-index: 0;
-}
-
-.home-collection .hero-blob--3 {
-  width: 160px;
-  height: 160px;
-  background: rgba(21, 101, 192, 0.06);
-  top: 40%;
-  left: 50%;
-  animation: hero-blob-3 22s ease-in-out -14s infinite;
-  z-index: 0;
-}
+/* ── COLLECTION CLEANUP: removed hero-blob circle styles above ─────────── */
 
 
 .home-collection__header {
@@ -1060,27 +1024,13 @@
   box-shadow: 0 8px 32px rgba(249, 168, 37, 0.1);
 }
 
-.home-loyalty__ornament-tl {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 8rem;
-  height: 8rem;
-  background: rgba(216, 27, 96, 0.05);
-  border-radius: 0 0 0 100%;
-  pointer-events: none;
-}
+/* ornaments removed — replaced by decorative circles */
 
-.home-loyalty__ornament-bl {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 6rem;
-  height: 6rem;
-  background: rgba(249, 168, 37, 0.05);
-  border-radius: 0 100% 0 0;
-  pointer-events: none;
-}
+/* ════════════════════════════════════════════════════════════════════════════
+   Fog / Mist Effect — Loyalty Section (removed)
+   ═다═══════════════════════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════════════════════════
 
 .home-loyalty__icon-wrap {
   width: 3.5rem;
@@ -1357,35 +1307,7 @@
   100% { transform: translateY(105vh) rotate(360deg) translateX(-5px); opacity: 0; }
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
-   Fog / Mist Effect — Loyalty Section
-   ════════════════════════════════════════════════════════════════════════════ */
-
-.home-loyalty__fog {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse 80% 60% at 50% 50%,
-    rgba(249, 248, 245, 0.85) 0%,
-    rgba(249, 248, 245, 0.4) 50%,
-    transparent 100%
-  );
-  filter: blur(24px);
-  animation: fog-drift 20s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 1;
-}
-
-@keyframes fog-drift {
-  0%, 100% { transform: translateX(-5%) scale(1);    opacity: 0.6; }
-  50%       { transform: translateX(5%) scale(1.08); opacity: 0.9; }
-}
-
-/* Content sits above fog */
-.home-loyalty__inner {
-  position: relative;
-  z-index: 2;
-}
+/* fog + fog-drift removed — replaced by decorative circles */
 
 /* ════════════════════════════════════════════════════════════════════════════
    Bento Cards — Scroll-triggered Entry Animation
@@ -1567,129 +1489,229 @@
               opacity 0.6s ease;
 }
 
+/* Bento lava-bg removed — replaced by .home-section__decorative-bg above */
+
 /* ════════════════════════════════════════════════════════════════════════════
-   Lava Lamp Dynamic Background — Bento Section
+   Decorative Background Circles — for Bento, Collection, Loyalty sections
+   Elegant blurred circles: brand-pink + brand-pink-dark, slow organic drift
    ════════════════════════════════════════════════════════════════════════════ */
 
-.home-bento__lava-bg {
+.home-section__decorative-bg {
   position: absolute;
   inset: 0;
-  overflow: hidden;
   pointer-events: none;
-  z-index: -1;
-  opacity: 0.7;
+  z-index: 0;
+  overflow: hidden;
 }
 
-.home-bento__blob {
+.home-section__circle {
   position: absolute;
   border-radius: 50%;
   will-change: transform, border-radius;
-}
-
-.home-bento__blob--1 {
-  width: 280px;
-  height: 280px;
-  background: rgba(216, 27, 96, 0.12);
-  top: 10%;
-  left: -8%;
-  animation: hero-blob-1 18s ease-in-out 0s infinite;
-  filter: blur(60px);
-}
-
-.home-bento__blob--2 {
-  width: 200px;
-  height: 200px;
-  background: rgba(249, 168, 37, 0.10);
-  top: 50%;
-  right: -5%;
-  animation: hero-blob-2 16s ease-in-out -5s infinite;
-  filter: blur(50px);
-}
-
-.home-bento__blob--3 {
-  width: 160px;
-  height: 160px;
-  background: rgba(21, 101, 192, 0.08);
-  bottom: 15%;
-  left: 30%;
-  animation: hero-blob-3 20s ease-in-out -8s infinite;
   filter: blur(45px);
-}
-
-.home-bento__blob--4 {
-  width: 140px;
-  height: 140px;
-  background: rgba(216, 27, 96, 0.08);
-  top: 60%;
-  right: 15%;
-  animation: hero-blob-1 18s ease-in-out -6s infinite;
-  filter: blur(40px);
-}
-
-/* ════════════════════════════════════════════════════════════════════════════
-   Secondary Petals — for Bento, Collection, and Loyalty sections
-   ════════════════════════════════════════════════════════════════════════════ */
-
-.hero-petals--secondary {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
   pointer-events: none;
-  z-index: 1;
 }
 
-.hero-petals--secondary .hero-petal {
-  border-radius: 50% 0 50% 0;
-  pointer-events: none;
-  will-change: transform;
-  animation: petal-fall linear infinite;
-  top: -5%;
+/* ── BENTO: 10 circles ────────────────────────────────────────────────── */
+/* Base blur for bento circles — more visible */
+.home-bento .home-section__decorative-bg .home-section__circle {
+  filter: blur(38px);
 }
 
-/* Petal variants via nth-child */
-.hero-petals--secondary .hero-petal--1 {
-  left: 10%;
-  width: 6px;
-  height: 6px;
-  animation-delay: 2s;
-  animation-duration: 16s;
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(1) {
+  width: 360px; height: 360px;
+  top: -10%; right: -8%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-1 22s ease-in-out -2s infinite;
 }
-.hero-petals--secondary .hero-petal--2 {
-  left: 35%;
-  width: 5px;
-  height: 5px;
-  animation-delay: 5s;
-  animation-duration: 15s;
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(2) {
+  width: 220px; height: 220px;
+  top: 30%; left: -6%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-2 20s ease-in-out -7s infinite;
 }
-.hero-petals--secondary .hero-petal--3 {
-  left: 60%;
-  width: 7px;
-  height: 7px;
-  animation-delay: 8s;
-  animation-duration: 17s;
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(3) {
+  width: 280px; height: 280px;
+  bottom: 5%; right: 15%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-3 24s ease-in-out -5s infinite;
 }
-.hero-petals--secondary .hero-petal--4 {
-  left: 85%;
-  width: 5px;
-  height: 5px;
-  animation-delay: 12s;
-  animation-duration: 14s;
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(4) {
+  width: 140px; height: 140px;
+  top: 60%; left: 40%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-1 20s ease-in-out -10s infinite;
+}
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(5) {
+  width: 100px; height: 100px;
+  bottom: 20%; left: 60%;
+  background: rgba(216, 27, 96, 0.13);
+  animation: hero-blob-2 22s ease-in-out -13s infinite;
+}
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(6) {
+  width: 180px; height: 180px;
+  top: 20%; left: 55%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-2 22s ease-in-out -4s infinite;
+}
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(7) {
+  width: 120px; height: 120px;
+  top: 75%; right: 30%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-3 20s ease-in-out -9s infinite;
+}
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(8) {
+  width: 80px; height: 80px;
+  bottom: 40%; left: 15%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-1 18s ease-in-out -1s infinite;
+}
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(9) {
+  width: 160px; height: 160px;
+  top: 50%; right: -5%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-2 24s ease-in-out -16s infinite;
+}
+.home-bento .home-section__decorative-bg .home-section__circle:nth-child(10) {
+  width: 100px; height: 100px;
+  bottom: 65%; left: 70%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-3 22s ease-in-out -7s infinite;
 }
 
-/* Petal colors — inherit from hero-petal color classes but lower opacity */
-.hero-petals--secondary .hero-petal--1,
-.hero-petals--secondary .hero-petal--3 {
-  background: rgba(255, 255, 255, 0.22);
+/* ── COLLECTION: 10 circles ───────────────────────────────────────────── */
+/* Base blur for collection circles — more visible */
+.home-collection .home-section__decorative-bg .home-section__circle {
+  filter: blur(38px);
 }
 
-.hero-petals--secondary .hero-petal--2 {
-  background: rgba(216, 27, 96, 0.18);
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(1) {
+  width: 380px; height: 380px;
+  top: -12%; left: -10%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-2 22s ease-in-out -3s infinite;
+}
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(2) {
+  width: 200px; height: 200px;
+  bottom: 0%; right: -5%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-1 20s ease-in-out -8s infinite;
+}
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(3) {
+  width: 240px; height: 240px;
+  top: 40%; right: 20%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-3 25s ease-in-out -12s infinite;
+}
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(4) {
+  width: 120px; height: 120px;
+  top: 70%; left: 10%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-2 18s ease-in-out -5s infinite;
+}
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(5) {
+  width: 90px; height: 90px;
+  bottom: 30%; left: 50%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-1 22s ease-in-out -15s infinite;
+}
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(6) {
+  width: 160px; height: 160px;
+  top: 20%; right: 35%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-1 20s ease-in-out -6s infinite;
+}
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(7) {
+  width: 200px; height: 200px;
+  bottom: 20%; right: 25%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-3 25s ease-in-out -11s infinite;
+}
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(8) {
+  width: 100px; height: 100px;
+  top: 5%; left: 45%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-2 18s ease-in-out -2s infinite;
+}
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(9) {
+  width: 140px; height: 140px;
+  bottom: 50%; left: -5%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-1 23s ease-in-out -18s infinite;
+}
+.home-collection .home-section__decorative-bg .home-section__circle:nth-child(10) {
+  width: 80px; height: 80px;
+  top: 60%; left: 20%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-3 20s ease-in-out -14s infinite;
 }
 
-.hero-petals--secondary .hero-petal--4 {
-  background: rgba(249, 168, 37, 0.20);
+/* ── LOYALTY: 10 circles (section background) ─────────────────────────── */
+/* Base blur for loyalty circles — more visible */
+.home-loyalty .home-section__decorative-bg .home-section__circle {
+  filter: blur(38px);
 }
 
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(1) {
+  width: 340px; height: 340px;
+  top: -10%; right: -8%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-1 22s ease-in-out -2s infinite;
+}
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(2) {
+  width: 200px; height: 200px;
+  top: 35%; left: -5%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-2 20s ease-in-out -7s infinite;
+}
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(3) {
+  width: 280px; height: 280px;
+  bottom: 5%; left: 30%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-3 24s ease-in-out -5s infinite;
+}
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(4) {
+  width: 140px; height: 140px;
+  top: 65%; left: 55%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-1 20s ease-in-out -10s infinite;
+}
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(5) {
+  width: 100px; height: 100px;
+  bottom: 15%; left: 5%;
+  background: rgba(216, 27, 96, 0.13);
+  animation: hero-blob-2 22s ease-in-out -13s infinite;
+}
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(6) {
+  width: 180px; height: 180px;
+  top: 20%; right: -5%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-2 22s ease-in-out -4s infinite;
+}
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(7) {
+  width: 120px; height: 120px;
+  bottom: 25%; left: 5%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-3 20s ease-in-out -9s infinite;
+}
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(8) {
+  width: 80px; height: 80px;
+  top: 55%; right: 25%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-1 18s ease-in-out -1s infinite;
+}
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(9) {
+  width: 160px; height: 160px;
+  bottom: 55%; right: -10%;
+  background: rgba(136, 14, 79, 0.12);
+  animation: hero-blob-2 24s ease-in-out -16s infinite;
+}
+.home-loyalty .home-section__decorative-bg .home-section__circle:nth-child(10) {
+  width: 100px; height: 100px;
+  top: -5%; left: 30%;
+  background: rgba(216, 27, 96, 0.14);
+  animation: hero-blob-3 22s ease-in-out -7s infinite;
+}
 
 /* ════════════════════════════════════════════════════════════════════════════
    Glassmorphism + Shimmer Effects
@@ -1838,8 +1860,7 @@
   .home-hero__blob-3,
   .home-hero__headline,
   .home-hero__scroll-indicator,
-  .home-bento__blob,
-  .home-particle,
+  .home-section__circle,
   .home-loyalty__progress-bar::after {
     animation: none !important;
   }

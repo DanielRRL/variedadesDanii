@@ -16,7 +16,7 @@ interface LoyaltySectionProps {
 function ScaleIcon({ size }: { size: number }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="M7 21h10"/><path d="M12 21v-4"/><path d="M12 17V3"/>
+      <path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z" /><path d="M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z" /><path d="M7 21h10" /><path d="M12 21v-4" /><path d="M12 17V3" />
     </svg>
   );
 }
@@ -24,7 +24,7 @@ function ScaleIcon({ size }: { size: number }) {
 function ChevronRightIcon({ size }: { size: number }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 18 15 12 9 6"/>
+      <polyline points="9 18 15 12 9 6" />
     </svg>
   );
 }
@@ -42,29 +42,22 @@ export function LoyaltySection({
       className="home-loyalty home-section home-section--loyalty scroll-reveal"
       aria-labelledby="gram-heading"
     >
-      <div className="home-bento__lava-bg" aria-hidden="true" style={{ opacity: 0.5 }}>
-        <div className="home-bento__blob home-bento__blob--1" />
-        <div className="home-bento__blob home-bento__blob--2" />
-      </div>
 
-      <div className="hero-petals--secondary" aria-hidden="true">
-        <div className="hero-petal hero-petal--1" />
-        <div className="hero-petal hero-petal--2" />
-        <div className="hero-petal hero-petal--3" />
-        <div className="hero-petal hero-petal--4" />
+      <div className="home-section__decorative-bg" aria-hidden="true">
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
       </div>
 
       <div className="home-loyalty__inner">
         {!isAuthenticated ? (
           <div className="home-loyalty__card">
-            <div className="home-bento__lava-bg" aria-hidden="true" style={{ opacity: 0.5 }}>
-              <div className="home-bento__blob home-bento__blob--1" style={{ background: 'rgba(249, 168, 37, 0.15)', width: '200px', height: '200px' }} />
-              <div className="home-bento__blob home-bento__blob--2" style={{ background: 'rgba(216, 27, 96, 0.1)', width: '150px', height: '150px' }} />
-            </div>
-            <div className="home-loyalty__ornament-tl" aria-hidden="true" />
-            <div className="home-loyalty__ornament-bl" aria-hidden="true" />
-            <div className="home-loyalty__fog" aria-hidden="true" />
-
             <div className="home-loyalty__icon-wrap">
               <Sparkles size={26} className="home-loyalty__icon" />
             </div>
@@ -83,11 +76,14 @@ export function LoyaltySection({
                 { Icon: Gamepad2, label: 'Juega' },
                 { Icon: Trophy, label: 'Canjea' },
               ].map(({ Icon, label }, i) => (
-                <div key={label} className="home-loyalty__step">
-                  <div className="home-loyalty__step-icon">
-                    <Icon size={20} />
+                <div key={label} style={{ display: 'flex', alignItems: 'center' }}>
+                  <div className="home-loyalty__step">
+                    <div className="home-loyalty__step-icon">
+                      <Icon size={20} />
+                    </div>
+                    <span className="home-loyalty__step-label">{label}</span>
                   </div>
-                  <span className="home-loyalty__step-label">{label}</span>
+
                   {i < 2 && (
                     <div className={`home-loyalty__step-connector${i === 0 ? ' home-loyalty__step-connector--active' : ''}`}>
                       <ChevronRightIcon size={16} />

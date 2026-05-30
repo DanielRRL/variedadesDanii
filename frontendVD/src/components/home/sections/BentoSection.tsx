@@ -55,18 +55,17 @@ export function BentoSection({ addRef }: BentoSectionProps) {
       className="home-bento home-section scroll-reveal"
       aria-labelledby="why-heading"
     >
-      <div className="home-bento__lava-bg" aria-hidden="true">
-        <div className="home-bento__blob home-bento__blob--1" />
-        <div className="home-bento__blob home-bento__blob--2" />
-        <div className="home-bento__blob home-bento__blob--3" />
-        <div className="home-bento__blob home-bento__blob--4" />
-      </div>
-
-      <div className="hero-petals--secondary" aria-hidden="true">
-        <div className="hero-petal hero-petal--1" />
-        <div className="hero-petal hero-petal--2" />
-        <div className="hero-petal hero-petal--3" />
-        <div className="hero-petal hero-petal--4" />
+      <div className="home-section__decorative-bg" aria-hidden="true">
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
       </div>
 
       <div className="home-bento__inner">

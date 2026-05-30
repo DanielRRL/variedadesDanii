@@ -113,15 +113,17 @@ export function CollectionSection({
       className="home-collection home-section scroll-reveal"
       aria-labelledby="collection-heading"
     >
-      <div className="hero-blob hero-blob--1" aria-hidden="true" />
-      <div className="hero-blob hero-blob--2" aria-hidden="true" />
-      <div className="hero-blob hero-blob--3" aria-hidden="true" />
-
-      <div className="hero-petals--secondary" aria-hidden="true">
-        <div className="hero-petal hero-petal--1" />
-        <div className="hero-petal hero-petal--2" />
-        <div className="hero-petal hero-petal--3" />
-        <div className="hero-petal hero-petal--4" />
+      <div className="home-section__decorative-bg" aria-hidden="true">
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
+        <div className="home-section__circle" />
       </div>
 
       <div className="home-collection__inner">
