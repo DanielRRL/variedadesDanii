@@ -22,8 +22,14 @@ import helmet from "helmet";
 // morgan - Logger de requests HTTP (formato dev o combined segun entorno).
 import morgan from "morgan";
 
+// crypto - Para generar requestId unico por cada request.
+import { randomUUID } from "crypto";
+
 // rateLimit - Limita la cantidad de requests por ventana de tiempo.
 import rateLimit from "express-rate-limit";
+
+// hpp - Protege contra HTTP Parameter Pollution.
+import hpp from "hpp";
 
 // env - Variables de entorno centralizadas (puerto, JWT, CORS, etc).
 import { env } from "./config/env";
@@ -174,8 +180,39 @@ export function createApp(): express.Application {
   // Middlewares Globales
   // ---------------------------------------------------------------------------
 
-  // Seguridad: headers HTTP seguros (X-Content-Type-Options, etc)
-  app.use(helmet());
+  // Seguridad: headers HTTP seguros con configuracion CSP y HSTS
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "https://checkout.wompi.co", "https://js.wompi.co"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'", "https://sandbox.wompi.co", "https://production.wompi.co"],
+          frameSrc: ["'self'", "https://checkout.wompi.co"],
+        },
+      },
+      hsts: env.nodeEnv === "production" ? {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      } : false,
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    })
+  );
+
+  // Generar requestId unico para trazabilidad de cada request en logs.
+  app.use((req, _res, next) => {
+    req.requestId = randomUUID();
+    next();
+  });
+
+  // Logging de requests HTTP (ANTES de CORS/json para registrar todas las peticiones).
+  app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined"));
+
+  // Proteccion contra HTTP Parameter Pollution (ej: ?status=PAID&status=CANCELLED).
+  app.use(hpp());
 
   // ---------------------------------------------------------------------------
   // Webhook routes (ANTES de express.json)
@@ -183,8 +220,10 @@ export function createApp(): express.Application {
   // Los webhooks de Wompi necesitan el body RAW (Buffer) para validar la firma
   // HMAC-SHA256. Si express.json() corre primero, el body es parseado y el
   // string original se pierde, haciendo imposible recalcular el hash correcto.
-  // Por eso se instancian el repo, controlador y ruta aqui, antes del parser.
-  // Repos minimos para el webhook (instanciados temprano, antes de express.json).
+  // Se instancian repos minimos aqui ANTES del parser JSON.
+  // NOTA: estos repos se recrean abajo en la Composition Root como parte
+  // del grafo de dependencias principal. El overhead es cero porque todos
+  // comparten la misma instancia singleton de PrismaClient.
   const _webhookPaymentRepo  = new PrismaPaymentRepository();
   const _webhookOrderRepo    = new PrismaOrderRepository();
   const _webhookInvoiceRepo  = new PrismaInvoiceRepository();
@@ -215,9 +254,6 @@ export function createApp(): express.Application {
   // Parseo del body: JSON y formularios URL-encoded
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-
-  // Logging de requests HTTP (dev en desarrollo, combined en produccion)
-  app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined"));
 
   // Rate limiting: protege /api de abuso (limite configurable en .env)
   const limiter = rateLimit({
@@ -330,7 +366,7 @@ export function createApp(): express.Application {
   const gameTokenController = new GameTokenController(gameTokenService, gameTokenRepo);
   const essenceRedemptionController = new EssenceRedemptionController(essenceRedemptionRepo, gramService);
   const loyaltyController = new LoyaltyController(loyaltyService, referralService);
-  const invoiceController = new InvoiceController(invoiceService, invoiceRepo);
+  const invoiceController = new InvoiceController(invoiceService, invoiceRepo, orderRepo);
   const posController = new POSController(salesService, orderRepo);
 
   // ---------------------------------------------------------------------------

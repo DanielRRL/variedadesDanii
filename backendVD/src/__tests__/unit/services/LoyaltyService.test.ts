@@ -40,6 +40,7 @@ function makeLoyaltyRepoMock(): ILoyaltyRepository {
     updateAccount:          vi.fn(),
     addTransaction:         vi.fn(),
     getTransactionsByAccount: vi.fn().mockResolvedValue([]),
+    earnPointsAtomically:   vi.fn(),
   };
 }
 
@@ -118,13 +119,14 @@ describe("LoyaltyService", () => {
 
   // ── 3. earnPoints — acredita puntos y registra transaccion ───────────────
 
-  it("debe acreditar puntos y llamar a addTransaction con tipo EARN", async () => {
+  it("debe acreditar puntos y llamar a earnPointsAtomically con tipo EARN", async () => {
     // Arrange
     const account = makeAccount({ points: 1000 });
     const updatedAccount = makeAccount({ points: 1200 });
     (loyaltyRepo.findAccountByUserId as ReturnType<typeof vi.fn>)
-      .mockResolvedValue(account);
-    (loyaltyRepo.updateAccount as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(account)   // primer llamado: getOrCreateAccount
+      .mockResolvedValueOnce(updatedAccount); // segundo llamado: despues de earnPointsAtomically
+    (loyaltyRepo.earnPointsAtomically as ReturnType<typeof vi.fn>)
       .mockResolvedValue(updatedAccount);
     // countOrdersByUser = 2: no llega a ningun umbral, no sube de nivel.
     (userRepo.countOrdersByUser as ReturnType<typeof vi.fn>)
@@ -137,16 +139,14 @@ describe("LoyaltyService", () => {
       referenceId: "bottle-return-uuid",
     });
 
-    // Assert: la cuenta debe actualizarse con el nuevo saldo.
-    expect(loyaltyRepo.updateAccount).toHaveBeenCalledWith("account-uuid-1", {
-      points: 1200,
-    });
-    // Assert: debe registrar la transaccion de tipo EARN.
-    expect(loyaltyRepo.addTransaction).toHaveBeenCalledWith(
+    // Assert: debe usar el metodo atomico que combina actualizacion y transaccion.
+    expect(loyaltyRepo.earnPointsAtomically).toHaveBeenCalledWith(
+      "account-uuid-1",
+      200,
       expect.objectContaining({
-        accountId: "account-uuid-1",
         type:      LoyaltyTxType.EARN,
-        points:    200,
+        reason:    "Bonus por devolucion de frasco",
+        referenceId: "bottle-return-uuid",
       })
     );
   });

@@ -26,6 +26,9 @@ import { AppError } from "../../utils/AppError";
 // logger - Logger centralizado Winston.
 import logger from "../../utils/logger";
 
+// prisma - Para envolver operaciones en transaccion atomica.
+import prisma from "../../config/database";
+
 // ---------------------------------------------------------------------------
 // Constantes del modulo de referidos
 // ---------------------------------------------------------------------------
@@ -126,37 +129,71 @@ export class ReferralService {
       throw AppError.conflict("You have already used a referral code.");
     }
 
-    // Registrar el uso del codigo
-    const usage = await this.referralRepo.createUsage({
-      referralCodeId: referralCode.id!,
-      newUserId,
+    // Ejecutar todas las operaciones de referido en una transaccion atomica:
+    // createUsage + earnPoints (ambos) + incrementUsageCount + markRewardGiven.
+    // Si cualquier paso falla, todo el bloque se revierte evitando estado inconsistente.
+    await prisma.$transaction(async (tx) => {
+      // Registrar el uso del codigo
+      const usage = await tx.referralUsage.create({
+        data: {
+          referralCodeId: referralCode.id!,
+          newUserId,
+        },
+      });
+
+      // Acreditar puntos al nuevo usuario con escritura directa a BD (para usar tx)
+      const newUserAccount = await tx.loyaltyAccount.findUnique({ where: { userId: newUserId } });
+      if (newUserAccount) {
+        await tx.loyaltyAccount.update({
+          where: { id: newUserAccount.id },
+          data: { points: newUserAccount.points + REFERRAL_BONUS_BOTH_PARTIES },
+        });
+        await tx.loyaltyTransaction.create({
+          data: {
+            accountId: newUserAccount.id,
+            type: "EARN" as any,
+            points: REFERRAL_BONUS_BOTH_PARTIES,
+            reason: `Bono por usar codigo de referido: ${code.toUpperCase()}`,
+            referenceId: referralCode.id,
+          },
+        });
+      }
+
+      // Acreditar puntos al dueno del codigo (referidor)
+      const referrerAccount = await tx.loyaltyAccount.findUnique({ where: { userId: referralCode.userId } });
+      if (referrerAccount) {
+        await tx.loyaltyAccount.update({
+          where: { id: referrerAccount.id },
+          data: { points: referrerAccount.points + REFERRAL_BONUS_BOTH_PARTIES },
+        });
+        await tx.loyaltyTransaction.create({
+          data: {
+            accountId: referrerAccount.id,
+            type: "EARN" as any,
+            points: REFERRAL_BONUS_BOTH_PARTIES,
+            reason: "Bono por referir a un nuevo cliente",
+            referenceId: newUserId,
+          },
+        });
+      }
+
+      // Incrementar contador de usos del codigo
+      await tx.referralCode.update({
+        where: { id: referralCode.id! },
+        data: { usageCount: { increment: 1 } },
+      });
+
+      // Marcar el uso como recompensado
+      await tx.referralUsage.update({
+        where: { id: usage.id },
+        data: { rewardGiven: true },
+      });
     });
-
-    // Acreditar puntos al nuevo usuario
-    await this.loyaltyService.earnPoints(newUserId, {
-      points:      REFERRAL_BONUS_BOTH_PARTIES,
-      reason:      `Bono por usar codigo de referido: ${code.toUpperCase()}`,
-      referenceId: referralCode.id,
-    });
-
-    // Acreditar puntos al dueno del codigo (referidor)
-    const referrerId = referralCode.userId;
-    await this.loyaltyService.earnPoints(referrerId, {
-      points:      REFERRAL_BONUS_BOTH_PARTIES,
-      reason:      `Bono por referir a un nuevo cliente`,
-      referenceId: newUserId,
-    });
-
-    // Incrementar contador de usos del codigo
-    await this.referralRepo.incrementUsageCount(referralCode.id!);
-
-    // Marcar el uso como recompensado
-    await this.referralRepo.markRewardGiven(usage.id!);
 
     logger.info("Referral code applied", {
       code:        code.toUpperCase(),
       newUserId,
-      referrerId,
+      referrerId:  referralCode.userId,
       pointsEach:  REFERRAL_BONUS_BOTH_PARTIES,
     });
   }

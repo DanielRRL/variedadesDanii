@@ -5,6 +5,9 @@
  *
  * El numero de factura es secuencial por año: FAC-YYYY-NNNN.
  * Zona horaria: America/Bogota (UTC-5).
+ *
+ * Numeracion atomica: usa pg_advisory_xact_lock dentro de transaccion Prisma
+ * para garantizar que dos requests concurrentes nunca generen el mismo numero.
  */
 
 import { IOrderRepository } from "../../domain/repositories/IOrderRepository";
@@ -46,6 +49,10 @@ export interface SimpleInvoiceData {
   notes?: string;
 }
 
+// Advisory lock key predecible para serializar generacion de numeros de factura.
+// Cualquier valor constante es valido; usamos un hash simple del namespace.
+const INVOICE_LOCK_KEY = 0x5644; // "VD" en hex
+
 // Mapa de metodos de pago a texto legible en español
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   NEQUI: "Nequi",
@@ -64,29 +71,36 @@ export class SimpleInvoiceService {
 
   /**
    * Genera una factura simple para una orden, la persiste y envia por email.
+   * Idempotente: si la orden ya tiene invoiceNumber, retorna la existente.
    * @param orderId - UUID de la orden.
    * @returns Datos de la factura generada.
    */
   async generateAndSend(orderId: string): Promise<SimpleInvoiceData> {
-    // 1. Buscar la orden con items y usuario
-    const order = await this.orderRepo.findById(orderId);
-    if (!order) {
+    // 0. Idempotencia: verificar si ya se genero una factura para esta orden.
+    const existingOrder = await this.orderRepo.findById(orderId);
+    if (!existingOrder) {
       throw AppError.notFound("Order not found");
     }
 
-    // 2. Generar numero de factura secuencial
-    const now = new Date();
-    const year = now.getFullYear();
-    const lastNumber = await this.getLastInvoiceNumber(year);
-    const invoiceNumber = this.generateInvoiceNumber(year, lastNumber);
+    if (existingOrder.simpleInvoice && existingOrder.invoiceNumber) {
+      logger.info("SimpleInvoiceService: factura ya existe, retornando existente", {
+        orderId,
+        invoiceNumber: existingOrder.invoiceNumber,
+      });
+      return existingOrder.simpleInvoice as SimpleInvoiceData;
+    }
 
-    // 3. Formatear fecha/hora en zona Colombia
+    // 1. Generar número de factura y persistir en una transacción atómica.
+    const now = new Date();
+    const invoiceNumber = await this.getNextInvoiceNumberAndReserve(orderId);
+
+    // 2. Formatear fecha/hora en zona Colombia
     const { date, time, timezone } = this.formatDate(now);
 
-    // 4. Construir el objeto de factura
-    const clientName = order.walkInClient || order.user?.name || "Cliente";
-    const clientEmail = order.user?.email;
-    const clientPhone = order.user?.phone;
+    // 3. Construir el objeto de factura
+    const clientName = existingOrder.walkInClient || existingOrder.user?.name || "Cliente";
+    const clientEmail = existingOrder.user?.email;
+    const clientPhone = existingOrder.user?.phone;
 
     const invoice: SimpleInvoiceData = {
       invoiceNumber,
@@ -97,32 +111,32 @@ export class SimpleInvoiceService {
       clientName,
       clientEmail: clientEmail || undefined,
       clientPhone: clientPhone || undefined,
-      orderNumber: order.orderNumber || order.id.slice(0, 8).toUpperCase(),
+      orderNumber: existingOrder.orderNumber || existingOrder.id.slice(0, 8).toUpperCase(),
       date,
       time,
       timezone,
       city: "Armenia, Quindío",
-      saleChannel: order.saleChannel || "ECOMMERCE",
-      items: order.items.map((item: any) => ({
+      saleChannel: existingOrder.saleChannel || "ECOMMERCE",
+      items: existingOrder.items.map((item: any) => ({
         productName: item.product?.name || `Producto ${item.productId.slice(0, 6)}`,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,
       })),
-      subtotal: order.subtotal,
-      discount: order.discount,
-      total: order.total,
-      paymentMethod: PAYMENT_METHOD_LABELS[order.paymentMethod] || order.paymentMethod,
-      notes: order.notes || undefined,
+      subtotal: existingOrder.subtotal,
+      discount: existingOrder.discount,
+      total: existingOrder.total,
+      paymentMethod: PAYMENT_METHOD_LABELS[existingOrder.paymentMethod] || existingOrder.paymentMethod,
+      notes: existingOrder.notes || undefined,
     };
 
-    // 5. Guardar factura en la orden
+    // 4. Guardar factura en la orden
     await this.orderRepo.update(orderId, {
       simpleInvoice: invoice as any,
       invoiceNumber,
     });
 
-    // 6. Enviar email si hay destinatario
+    // 5. Enviar email si hay destinatario
     const emailTo = clientEmail;
     if (emailTo) {
       try {
@@ -141,29 +155,46 @@ export class SimpleInvoiceService {
   }
 
   /**
-   * Obtiene el último número de factura del año dado.
-   * Consulta la BD buscando ordenes con invoiceNumber que empiece con FAC-YYYY-.
+   * Reserva atomicamente el siguiente numero de factura y lo asigna a la orden.
+   * El advisory lock, la lectura del ultimo numero y la escritura en la orden
+   * ocurren dentro de una misma transaccion Prisma. El lock se libera al hacer
+   * COMMIT, garantizando que ningun otro request concurrente pueda leer el
+   * mismo numero antes de que este request termine de escribirlo.
    */
-  private async getLastInvoiceNumber(year: number): Promise<number> {
+  private async getNextInvoiceNumberAndReserve(orderId: string): Promise<string> {
+    const year = new Date().getFullYear();
     const prefix = `FAC-${year}-`;
-    const lastOrder = await prisma.order.findFirst({
-      where: {
-        invoiceNumber: { startsWith: prefix },
-      },
-      orderBy: { invoiceNumber: "desc" },
-      select: { invoiceNumber: true },
+
+    return prisma.$transaction(async (tx) => {
+      // Adquirir lock de advisory dentro de la transaccion
+      await tx.$queryRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, INVOICE_LOCK_KEY);
+
+      // Leer el ultimo numero del año actual
+      const latest = await tx.order.findFirst({
+        where: { invoiceNumber: { startsWith: prefix } },
+        orderBy: { invoiceNumber: "desc" },
+        select: { invoiceNumber: true },
+      });
+
+      let nextNum = 1;
+      if (latest?.invoiceNumber) {
+        const numPart = latest.invoiceNumber.replace(prefix, "");
+        const parsed = parseInt(numPart, 10);
+        if (!isNaN(parsed)) {
+          nextNum = parsed + 1;
+        }
+      }
+
+      const invoiceNumber = `FAC-${year}-${String(nextNum).padStart(4, "0")}`;
+
+      // Reservar el numero en la orden dentro de la misma transaccion
+      await tx.order.update({
+        where: { id: orderId },
+        data: { invoiceNumber } as any,
+      });
+
+      return invoiceNumber;
     });
-
-    if (!lastOrder?.invoiceNumber) return 0;
-
-    const numPart = lastOrder.invoiceNumber.replace(prefix, "");
-    const parsed = parseInt(numPart, 10);
-    return isNaN(parsed) ? 0 : parsed;
-  }
-
-  private generateInvoiceNumber(year: number, lastNumber: number): string {
-    const next = lastNumber + 1;
-    return `FAC-${year}-${String(next).padStart(4, "0")}`;
   }
 
   private formatDate(date: Date): { date: string; time: string; timezone: string } {

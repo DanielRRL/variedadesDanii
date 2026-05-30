@@ -149,4 +149,40 @@ export class PrismaLoyaltyRepository implements ILoyaltyRepository {
     });
     return records.map(mapTransaction);
   }
+
+  /**
+   * Actualiza el saldo de puntos y registra la transaccion en una sola
+   * operacion atomica (Prisma.$transaction). Previene el estado inconsistente
+   * donde el balance cambia pero el historial de transacciones no se escribe.
+   */
+  async earnPointsAtomically(
+    accountId: string,
+    pointsDelta: number,
+    data: {
+      type: import("../../domain/entities/LoyaltyTransaction").LoyaltyTxType;
+      reason: string;
+      referenceId?: string;
+    }
+  ): Promise<LoyaltyAccount> {
+    const result = await prisma.$transaction(async (tx) => {
+      const account = await tx.loyaltyAccount.update({
+        where: { id: accountId },
+        data: { points: { increment: pointsDelta } },
+      });
+
+      await tx.loyaltyTransaction.create({
+        data: {
+          accountId,
+          type: data.type as any,
+          points: pointsDelta,
+          reason: data.reason,
+          referenceId: data.referenceId,
+        },
+      });
+
+      return mapAccount(account);
+    });
+
+    return result;
+  }
 }

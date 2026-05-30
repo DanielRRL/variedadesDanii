@@ -42,7 +42,7 @@ export class GameTokenController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const pendingTokens = await this.gameTokenService.getPendingTokens(userId);
 
       // Contar fichas usadas: todas las fichas del usuario menos las pendientes
@@ -73,7 +73,7 @@ export class GameTokenController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const tokenId = param(req, "tokenId");
       const { gameType } = req.body;
 

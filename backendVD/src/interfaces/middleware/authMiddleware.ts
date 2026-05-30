@@ -44,8 +44,8 @@ export const authMiddleware = (
     const decoded = jwt.verify(token, env.jwt.secret) as JwtPayload;
 
     // Adjuntar datos del usuario al request
-    (req as any).userId = decoded.userId;
-    (req as any).userRole = decoded.role;
+    req.userId = decoded.userId;
+    req.userRole = decoded.role;
 
     next();
   } catch (error) {

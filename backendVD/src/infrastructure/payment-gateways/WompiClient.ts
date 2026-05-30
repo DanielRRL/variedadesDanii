@@ -126,11 +126,18 @@ export class WompiClient {
     try {
       response = await fetch(url, init);
     } catch (networkErr) {
-      // Error de red (DNS, timeout, etc.). No tiene sentido reintentar
-      // si la causa es estructural, pero intentamos una vez mas por
-      // caidas momentaneas de conectividad.
+      // Error de red (DNS, timeout, etc.). Intenta una vez más.
       logger.warn("WompiClient: network error, retrying once", { path, networkErr });
-      response = await fetch(url, init);
+      try {
+        response = await fetch(url, init);
+      } catch (secondErr) {
+        logger.error("WompiClient: network error on retry, giving up", { path, secondErr });
+        throw new WompiApiError(
+          `Wompi network error on ${method} ${path} after retry`,
+          503,
+          { error: String(secondErr) }
+        );
+      }
     }
 
     // Reintento en errores de servidor (503 Service Unavailable, etc.)

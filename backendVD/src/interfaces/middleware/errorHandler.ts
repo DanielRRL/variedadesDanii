@@ -3,6 +3,7 @@
  * Express requiere 4 parametros (err, req, res, next) para reconocerlo.
  * Si el error es AppError, responde con su statusCode y mensaje.
  * Si es un error inesperado, responde 500 y lo registra en el log.
+ * Incluye requestId para trazabilidad entre logs y respuestas al cliente.
  */
 
 // Request, Response, NextFunction - Tipos base de Express.
@@ -20,24 +21,28 @@ import logger from "../../utils/logger";
  */
 export const errorHandler = (
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void => {
+  const requestId = req.requestId || "unknown";
+
   // Error controlado (AppError): responder con status y mensaje especificos
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
       success: false,
       message: err.message,
+      requestId,
     });
     return;
   }
 
   // Error inesperado: loguear y responder 500
-  logger.error("Unhandled error:", err);
+  logger.error("Unhandled error:", { requestId, error: err });
 
   res.status(500).json({
     success: false,
     message: "Internal server error",
+    requestId,
   });
 };

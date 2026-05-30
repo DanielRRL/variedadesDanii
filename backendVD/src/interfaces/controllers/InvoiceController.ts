@@ -8,9 +8,7 @@
  *   GET  /api/admin/invoices                 — Listar facturas paginadas (admin).
  *
  * Control de acceso:
- *   - getByOrder: cualquier usuario autenticado puede ver la factura de su propia
- *     orden. Los admins pueden ver cualquiera. La validacion de ownership se
- *     hace en la capa de rutas mediante authMiddleware.
+ *   - getByOrder: solo el dueno de la orden o ADMIN pueden consultar la factura.
  *   - retryInvoice / listInvoices: solo ADMIN via roleMiddleware.
  */
 
@@ -18,6 +16,7 @@ import { Request, Response, NextFunction } from "express";
 
 import { InvoiceService } from "../../application/services/InvoiceService";
 import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
+import { IOrderRepository } from "../../domain/repositories/IOrderRepository";
 import { InvoiceStatus } from "../../domain/entities/ElectronicInvoice";
 import { AppError } from "../../utils/AppError";
 import { param } from "../../utils/param";
@@ -27,6 +26,7 @@ export class InvoiceController {
   constructor(
     private readonly invoiceService: InvoiceService,
     private readonly invoiceRepo: IInvoiceRepository,
+    private readonly orderRepo: IOrderRepository,
   ) {}
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -34,11 +34,22 @@ export class InvoiceController {
   /**
    * GET /api/invoices/:orderId
    * Devuelve la factura asociada a una orden.
+   * Solo el dueno de la orden o ADMIN pueden consultarla.
    * 404 si la orden no tiene factura aun.
    */
   getByOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const orderId = param(req, "orderId");
+      const requesterId = req.userId!;
+      const requesterRole = req.userRole ?? "";
+
+      if (requesterRole !== "ADMIN") {
+        const order = await this.orderRepo.findById(orderId);
+        if (!order || order.userId !== requesterId) {
+          throw AppError.forbidden("You can only view invoices for your own orders.");
+        }
+      }
+
       const invoice = await this.invoiceService.getInvoiceSummary(orderId);
 
       if (!invoice) {
@@ -81,7 +92,7 @@ export class InvoiceController {
   retryInvoice = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const orderId = param(req, "orderId");
-      const adminId = (req as any).userId as string;
+      const adminId = req.userId as string;
 
       const invoice = await this.invoiceService.retryDraftInvoice(orderId, adminId);
 

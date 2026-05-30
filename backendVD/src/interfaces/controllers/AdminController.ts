@@ -23,6 +23,16 @@ import { AppError } from "../../utils/AppError";
 // param - Helper de Express 5 para extraer params.
 import { param } from "../../utils/param";
 
+/** Valida y parsea fechas de query params. Lanza 400 si son invalidas. */
+function parseDateParam(value: string | undefined, label: string): Date | undefined {
+  if (!value) return undefined;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) {
+    throw AppError.badRequest(`${label} must be a valid date (YYYY-MM-DD).`);
+  }
+  return d;
+}
+
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
@@ -190,8 +200,9 @@ export class AdminController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const from = new Date(req.query.from as string);
-      const to = new Date(req.query.to as string);
+      const from = parseDateParam(req.query.from as string, "from")!;
+      const to = parseDateParam(req.query.to as string, "to")!;
+      if (!from || !to) throw AppError.badRequest("from and to query params are required.");
       const sales = await this.adminService.getDailySales(from, to);
 
       // Transform to { labels, values } format the frontend chart expects
@@ -255,8 +266,9 @@ export class AdminController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const from = new Date(req.query.from as string);
-      const to   = new Date(req.query.to   as string);
+      const from = parseDateParam(req.query.from as string, "from")!;
+      const to   = parseDateParam(req.query.to   as string, "to")!;
+      if (!from || !to) throw AppError.badRequest("from and to query params are required.");
       const buffer = await this.reportService.generateSalesCSV({ from, to });
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", 'attachment; filename="ventas-reporte.csv"');
@@ -276,8 +288,9 @@ export class AdminController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const from = new Date(req.query.from as string);
-      const to   = new Date(req.query.to   as string);
+      const from = parseDateParam(req.query.from as string, "from")!;
+      const to   = parseDateParam(req.query.to   as string, "to")!;
+      if (!from || !to) throw AppError.badRequest("from and to query params are required.");
       const buffer = await this.reportService.generateSalesPDF({ from, to });
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", 'attachment; filename="ventas-reporte.pdf"');
@@ -338,10 +351,10 @@ export class AdminController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const from = new Date(req.query.from as string);
-      const to   = new Date(req.query.to   as string);
+      const from = parseDateParam(req.query.from as string, "from")!;
+      const to   = parseDateParam(req.query.to   as string, "to")!;
 
-      if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+      if (!from || !to) {
         throw AppError.badRequest("from and to must be valid dates (YYYY-MM-DD).");
       }
 
@@ -568,7 +581,7 @@ export class AdminController {
       }
 
       // Si el usuario esta autenticado, agregar su progreso
-      const userId = (req as any).userId as string | undefined;
+      const userId = req.userId as string | undefined;
       let progress = null;
       if (userId) {
         progress = await prisma.userChallengeProgress.findUnique({
@@ -595,7 +608,7 @@ export class AdminController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const now = new Date();
 
       // Buscar el reto activo actual

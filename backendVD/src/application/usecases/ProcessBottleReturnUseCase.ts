@@ -21,6 +21,9 @@ import { AppError } from "../../utils/AppError";
 // logger - Para registrar la devolucion exitosa.
 import logger from "../../utils/logger";
 
+// prisma - Para envolver registro de inventario y devolucion en transaccion atomica.
+import prisma from "../../config/database";
+
 /** Datos de entrada para procesar una devolucion. */
 export interface ProcessBottleReturnInput {
   userId: string;
@@ -50,20 +53,27 @@ export class ProcessBottleReturnUseCase {
       throw AppError.notFound("Bottle not found");
     }
 
-    // Paso 2: Registrar entrada de 1 unidad al inventario (tipo RETURN)
-    await this.inventoryService.registerBottleEntry(
-      input.bottleId,
-      1,
-      "RETURN",
-      `return:${input.userId}`
-    );
+    // Paso 2-3: Registrar entrada de inventario y crear devolucion en transaccion atomica.
+    // Si cualquiera de las dos operaciones falla, la otra se revierte.
+    const bottleReturn = await prisma.$transaction(async (tx) => {
+      await tx.bottleMovement.create({
+        data: {
+          bottleId: input.bottleId,
+          type: "IN" as any,
+          quantity: 1,
+          reason: "RETURN" as any,
+          reference: `return:${input.userId}`,
+        },
+      });
 
-    // Paso 3: Crear registro de devolucion con descuento del 10%
-    const bottleReturn = await this.bottleReturnRepo.create({
-      userId: input.userId,
-      bottleId: input.bottleId,
-      discountApplied: BOTTLE_RETURN_DISCOUNT_PERCENT,
-      notes: input.notes,
+      return tx.bottleReturn.create({
+        data: {
+          userId: input.userId,
+          bottleId: input.bottleId,
+          discountApplied: BOTTLE_RETURN_DISCOUNT_PERCENT,
+          notes: input.notes,
+        },
+      });
     });
 
     logger.info(

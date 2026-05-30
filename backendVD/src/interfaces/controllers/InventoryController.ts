@@ -270,7 +270,7 @@ export class InventoryController {
     try {
       const { entityType, entityId, physicalValue, notes } = req.body;
       // userId del token JWT (auth middleware lo inyecta)
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       const audit = await this.inventoryService.performAudit(
         entityType, entityId, physicalValue, userId, notes

@@ -123,18 +123,11 @@ export class LoyaltyService {
     // Obtener o crear la cuenta del usuario
     const account = await this.getOrCreateAccount(userId);
 
-    // Actualizar saldo de puntos
+    // Actualizar saldo de puntos y registrar transaccion atomicamente via repo
     const newPoints = account.points + data.points;
-    const updated = await this.loyaltyRepo.updateAccount(account.id!, {
-      points: newPoints,
-    });
-
-    // Registrar transaccion de acumulacion
-    await this.loyaltyRepo.addTransaction({
-      accountId:   account.id!,
-      type:        LoyaltyTxType.EARN,
-      points:      data.points,
-      reason:      data.reason,
+    await this.loyaltyRepo.earnPointsAtomically(account.id!, data.points, {
+      type: LoyaltyTxType.EARN,
+      reason: data.reason,
       referenceId: data.referenceId,
     });
 
@@ -142,7 +135,10 @@ export class LoyaltyService {
 
     // Evaluar y ejecutar subida de nivel si corresponde
     const deliveredCount = await this.userRepo.countOrdersByUser(userId);
-    await this.checkAndUpgradeLevel(updated, deliveredCount);
+    const updated = await this.loyaltyRepo.findAccountByUserId(userId);
+    if (updated) {
+      await this.checkAndUpgradeLevel(updated, deliveredCount);
+    }
   }
 
   /**
@@ -175,17 +171,10 @@ export class LoyaltyService {
       );
     }
 
-    // Deducir puntos del saldo
-    await this.loyaltyRepo.updateAccount(account.id!, {
-      points: account.points - data.points,
-    });
-
-    // Registrar transaccion de canje (puntos negativos por convencion)
-    await this.loyaltyRepo.addTransaction({
-      accountId:   account.id!,
-      type:        LoyaltyTxType.REDEEM,
-      points:      -data.points,
-      reason:      `Puntos canjeados como descuento en orden`,
+    // Deducir puntos y registrar transaccion atomicamente via repo
+    await this.loyaltyRepo.earnPointsAtomically(account.id!, -data.points, {
+      type: LoyaltyTxType.REDEEM,
+      reason: "Puntos canjeados como descuento en orden",
       referenceId: data.orderId,
     });
 
@@ -315,13 +304,9 @@ export class LoyaltyService {
       );
     }
 
-    await this.loyaltyRepo.updateAccount(account.id!, { points: newBalance });
-
-    await this.loyaltyRepo.addTransaction({
-      accountId: account.id!,
-      type:      LoyaltyTxType.ADJUST,
-      points,
-      reason:    `[Admin ${adminId}] ${reason}`,
+    await this.loyaltyRepo.earnPointsAtomically(account.id!, points, {
+      type: LoyaltyTxType.ADJUST,
+      reason: `[Admin ${adminId}] ${reason}`,
     });
 
     logger.info("Points adjusted by admin", { userId, points, reason, adminId });
