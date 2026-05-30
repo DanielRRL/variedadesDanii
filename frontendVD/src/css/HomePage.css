@@ -16,19 +16,28 @@
   --font-display: 'Playfair Display', serif;
 }
 
-/* ── Page wrapper ──────────────────────────────────────────────────────────── */
+/* ── Page wrapper (Scroll Container) ─────────────────────────────────────── */
 
 .home-page {
-  min-height: 100vh;
+  height: 100svh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
   background-color: var(--bg);
-  padding-bottom: 5rem;
   font-family: var(--font-body);
 }
 
-/* ── Section spacing ────────────────────────────────────────────────────────── */
+/* ── Full-screen sections ─────────────────────────────────────────────────── */
 
 .home-section {
-  margin-top: 4rem;
+  min-height: 100svh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Last section accounts for fixed BottomTabBar (~80px) */
+.home-section--loyalty {
+  min-height: calc(100svh - 5rem);
 }
 
 @media (min-width: 640px) {
@@ -46,7 +55,10 @@
   width: 100%;
   overflow: hidden;
   background-color: var(--brand-pink);
-  min-height: min(520px, 100svh);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .home-hero__blob {
@@ -95,7 +107,10 @@
 
 /* Hero top bar */
 .home-hero__topbar {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -438,13 +453,15 @@
 .home-bento {
   position: relative;
   z-index: 10;
-  margin-top: 40px;
-  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 1rem;
 }
 
 @media (min-width: 640px) {
   .home-bento {
-    padding: 0 1.5rem;
+    padding: 2rem 1.5rem;
   }
 }
 
@@ -460,6 +477,16 @@
   color: var(--text-primary);
   margin-bottom: 20px;
   text-align: center;
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-bento.in-view .home-bento__title {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 @media (min-width: 640px) {
@@ -575,21 +602,65 @@
    ════════════════════════════════════════════════════════════════════════════ */
 
 .home-collection {
-  margin-top: 5rem;
-  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 1rem;
+  position: relative;
+  overflow: hidden;
 }
 
 @media (min-width: 640px) {
   .home-collection {
-    margin-top: 5rem;
-    padding: 0 1.5rem;
+    padding: 2rem 1.5rem;
   }
 }
 
 .home-collection__inner {
   max-width: 72rem;
   margin: 0 auto;
+  position: relative;
+  z-index: 2;
 }
+
+/* Hero-style blobs for Collection */
+.home-collection .hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(55px);
+}
+
+.home-collection .hero-blob--1 {
+  width: 300px;
+  height: 300px;
+  background: rgba(216, 27, 96, 0.08);
+  top: -8%;
+  right: -10%;
+  animation: hero-blob-1 20s ease-in-out -3s infinite;
+  z-index: 0;
+}
+
+.home-collection .hero-blob--2 {
+  width: 200px;
+  height: 200px;
+  background: rgba(249, 168, 37, 0.07);
+  bottom: -5%;
+  left: -8%;
+  animation: hero-blob-2 18s ease-in-out -9s infinite;
+  z-index: 0;
+}
+
+.home-collection .hero-blob--3 {
+  width: 160px;
+  height: 160px;
+  background: rgba(21, 101, 192, 0.06);
+  top: 40%;
+  left: 50%;
+  animation: hero-blob-3 22s ease-in-out -14s infinite;
+  z-index: 0;
+}
+
 
 .home-collection__header {
   display: flex;
@@ -611,6 +682,58 @@
   letter-spacing: 0.15em;
   color: var(--brand-pink);
   margin-bottom: 0.25rem;
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-collection.in-view .home-collection__label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-collection__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  opacity: 0;
+  transform: translateY(15px);
+  transition:
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: 80ms;
+}
+
+.home-collection.in-view .home-collection__title {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-collection__link {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--brand-blue);
+  text-decoration: none;
+  transition: color 0.2s;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.2s ease;
+  transition-delay: 150ms;
+}
+
+.home-collection.in-view .home-collection__link {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .home-collection__title {
@@ -899,14 +1022,15 @@
    ════════════════════════════════════════════════════════════════════════════ */
 
 .home-loyalty {
-  margin-top: 5rem;
-  padding: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 1rem 1rem;
 }
 
 @media (min-width: 640px) {
   .home-loyalty {
-    margin-top: 5rem;
-    padding: 0 1.5rem 1rem;
+    padding: 2rem 1.5rem 1rem;
   }
 }
 
@@ -1199,8 +1323,157 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   Animations
+   Falling Petals — Hero Section
    ════════════════════════════════════════════════════════════════════════════ */
+
+.hero-petals {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hero-petal {
+  position: absolute;
+  top: -5%;
+  border-radius: 50% 0 50% 0;
+  pointer-events: none;
+  will-change: transform;
+  animation: petal-fall linear infinite;
+}
+
+.hero-petal--white     { background: rgba(255, 255, 255, 0.45); }
+.hero-petal--pink-light { background: rgba(216, 27, 96, 0.25); }
+.hero-petal--gold-light { background: rgba(249, 168, 37, 0.30); }
+
+@keyframes petal-fall {
+  0%   { transform: translateY(0) rotate(0deg) translateX(0);     opacity: 0; }
+  5%   { opacity: var(--petal-opacity, 0.4); }
+  25%  { transform: translateY(25vh) rotate(90deg) translateX(15px); }
+  50%  { transform: translateY(50vh) rotate(180deg) translateX(-10px); }
+  75%  { transform: translateY(75vh) rotate(270deg) translateX(20px); }
+  95%  { opacity: var(--petal-opacity, 0.4); }
+  100% { transform: translateY(105vh) rotate(360deg) translateX(-5px); opacity: 0; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Fog / Mist Effect — Loyalty Section
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.home-loyalty__fog {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 50%,
+    rgba(249, 248, 245, 0.85) 0%,
+    rgba(249, 248, 245, 0.4) 50%,
+    transparent 100%
+  );
+  filter: blur(24px);
+  animation: fog-drift 20s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes fog-drift {
+  0%, 100% { transform: translateX(-5%) scale(1);    opacity: 0.6; }
+  50%       { transform: translateX(5%) scale(1.08); opacity: 0.9; }
+}
+
+/* Content sits above fog */
+.home-loyalty__inner {
+  position: relative;
+  z-index: 2;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Bento Cards — Scroll-triggered Entry Animation
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.home-bento__card {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease;
+}
+
+.home-bento.in-view .home-bento__card {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-bento.in-view .home-bento__card:nth-child(1) { transition-delay: 0ms; }
+.home-bento.in-view .home-bento__card:nth-child(2) { transition-delay: 100ms; }
+.home-bento.in-view .home-bento__card:nth-child(3) { transition-delay: 200ms; }
+.home-bento.in-view .home-bento__card:nth-child(4) { transition-delay: 300ms; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Product Cards — Scroll-triggered Entry + Glow Hover
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.home-product-card {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease;
+  cursor: pointer;
+}
+
+.home-collection.in-view .home-product-card {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-collection.in-view .home-product-card:nth-child(1) { transition-delay: 0ms; }
+.home-collection.in-view .home-product-card:nth-child(2) { transition-delay: 80ms; }
+.home-collection.in-view .home-product-card:nth-child(3) { transition-delay: 160ms; }
+.home-collection.in-view .home-product-card:nth-child(4) { transition-delay: 240ms; }
+.home-collection.in-view .home-product-card:nth-child(5) { transition-delay: 320ms; }
+.home-collection.in-view .home-product-card:nth-child(6) { transition-delay: 400ms; }
+
+.home-product-card:hover {
+  transform: translateY(-4px) scale(1.03);
+  filter: drop-shadow(0 0 12px rgba(216, 27, 96, 0.18));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+  border-color: rgba(216, 27, 96, 0.2);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Loyalty Card — Entry Animation
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.home-loyalty__card {
+  opacity: 0;
+  transform: translateY(20px) scale(0.97);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-loyalty.in-view .home-loyalty__card {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.home-loyalty.in-view .home-loyalty__step:nth-child(1) { transition-delay: 0ms; }
+.home-loyalty.in-view .home-loyalty__step:nth-child(2) { transition-delay: 150ms; }
+.home-loyalty.in-view .home-loyalty__step:nth-child(3) { transition-delay: 300ms; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Particles — Reduced opacity (elegant, not overwhelming)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.home-particle {
+  opacity: 0.15;
+}
 
 @keyframes hero-blob-1 {
   0%, 100% { transform: translate(0, 0) scale(1); border-radius: 40% 60% 60% 40% / 45% 50% 55% 50%; }
@@ -1237,27 +1510,20 @@
    Scroll Reveal Animations — Multiple Types
    ════════════════════════════════════════════════════════════════════════════ */
 
-/* Base scroll-reveal — optimized with blur effect */
+/* Base scroll-reveal */
 .scroll-reveal {
   opacity: 0;
-  transform: translateY(35px);
-  filter: blur(4px);
-  transition:
-    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.5s ease;
+  transition: opacity 0.6s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .scroll-reveal.in-view {
   opacity: 1;
-  transform: translateY(0);
-  filter: blur(0);
+  transform: translateY(0) scale(1);
 }
 
 .scroll-reveal.out-view {
   opacity: 0;
-  transform: translateY(40px);
-  filter: blur(4px);
+  transform: translateY(40px) scale(0.95);
 }
 
 /* Slide Up — para cards */
@@ -1317,62 +1583,54 @@
 .home-bento__blob {
   position: absolute;
   border-radius: 50%;
-  will-change: transform;
-  animation: lava-float 20s ease-in-out infinite;
-  opacity: 0.6;
+  will-change: transform, border-radius;
 }
 
 .home-bento__blob--1 {
   width: 280px;
   height: 280px;
   background: rgba(216, 27, 96, 0.12);
-  top: 15%;
+  top: 10%;
   left: -8%;
-  animation-delay: 0s;
-  filter: blur(70px);
-}
-
-.home-bento__blob--2 {
-  width: 220px;
-  height: 220px;
-  background: rgba(249, 168, 37, 0.1);
-  top: 45%;
-  right: -5%;
-  animation-delay: -7s;
-  filter: blur(55px);
-}
-
-.home-bento__blob--3 {
-  width: 260px;
-  height: 260px;
-  background: rgba(21, 101, 192, 0.08);
-  bottom: 5%;
-  left: 25%;
-  animation-delay: -12s;
+  animation: hero-blob-1 18s ease-in-out 0s infinite;
   filter: blur(60px);
 }
 
-.home-bento__blob--4 {
+.home-bento__blob--2 {
   width: 200px;
   height: 200px;
-  background: rgba(216, 27, 96, 0.08);
-  top: 55%;
-  right: 15%;
-  animation-delay: -5s;
+  background: rgba(249, 168, 37, 0.10);
+  top: 50%;
+  right: -5%;
+  animation: hero-blob-2 16s ease-in-out -5s infinite;
   filter: blur(50px);
 }
 
-@keyframes lava-float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -40px) scale(1.05); }
-  66% { transform: translate(-20px, 25px) scale(0.95); }
+.home-bento__blob--3 {
+  width: 160px;
+  height: 160px;
+  background: rgba(21, 101, 192, 0.08);
+  bottom: 15%;
+  left: 30%;
+  animation: hero-blob-3 20s ease-in-out -8s infinite;
+  filter: blur(45px);
+}
+
+.home-bento__blob--4 {
+  width: 140px;
+  height: 140px;
+  background: rgba(216, 27, 96, 0.08);
+  top: 60%;
+  right: 15%;
+  animation: hero-blob-1 18s ease-in-out -6s infinite;
+  filter: blur(40px);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   Floating Particles
+   Secondary Petals — for Bento, Collection, and Loyalty sections
    ════════════════════════════════════════════════════════════════════════════ */
 
-.home-particles {
+.hero-petals--secondary {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -1380,36 +1638,58 @@
   z-index: 1;
 }
 
-.home-particle {
-  position: absolute;
-  border-radius: 50%;
+.hero-petals--secondary .hero-petal {
+  border-radius: 50% 0 50% 0;
+  pointer-events: none;
   will-change: transform;
-  animation: particle-float 10s ease-in-out infinite;
-  opacity: 0.5;
+  animation: petal-fall linear infinite;
+  top: -5%;
 }
 
-.home-particle--1 { top: 20%; left: 10%; animation-delay: 0s; animation-duration: 8s; width: 5px; height: 5px; background: rgba(255, 255, 255, 0.5); }
-.home-particle--2 { top: 40%; left: 80%; animation-delay: -3s; animation-duration: 10s; width: 4px; height: 4px; background: rgba(249, 168, 37, 0.4); }
-.home-particle--3 { top: 60%; left: 20%; animation-delay: -5s; animation-duration: 7s; width: 6px; height: 6px; background: rgba(255, 255, 255, 0.4); }
-.home-particle--4 { top: 75%; left: 70%; animation-delay: -7s; animation-duration: 9s; width: 4px; height: 4px; background: rgba(216, 27, 96, 0.3); }
-.home-particle--5 { top: 35%; left: 50%; animation-delay: -2s; animation-duration: 8s; width: 5px; height: 5px; background: rgba(255, 255, 255, 0.3); }
-
-@keyframes particle-float {
-  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
-  50% { transform: translate(15px, -25px) scale(1.1); opacity: 0.7; }
+/* Petal variants via nth-child */
+.hero-petals--secondary .hero-petal--1 {
+  left: 10%;
+  width: 6px;
+  height: 6px;
+  animation-delay: 2s;
+  animation-duration: 16s;
+}
+.hero-petals--secondary .hero-petal--2 {
+  left: 35%;
+  width: 5px;
+  height: 5px;
+  animation-delay: 5s;
+  animation-duration: 15s;
+}
+.hero-petals--secondary .hero-petal--3 {
+  left: 60%;
+  width: 7px;
+  height: 7px;
+  animation-delay: 8s;
+  animation-duration: 17s;
+}
+.hero-petals--secondary .hero-petal--4 {
+  left: 85%;
+  width: 5px;
+  height: 5px;
+  animation-delay: 12s;
+  animation-duration: 14s;
 }
 
-/* Particles sutiles para Colección */
-.home-particles--subtle .home-particle {
-  opacity: 0.3;
-  animation-duration: 10s;
+/* Petal colors — inherit from hero-petal color classes but lower opacity */
+.hero-petals--secondary .hero-petal--1,
+.hero-petals--secondary .hero-petal--3 {
+  background: rgba(255, 255, 255, 0.22);
 }
 
-.home-particles--subtle .home-particle--2,
-.home-particles--subtle .home-particle--4,
-.home-particles--subtle .home-particle--8 {
-  background: rgba(216, 27, 96, 0.2);
+.hero-petals--secondary .hero-petal--2 {
+  background: rgba(216, 27, 96, 0.18);
 }
+
+.hero-petals--secondary .hero-petal--4 {
+  background: rgba(249, 168, 37, 0.20);
+}
+
 
 /* ════════════════════════════════════════════════════════════════════════════
    Glassmorphism + Shimmer Effects
