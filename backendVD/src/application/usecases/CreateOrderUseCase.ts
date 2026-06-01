@@ -332,44 +332,4 @@ export class CreateOrderUseCase {
       );
     }
   }
-
-  /**
-   * Registra todos los movimientos de salida de inventario para los items de la orden.
-   * PERFUME: salida de esencia + frasco.
-   * ACCESSORY/GENERAL: salida de producto.
-   */
-  private async registerInventoryExits(
-    items: ValidatedItem[],
-    orderId: string
-  ): Promise<void> {
-    for (const item of items) {
-      if (item.category === "PERFUME") {
-        const totalMlOut = item.mlQuantity! * item.quantity;
-
-        // Salida de esencia (ml)
-        await this.inventoryService.registerEssenceExit(
-          item.essenceId!,
-          totalMlOut,
-          "SALE",
-          `order:${orderId}`
-        );
-
-        // Salida de frascos (unidades)
-        await this.inventoryService.registerBottleExit(
-          item.bottleId!,
-          item.quantity,
-          "SALE",
-          `order:${orderId}`
-        );
-      } else {
-        // ACCESSORY o GENERAL: salida de producto (unidades)
-        await this.inventoryService.registerProductExit(
-          item.productId,
-          item.quantity,
-          "SALE",
-          `order:${orderId}`
-        );
-      }
-    }
-  }
 }

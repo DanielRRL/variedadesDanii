@@ -17,7 +17,7 @@ import { AppError } from "../../utils/AppError";
  */
 export const roleMiddleware = (...allowedRoles: string[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
-    const userRole = (req as any).userRole;
+    const userRole = req.userRole;
 
     // Si no tiene rol, falta autenticacion
     if (!userRole) {

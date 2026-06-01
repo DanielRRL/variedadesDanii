@@ -13,6 +13,9 @@ import { AdminController } from "../controllers/AdminController";
 // authMiddleware - Protege rutas verificando el JWT en el header.
 import { authMiddleware } from "../middleware/authMiddleware";
 
+// optionalAuth - Middleware que extrae userId si hay token, pero no rechaza si no.
+import { optionalAuth } from "../middleware/optionalAuthMiddleware";
+
 /**
  * Crea y retorna el router de desafios semanales.
  * Se monta en /api/challenges en app.ts.
@@ -34,26 +37,3 @@ export const createChallengeRoutes = (
 
   return router;
 };
-
-/**
- * Middleware que intenta autenticar sin rechazar si el token esta ausente.
- * Si hay token valido, setea req.userId y req.userRole.
- * Si no hay token o es invalido, continua sin error.
- */
-import jwt from "jsonwebtoken";
-import { env } from "../../config/env";
-
-function optionalAuth(req: any, _res: any, next: any): void {
-  const header = req.headers.authorization;
-  if (header && header.startsWith("Bearer ")) {
-    try {
-      const token = header.slice(7);
-      const payload = jwt.verify(token, env.jwt.secret) as any;
-      req.userId = payload.userId;
-      req.userRole = payload.role;
-    } catch {
-      // Token invalido: se ignora, sigue como anonimo
-    }
-  }
-  next();
-}

@@ -55,3 +55,18 @@ if (env.nodeEnv === "development") {
 }
 
 export default logger;
+
+/**
+ * Enmascara un email para logs: "juan@gmail.com" → "j***@g***.com".
+ * Seguro para GDPR/compliance — no expone datos personales en logs.
+ */
+export function maskEmail(email: string): string {
+  if (!email || !email.includes("@")) return "***";
+  const [local, domain] = email.split("@");
+  const domainParts = domain.split(".");
+  const tld = domainParts.pop();
+  const maskedDomain = domainParts.length > 0
+    ? domainParts[0][0] + "***"
+    : domain[0] + "***";
+  return `${local[0]}***@${maskedDomain}.${tld}`;
+}

@@ -397,7 +397,7 @@ export class ProductController {
       }
 
       // Verify admin password
-      const adminUser = await prisma.user.findUnique({ where: { id: (req as any).userId } });
+      const adminUser = await prisma.user.findUnique({ where: { id: req.userId } });
       if (!adminUser) {
         throw AppError.unauthorized("User not found.");
       }

@@ -2,6 +2,9 @@
  * Controlador de usuarios.
  * CRUD basico de usuarios (sin password en las respuestas).
  * Los datos se sanitizan manualmente para no exponer el hash.
+ *
+ * Seguridad: todo usuario autenticado puede ver/editar solo su propio perfil.
+ * Solo ADMIN puede ver/editar cualquier usuario.
  */
 
 // Request, Response, NextFunction - Tipos base de Express.
@@ -22,6 +25,19 @@ import prisma from "../../config/database";
 export class UserController {
   /** Recibe IUserRepository inyectado desde app.ts. */
   constructor(private readonly userRepo: IUserRepository) {}
+
+  /**
+   * Verifica que el usuario autenticado sea el dueno del recurso o un ADMIN.
+   * Lanza 403 si no cumple ninguna condicion.
+   */
+  private assertOwnershipOrAdmin(req: Request, targetUserId: string): void {
+    const requesterId = req.userId as string;
+    const requesterRole = req.userRole as string;
+
+    if (requesterRole !== "ADMIN" && requesterId !== targetUserId) {
+      throw AppError.forbidden("You can only access your own profile.");
+    }
+  }
 
   /** GET /users - Lista usuarios con búsqueda opcional por nombre/email y límite. */
   getAll = async (
@@ -81,14 +97,17 @@ export class UserController {
     }
   };
 
-  /** GET /users/:id - Obtiene un usuario por UUID. */
+  /** GET /users/:id - Obtiene un usuario por UUID. Solo el dueno o ADMIN. */
   getById = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const user = await this.userRepo.findById(param(req, "id"));
+      const targetId = param(req, "id");
+      this.assertOwnershipOrAdmin(req, targetId);
+
+      const user = await this.userRepo.findById(targetId);
       if (!user) {
         throw AppError.notFound("User not found");
       }
@@ -133,14 +152,26 @@ export class UserController {
     }
   };
 
-  /** PATCH /users/:id - Actualiza datos de un usuario. */
+  /** PUT /users/:id - Actualiza datos de un usuario. Solo el dueno o ADMIN. */
   update = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const user = await this.userRepo.update(param(req, "id"), req.body);
+      const targetId = param(req, "id");
+      this.assertOwnershipOrAdmin(req, targetId);
+
+      // Solo ADMIN puede cambiar role, active o emailVerified
+      const requesterRole = req.userRole as string;
+      if (requesterRole !== "ADMIN") {
+        delete req.body.role;
+        delete req.body.active;
+        delete req.body.emailVerified;
+        delete req.body.password;
+      }
+
+      const user = await this.userRepo.update(targetId, req.body);
       res.json({
         success: true,
         data: {

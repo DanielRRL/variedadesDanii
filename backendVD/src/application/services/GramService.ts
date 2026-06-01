@@ -127,14 +127,9 @@ export class GramService {
       return { newBalance: account.currentGrams, ozCompleted: false };
     }
 
-    // Paso 4: Incrementar atomicamente los gramos de la billetera
-    await this.gramRepo.updateAccountGrams(account.id!, actualGramsAdded);
-
-    // Paso 5: Registrar la transaccion en el historial
-    await this.gramRepo.addTransaction({
-      accountId:   account.id!,
-      sourceType:  data.sourceType,
-      gramsDelta:  actualGramsAdded,
+    // Paso 4-5: Incrementar gramos y registrar historial atomicamente via repo
+    await this.gramRepo.earnGramsAtomically(account.id!, actualGramsAdded, {
+      sourceType: data.sourceType,
       description: data.description,
       referenceId: data.referenceId,
     });
@@ -184,14 +179,9 @@ export class GramService {
       throw AppError.notFound("Billetera de gramos no encontrada.");
     }
 
-    // Paso 1: Descontar 13 gramos atomicamente
-    await this.gramRepo.updateAccountGrams(account.id!, -GRAMS_PER_OZ);
-
-    // Paso 2: Registrar la salida de gramos en el historial
-    await this.gramRepo.addTransaction({
-      accountId:   account.id!,
-      sourceType:  GramSourceType.REDEMPTION,
-      gramsDelta:  -GRAMS_PER_OZ,
+    // Paso 1-2: Descontar 13 gramos y registrar atomicamente via repo
+    await this.gramRepo.earnGramsAtomically(account.id!, -GRAMS_PER_OZ, {
+      sourceType: GramSourceType.REDEMPTION,
       description: "Conversion automatica: 13g = 1 oz de esencia",
     });
 
@@ -254,14 +244,9 @@ export class GramService {
       );
     }
 
-    // Paso 3: Descontar gramos atomicamente
-    await this.gramRepo.updateAccountGrams(account.id!, -gramsToRedeem);
-
-    // Paso 4: Registrar la transaccion de canje
-    await this.gramRepo.addTransaction({
-      accountId:   account.id!,
-      sourceType:  GramSourceType.REDEMPTION,
-      gramsDelta:  -gramsToRedeem,
+    // Paso 3-4: Descontar gramos y registrar atomicamente via repo
+    await this.gramRepo.earnGramsAtomically(account.id!, -gramsToRedeem, {
+      sourceType: GramSourceType.REDEMPTION,
       description: `Canje parcial: ${gramsToRedeem}g por "${essenceName}"`,
     });
 
@@ -376,14 +361,9 @@ export class GramService {
       });
     }
 
-    // Actualizar gramos atomicamente
-    const updated = await this.gramRepo.updateAccountGrams(account.id!, actualDelta);
-
-    // Registrar la transaccion de ajuste
-    await this.gramRepo.addTransaction({
-      accountId:   account.id!,
-      sourceType:  GramSourceType.ADMIN_ADJUSTMENT,
-      gramsDelta:  actualDelta,
+    // Actualizar gramos y registrar historial atomicamente via repo
+    const updated = await this.gramRepo.earnGramsAtomically(account.id!, actualDelta, {
+      sourceType: GramSourceType.ADMIN_ADJUSTMENT,
       description: `Ajuste admin: ${reason}`,
       referenceId: adminId,
     });

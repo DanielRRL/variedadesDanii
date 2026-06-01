@@ -24,7 +24,7 @@ import Handlebars from "handlebars";
 import { IEmailService, OrderItemEmailData } from "../../application/services/IEmailService";
 import { SimpleInvoiceData } from "../../application/services/SimpleInvoiceService";
 import { env } from "../../config/env";
-import logger from "../../utils/logger";
+import logger, { maskEmail } from "../../utils/logger";
 
 // ---------------------------------------------------------------------------
 // Registro de helpers de Handlebars usados en las plantillas
@@ -49,6 +49,13 @@ Handlebars.registerHelper("ifeq", function (
 // Directorio donde residen las plantillas .hbs
 // ---------------------------------------------------------------------------
 const TEMPLATES_DIR = path.join(__dirname, "email-templates");
+
+// ---------------------------------------------------------------------------
+// Cache de plantillas compiladas: evita fs.readFileSync en cada render.
+// Las plantillas se cargan una vez y se reutilizan. Para hot-reload en
+// desarrollo, la cache se limpia al detectar cambios via fs.watch (opcional).
+// ---------------------------------------------------------------------------
+const templateCache = new Map<string, HandlebarsTemplateDelegate>();
 
 // ---------------------------------------------------------------------------
 // Clase
@@ -83,7 +90,7 @@ export class EmailService implements IEmailService {
       secure: false,   // STARTTLS (no SSL directo en el puerto 587)
       requireTLS: hasCredentials,
       auth: hasCredentials ? { user, pass } : undefined,
-      tls: { rejectUnauthorized: false },
+      tls: { rejectUnauthorized: env.nodeEnv === "production" },
     });
   }
 
@@ -92,15 +99,18 @@ export class EmailService implements IEmailService {
   // -------------------------------------------------------------------------
 
   /**
-   * Carga el archivo .hbs, lo compila con Handlebars y devuelve el HTML final.
-   * Los archivos se leen de disco en cada llamada (sin cache) para permitir
-   * hot-reload en desarrollo sin reiniciar el proceso.
+   * Carga una plantilla .hbs del cache o del disco, la compila y devuelve el HTML.
+   * El cache en memoria evita I/O bloqueante en produccion.
    */
   private renderTemplate(templateName: string, context: Record<string, unknown>): string {
-    const filePath = path.join(TEMPLATES_DIR, `${templateName}.hbs`);
-    const source = fs.readFileSync(filePath, "utf-8");
-    const template = Handlebars.compile(source);
-    return template(context);
+    let compiled = templateCache.get(templateName);
+    if (!compiled) {
+      const filePath = path.join(TEMPLATES_DIR, `${templateName}.hbs`);
+      const source = fs.readFileSync(filePath, "utf-8");
+      compiled = Handlebars.compile(source);
+      templateCache.set(templateName, compiled);
+    }
+    return compiled(context);
   }
 
   /**
@@ -122,10 +132,10 @@ export class EmailService implements IEmailService {
 
     try {
       await this.transporter.sendMail(mailOptions);
-      logger.info(`[EmailService] Correo enviado a ${options.to} | Asunto: "${options.subject}"`);
+      logger.info(`[EmailService] Correo enviado a ${maskEmail(options.to)} | Asunto: "${options.subject}"`);
     } catch (firstError) {
       logger.warn(
-        `[EmailService] Primer intento fallido para ${options.to}. Reintentando en 2 s...`,
+        `[EmailService] Primer intento fallido para ${maskEmail(options.to)}. Reintentando en 2 s...`,
         { error: firstError }
       );
 
@@ -134,11 +144,11 @@ export class EmailService implements IEmailService {
       try {
         await this.transporter.sendMail(mailOptions);
         logger.info(
-          `[EmailService] Reintento exitoso para ${options.to} | Asunto: "${options.subject}"`
+          `[EmailService] Reintento exitoso para ${maskEmail(options.to)} | Asunto: "${options.subject}"`
         );
       } catch (secondError) {
         logger.error(
-          `[EmailService] Fallo definitivo al enviar a ${options.to} | Asunto: "${options.subject}"`,
+          `[EmailService] Fallo definitivo al enviar a ${maskEmail(options.to)} | Asunto: "${options.subject}"`,
           { error: secondError }
         );
         throw secondError;

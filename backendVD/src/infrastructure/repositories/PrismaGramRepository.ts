@@ -178,4 +178,48 @@ export class PrismaGramRepository implements IGramRepository {
       data:  { totalPurchases: { increment: 1 } },
     });
   }
+
+  /**
+   * Acumula o descuenta gramos y registra la transaccion en una sola
+   * operacion atomica (Prisma.$transaction). Previene el estado inconsistente
+   * donde el balance cambia pero el historial de transacciones no se escribe.
+   */
+  async earnGramsAtomically(
+    accountId: string,
+    gramsDelta: number,
+    data: {
+      sourceType: GramSourceType;
+      description: string;
+      referenceId?: string;
+    }
+  ): Promise<GramAccount> {
+    const result = await prisma.$transaction(async (tx) => {
+      const account = await tx.gramAccount.update({
+        where: { id: accountId },
+        data: gramsDelta > 0
+          ? {
+              currentGrams: { increment: gramsDelta },
+              totalEarned: { increment: gramsDelta },
+            }
+          : {
+              currentGrams: { decrement: -gramsDelta },
+              totalRedeemed: { increment: -gramsDelta },
+            },
+      });
+
+      await tx.gramTransaction.create({
+        data: {
+          accountId,
+          sourceType: data.sourceType as any,
+          gramsDelta,
+          description: data.description,
+          referenceId: data.referenceId,
+        },
+      });
+
+      return mapAccount(account);
+    });
+
+    return result;
+  }
 }

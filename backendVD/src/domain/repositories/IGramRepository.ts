@@ -81,4 +81,24 @@ export interface IGramRepository {
    * @param accountId - UUID de la billetera.
    */
   incrementTotalPurchases(accountId: string): Promise<void>;
+
+  /**
+   * Acumula o descuenta gramos y registra la transaccion en una sola
+   * operacion atomica via Prisma.$transaction. Evita el bug de balance
+   * inconsistente donde los gramos cambian pero la transaccion no se registra.
+   * @param accountId  - UUID de la billetera.
+   * @param gramsDelta - Gramos a sumar (positivo) o restar (negativo).
+   * @param data.sourceType  - Origen del movimiento.
+   * @param data.description - Descripcion del movimiento.
+   * @param data.referenceId - ID opcional de referencia.
+   */
+  earnGramsAtomically(
+    accountId: string,
+    gramsDelta: number,
+    data: {
+      sourceType: GramSourceType;
+      description: string;
+      referenceId?: string;
+    }
+  ): Promise<GramAccount>;
 }

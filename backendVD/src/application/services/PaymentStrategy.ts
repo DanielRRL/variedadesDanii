@@ -22,6 +22,9 @@ export interface IPaymentStrategy {
   verify(gatewayRef: string): Promise<PaymentResult>;
 }
 
+// AppError - Para lanzar errores HTTP tipados en vez de Error generico.
+import { AppError } from "../../utils/AppError";
+
 // BrebGateway - Integracion real con Wompi para pagos Bre-B instantaneos.
 import { BrebGateway } from "../../infrastructure/payment-gateways/BrebGateway";
 
@@ -126,7 +129,7 @@ export class PaymentStrategyFactory {
   static getStrategy(method: string): IPaymentStrategy {
     const strategy = this.strategies[method];
     if (!strategy) {
-      throw new Error(`Unsupported payment method: ${method}`);
+      throw AppError.badRequest(`Unsupported payment method: ${method}`);
     }
     return strategy;
   }

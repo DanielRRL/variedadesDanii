@@ -16,6 +16,9 @@ import { IBottleReturnRepository } from "../../domain/repositories/IBottleReturn
 // param - Helper de Express 5.
 import { param } from "../../utils/param";
 
+// AppError - Para verificar propiedad del recurso.
+import { AppError } from "../../utils/AppError";
+
 export class BottleReturnController {
   constructor(
     private readonly processReturnUseCase: ProcessBottleReturnUseCase,
@@ -29,7 +32,7 @@ export class BottleReturnController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId;
+      const userId = req.userId!;
       const result = await this.processReturnUseCase.execute({
         userId,
         bottleId: req.body.bottleId,
@@ -41,14 +44,26 @@ export class BottleReturnController {
     }
   };
 
-  /** GET /bottle-returns/user/:userId - Historial de devoluciones de un usuario. */
+  /**
+   * GET /bottle-returns/user/:userId - Historial de devoluciones de un usuario.
+   * Si se proporciona un userId en la URL, solo ADMIN puede consultar devoluciones
+   * de otros usuarios. Si no hay userId en la URL, usa el del JWT.
+   */
   getByUser = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = param(req, "userId") || (req as any).userId;
+      const requesterRole = req.userRole ?? "";
+      const paramUserId = param(req, "userId");
+
+      // Si el param existe y no es ADMIN, verificar que coincide con el JWT
+      if (paramUserId && requesterRole !== "ADMIN" && paramUserId !== req.userId) {
+        throw AppError.forbidden("You can only view your own bottle returns.");
+      }
+
+      const userId = paramUserId || req.userId!;
       const returns = await this.bottleReturnRepo.findByUserId(userId);
       res.json({ success: true, data: returns });
     } catch (error) {

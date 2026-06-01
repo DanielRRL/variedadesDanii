@@ -37,7 +37,7 @@ import { env } from "../../config/env";
 import { AppError } from "../../utils/AppError";
 
 // logger - Logger centralizado Winston para registrar eventos del servicio.
-import logger from "../../utils/logger";
+import logger, { maskEmail } from "../../utils/logger";
 
 /** Datos requeridos para registrar un usuario nuevo. */
 export interface RegisterDTO {
@@ -135,10 +135,11 @@ export class AuthService {
     // y el usuario puede solicitar reenvio desde la pantalla de login.
     try {
       await this.emailService.sendVerificationEmail(user.email, verificationToken, user.name);
-      logger.info("User registered, verification email sent", { userId: user.id });
+      logger.info("User registered, verification email sent", { userId: user.id, email: maskEmail(user.email) });
     } catch (emailError) {
       logger.warn("User registered but verification email failed", {
         userId: user.id,
+        email: maskEmail(user.email),
         error: emailError,
       });
     }
@@ -306,7 +307,7 @@ export class AuthService {
     // Buscar usuario; retorno silencioso para prevenir enumeracion
     const user = await this.userRepo.findByEmail(email);
     if (!user) {
-      logger.warn("forgotPassword called for unknown email", { email });
+      logger.warn("forgotPassword called for unknown email", { email: maskEmail(email) });
       return;
     }
 
@@ -441,7 +442,7 @@ export class AuthService {
       await this.userRepo.update(user.id!, { emailVerified: true });
       user.emailVerified = true;
 
-      logger.info("New user created via Google Sign-In", { userId: user.id, email });
+      logger.info("New user created via Google Sign-In", { userId: user.id, email: maskEmail(email) });
     }
 
     // Si el usuario existia pero no habia verificado email, verificarlo ahora

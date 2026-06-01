@@ -45,7 +45,7 @@ export class GramController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const summary = await this.gramService.getAccountSummary(userId);
       const pendingRedemptions = await this.essenceRedemptionRepo.findByUser(userId);
 
@@ -78,7 +78,7 @@ export class GramController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const { gramsToRedeem, essenceName, essenceId } = req.body;
 
       if (!gramsToRedeem || !essenceName) {
@@ -120,7 +120,7 @@ export class GramController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const page  = parseInt(String(req.query.page  ?? "1"),  10);
       const limit = parseInt(String(req.query.limit ?? "20"), 10);
 
@@ -148,7 +148,7 @@ export class GramController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const adminId = (req as any).userId as string;
+      const adminId = req.userId as string;
       const { userId, delta, reason } = req.body;
 
       if (!userId || delta === undefined || !reason) {

@@ -42,7 +42,7 @@ export class EssenceRedemptionController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const redemptions = await this.essenceRedemptionRepo.findByUser(userId);
       res.json({ success: true, data: redemptions });
     } catch (error) {
@@ -88,7 +88,7 @@ export class EssenceRedemptionController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const adminId = (req as any).userId as string;
+      const adminId = req.userId as string;
       const redemptionId = param(req, "id");
       const { notes } = req.body;
 
@@ -117,7 +117,7 @@ export class EssenceRedemptionController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const adminId = (req as any).userId as string;
+      const adminId = req.userId as string;
       const redemptionId = param(req, "id");
       const { reason } = req.body;
 

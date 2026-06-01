@@ -69,4 +69,24 @@ export interface ILoyaltyRepository {
     page?: number,
     limit?: number
   ): Promise<LoyaltyTransaction[]>;
+
+  /**
+   * Actualiza el saldo de puntos y registra la transaccion en una sola
+   * operacion atomica via Prisma.$transaction. Evita el bug de balance
+   * inconsistente donde los puntos cambian pero la transaccion no se registra.
+   * @param accountId  - UUID de la cuenta de fidelizacion.
+   * @param pointsDelta - Puntos a sumar (positivo) o restar (negativo).
+   * @param data.type   - Tipo de movimiento (EARN, REDEEM, ADJUST, etc.).
+   * @param data.reason - Descripcion del movimiento.
+   * @param data.referenceId - ID opcional de referencia.
+   */
+  earnPointsAtomically(
+    accountId: string,
+    pointsDelta: number,
+    data: {
+      type: LoyaltyTxType;
+      reason: string;
+      referenceId?: string;
+    }
+  ): Promise<LoyaltyAccount>;
 }

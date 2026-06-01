@@ -59,7 +59,7 @@ export class OrderController {
   ): Promise<void> => {
     try {
       // userId viene del authMiddleware que decodifico el JWT
-      const userId = (req as any).userId;
+      const userId = req.userId!;
       const result = await this.createOrderUseCase.execute({
         userId,
         addressId: req.body.addressId,
@@ -126,7 +126,7 @@ export class OrderController {
     try {
       // Si no hay param userId, usar el del JWT
       const userId =
-        param(req, "userId") || (req as any).userId;
+        param(req, "userId") || req.userId!;
       const orders = await this.orderRepo.findByUserId(userId);
       res.json({ success: true, data: orders });
     } catch (error) {
@@ -143,7 +143,7 @@ export class OrderController {
     try {
       const orderId = param(req, "id");
       const newStatus = req.body.status as OrderStatus;
-      const changedById = (req as any).userId as string;
+      const changedById = req.userId as string;
 
       /**
        * Mapa de transiciones validas por estado actual.
@@ -295,8 +295,8 @@ export class OrderController {
   ): Promise<void> => {
     try {
       const orderId = param(req, "id");
-      const requesterId = (req as any).userId as string;
-      const requesterRole = (req as any).userRole as string;
+      const requesterId = req.userId as string;
+      const requesterRole = req.userRole as string;
 
       // Verificar que el pedido existe antes de chequear permisos.
       const order = await this.orderRepo.findById(orderId);

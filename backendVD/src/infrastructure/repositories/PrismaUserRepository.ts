@@ -123,11 +123,11 @@ export class PrismaUserRepository implements IUserRepository {
     const u = await prisma.user.update({
       where: { id },
       data: {
-        ...(data.name && { name: data.name }),
-        ...(data.phone && { phone: data.phone }),
-        ...(data.email && { email: data.email }),
-        ...(data.password && { password: data.password }),
-        ...(data.role && { role: data.role as any }),
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.email !== undefined && { email: data.email }),
+        ...(data.password !== undefined && { password: data.password }),
+        ...(data.role !== undefined && { role: data.role as any }),
         ...(data.active !== undefined && { active: data.active }),
         ...(data.emailVerified !== undefined && { emailVerified: data.emailVerified }),
       },
@@ -146,9 +146,12 @@ export class PrismaUserRepository implements IUserRepository {
     });
   }
 
-  /** Elimina un usuario por UUID (hard delete). */
+  /** Soft-delete: desactiva el usuario en lugar de eliminarlo fisicamente. Preserva integridad referencial. */
   async delete(id: string): Promise<void> {
-    await prisma.user.delete({ where: { id } });
+    await prisma.user.update({
+      where: { id },
+      data: { active: false },
+    });
   }
 
   /** Cuenta pedidos con status DELIVERED de un usuario. Usado para descuento de cliente frecuente. */

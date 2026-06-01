@@ -100,17 +100,33 @@ export class PrismaEssenceRepository implements IEssenceRepository {
 
   /** Actualiza campos parciales de una esencia, incluyendo tags. */
   async update(id: string, data: Partial<Essence>): Promise<Essence> {
-    // Si se envian tags, eliminar los existentes y crear los nuevos
+    // Si se envian tags, eliminar los existentes y crear los nuevos dentro
+    // de una transaccion atomica con el update de la esencia.
+    // Evita que los tags se pierdan si el update falla tras haberlos borrado.
     if (data.olfactiveTags) {
-      await prisma.essenceOlfactiveTag.deleteMany({ where: { essenceId: id } });
-      if (data.olfactiveTags.length > 0) {
-        await prisma.essenceOlfactiveTag.createMany({
-          data: data.olfactiveTags.map((t) => ({
-            essenceId: id,
-            olfactiveFamilyId: t.id,
-          })),
+      const e = await prisma.$transaction(async (tx) => {
+        await tx.essenceOlfactiveTag.deleteMany({ where: { essenceId: id } });
+        if (data.olfactiveTags && data.olfactiveTags.length > 0) {
+          await tx.essenceOlfactiveTag.createMany({
+            data: data.olfactiveTags.map((t) => ({
+              essenceId: id,
+              olfactiveFamilyId: t.id,
+            })),
+          });
+        }
+        return tx.essence.update({
+          where: { id },
+          data: {
+            ...(data.name && { name: data.name }),
+            ...(data.description !== undefined && { description: data.description }),
+            ...(data.olfactiveFamilyId && { olfactiveFamilyId: data.olfactiveFamilyId }),
+            ...(data.inspirationBrand !== undefined && { inspirationBrand: data.inspirationBrand }),
+            ...(data.houseId !== undefined && { houseId: data.houseId }),
+          },
+          include: ESSENCE_INCLUDE,
         });
-      }
+      });
+      return toEntity(e);
     }
 
     const e = await prisma.essence.update({

@@ -40,7 +40,7 @@ export class LoyaltyController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const summary = await this.loyaltyService.getAccountSummary(userId);
       res.json({ success: true, data: summary });
     } catch (error) {
@@ -60,7 +60,7 @@ export class LoyaltyController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const page   = parseInt(String(req.query.page  ?? "1"),  10);
       const limit  = parseInt(String(req.query.limit ?? "20"), 10);
       const transactions = await this.loyaltyService.getTransactions(
@@ -86,7 +86,7 @@ export class LoyaltyController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const { points, orderId } = req.body;
 
       if (!points || !orderId) {
@@ -114,7 +114,7 @@ export class LoyaltyController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const stats = await this.referralService.getCodeStats(userId);
       res.json({ success: true, data: stats });
     } catch (error) {
@@ -135,7 +135,7 @@ export class LoyaltyController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = (req as any).userId as string;
+      const userId = req.userId as string;
       const { code } = req.body;
 
       if (!code) {
@@ -166,7 +166,7 @@ export class LoyaltyController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const adminId  = (req as any).userId as string;
+      const adminId  = req.userId as string;
       const { userId, points, reason } = req.body;
 
       if (!userId || points === undefined || !reason) {

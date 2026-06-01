@@ -33,6 +33,6 @@ const adapter = new PrismaPg({ connectionString: env.databaseUrl });
 const prisma = new PrismaClient({
   adapter,
   log: env.nodeEnv === "development" ? ["query", "error", "warn"] : ["error"],
-} as any);
+});
 
 export default prisma;
