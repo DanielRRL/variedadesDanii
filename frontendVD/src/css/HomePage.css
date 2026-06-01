@@ -1393,9 +1393,7 @@
    Particles — Reduced opacity (elegant, not overwhelming)
    ════════════════════════════════════════════════════════════════════════════ */
 
-.home-particle {
-  opacity: 0.15;
-}
+/* home-particle removed — no longer used */
 
 @keyframes hero-blob-1 {
   0%, 100% { transform: translate(0, 0) scale(1); border-radius: 40% 60% 60% 40% / 45% 50% 55% 50%; }

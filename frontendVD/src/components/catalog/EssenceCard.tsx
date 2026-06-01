@@ -60,9 +60,10 @@ function StarRating({ rating = 0, reviewCount = 0 }: { rating?: number; reviewCo
 export interface EssenceCardProps {
   essence: Essence;
   onPress: () => void;
+  className?: string;
 }
 
-export function EssenceCard({ essence, onPress }: EssenceCardProps) {
+export function EssenceCard({ essence, onPress, className }: EssenceCardProps) {
   const isOutOfStock = essence.currentStockMl === 0;
   const pricePerOz = (essence.pricePerMl ?? 0) * 29.5735;
 
@@ -76,7 +77,8 @@ export function EssenceCard({ essence, onPress }: EssenceCardProps) {
         "bg-white rounded-2xl border border-slate-200/60 shadow-sm flex gap-4 p-4 w-full",
         "transition-all duration-300",
         !isOutOfStock && "cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-brand-pink/20",
-        isOutOfStock && "opacity-60 cursor-not-allowed"
+        isOutOfStock && "opacity-60 cursor-not-allowed",
+        className
       )}
       aria-disabled={isOutOfStock}
       role="button"

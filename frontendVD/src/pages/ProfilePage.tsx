@@ -23,7 +23,12 @@ import {
   X,
   Loader2,
   Shield,
+  Crown,
+  Star,
+  Gift,
+  Dices,
 } from "lucide-react";
+import { clsx } from "clsx";
 
 import { useAuthStore } from "../stores/authStore";
 import {
@@ -197,7 +202,7 @@ export default function ProfilePage() {
   const [resendDone, setResendDone] = useState(false);
   const [resendError, setResendError] = useState("");
 
-  const { data: gramRes } = useQuery({
+  const { data: gramRes, isLoading: gramLoading } = useQuery({
     queryKey: ["gramAccount"],
     queryFn: getMyGramAccount,
     staleTime: 2 * 60_000,
@@ -266,14 +271,17 @@ export default function ProfilePage() {
     { icon: Bell, label: "Notificaciones", action: () => navigate("/perfil/notificaciones") },
   ];
 
+  const isLoadingGram = gramLoading;
+  const level = user?.loyaltyAccount?.level;
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background font-body" style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))' }}>
       <AppBar title="Mi Perfil" showBack />
 
-      <main className="px-4 py-5 pb-28 space-y-5">
+      <main className="max-w-lg mx-auto px-4 sm:px-6 py-5 space-y-5">
         {/* ── Email verification banner ──────────────────────────────────── */}
         {user && !user.emailVerified && user.role !== "ADMIN" && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3.5 flex items-start gap-3">
+          <div className="bg-amber-50/80 backdrop-blur-sm border border-amber-200/60 rounded-2xl px-4 py-3.5 flex items-start gap-3">
             <AlertTriangle size={17} className="text-amber-500 mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-medium text-amber-800">
@@ -301,23 +309,37 @@ export default function ProfilePage() {
         )}
 
         {/* ── User card ──────────────────────────────────────────────────── */}
-        <div className="relative bg-gradient-to-r from-brand-pink to-brand-pink-dark rounded-2xl p-5 flex items-center gap-4 overflow-hidden">
-          <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shrink-0 shadow-md">
+        <div className="relative bg-gradient-to-br from-brand-pink via-brand-pink to-brand-pink-dark rounded-2xl p-5 flex items-center gap-4 overflow-hidden shadow-lg shadow-brand-pink/20">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse at top right, rgba(255,255,255,0.18), transparent 65%)' }}
+            aria-hidden="true"
+          />
+          <div className="relative w-14 h-14 rounded-full bg-white flex items-center justify-center shrink-0 shadow-md ring-2 ring-white/30">
             <span className="font-display font-bold text-brand-pink text-xl leading-none">{initials}</span>
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="relative flex-1 min-w-0">
             <p className="font-display font-semibold text-white text-lg leading-tight truncate">
               {user?.name ?? "Usuario"}
             </p>
+            {level && level !== 'BASIC' && (
+              <span className={clsx(
+                "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5",
+                level === 'VIP' ? 'bg-brand-gold/20 text-brand-gold' : 'bg-white/15 text-white/70'
+              )}>
+                {level === 'VIP' ? <Crown size={10} strokeWidth={2.5} /> : <Star size={10} strokeWidth={2.5} />}
+                {level === 'VIP' ? 'VIP' : 'Preferencial'}
+              </span>
+            )}
             <p className="text-white/70 text-xs mt-0.5 truncate">{user?.phone}</p>
             <p className="text-white/70 text-xs truncate">{user?.email}</p>
           </div>
           <button
             onClick={() => setShowEditModal(true)}
             aria-label="Editar perfil"
-            className="absolute top-3 right-3 p-2 bg-white/15 rounded-full hover:bg-white/25 transition-colors"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 transition-colors flex items-center justify-center"
           >
-            <Pencil size={14} className="text-white" />
+            <Pencil size={15} className="text-white" />
           </button>
         </div>
 
@@ -332,52 +354,75 @@ export default function ProfilePage() {
               <span className="font-display font-semibold text-slate-800 text-base">Mi billetera de gramos</span>
             </div>
 
-            <div className="flex items-baseline gap-2">
-              <span className="font-display font-bold text-brand-gold text-[42px] leading-none">{currentGrams}</span>
-              <span className="text-slate-400 text-base">/ {GRAMS_PER_OZ}g</span>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                <span>0g</span>
-                <span>{GRAMS_PER_OZ}g = 1 oz gratis</span>
-              </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-brand-gold rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
-              </div>
-              <p className="text-xs text-slate-500 mt-2">
-                {currentGrams >= GRAMS_PER_OZ
-                  ? "¡Puedes canjear 1 oz de esencia gratis!"
-                  : `Te faltan ${GRAMS_PER_OZ - currentGrams}g para canjear`}
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="flex-1 bg-brand-gold/5 rounded-xl p-3 text-center">
-                <p className="font-display font-bold text-brand-gold text-xl leading-none">{totalEarned}g</p>
-                <p className="text-[11px] text-slate-400 mt-1">Ganado</p>
-              </div>
-              <div className="flex-1 bg-brand-pink/5 rounded-xl p-3 text-center">
-                <p className="font-display font-bold text-brand-pink text-xl leading-none">{totalRedeemed}g</p>
-                <p className="text-[11px] text-slate-400 mt-1">Canjeado</p>
-              </div>
-            </div>
-
-            {gram?.canRedeem && currentGrams >= GRAMS_PER_OZ ? (
-              <button
-                onClick={() => navigate("/mis-gramos")}
-                className="w-full bg-brand-gold text-white font-semibold text-sm py-3.5 rounded-full hover:bg-brand-gold/90 active:scale-[0.98] transition-all"
-              >
-                Canjear mi oz gratis
-              </button>
+            {isLoadingGram ? (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <div className="h-11 w-16 bg-slate-100 rounded-lg animate-pulse" />
+                  <div className="h-5 w-12 bg-slate-100 rounded animate-pulse" />
+                </div>
+                <div>
+                  <div className="h-2 bg-slate-100 rounded-full" />
+                  <div className="h-3 w-48 bg-slate-100 rounded mt-2 animate-pulse" />
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1 bg-slate-50 rounded-xl p-3"><div className="h-6 w-12 bg-slate-100 rounded animate-pulse mx-auto" /><div className="h-3 w-10 bg-slate-100 rounded animate-pulse mt-2 mx-auto" /></div>
+                  <div className="flex-1 bg-slate-50 rounded-xl p-3"><div className="h-6 w-12 bg-slate-100 rounded animate-pulse mx-auto" /><div className="h-3 w-10 bg-slate-100 rounded animate-pulse mt-2 mx-auto" /></div>
+                </div>
+              </>
             ) : (
-              <button
-                onClick={() => navigate("/mis-gramos")}
-                className="flex items-center gap-1 text-brand-blue text-sm font-medium hover:text-brand-blue/80 transition-colors"
-              >
-                <ChevronRight size={14} />
-                Ver historial de gramos
-              </button>
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className={clsx(
+                    "font-display font-bold text-brand-gold text-[42px] leading-none transition-all",
+                    currentGrams >= GRAMS_PER_OZ && "animate-pulse"
+                  )}>{currentGrams}</span>
+                  <span className="text-slate-400 text-base">/ {GRAMS_PER_OZ}g</span>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    <span>0g</span>
+                    <span>{GRAMS_PER_OZ}g = 1 oz gratis</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-brand-gold rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    {currentGrams >= GRAMS_PER_OZ
+                      ? "¡Puedes canjear 1 oz de esencia gratis!"
+                      : `Te faltan ${GRAMS_PER_OZ - currentGrams}g para canjear`}
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="flex-1 bg-brand-gold/5 rounded-xl p-3 text-center">
+                    <p className="font-display font-bold text-brand-gold text-xl leading-none">{totalEarned}g</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Ganado</p>
+                  </div>
+                  <div className="flex-1 bg-brand-pink/5 rounded-xl p-3 text-center">
+                    <p className="font-display font-bold text-brand-pink text-xl leading-none">{totalRedeemed}g</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Canjeado</p>
+                  </div>
+                </div>
+
+                {gram?.canRedeem && currentGrams >= GRAMS_PER_OZ ? (
+                  <button
+                    onClick={() => navigate("/mis-gramos")}
+                    className="w-full bg-brand-gold text-white font-semibold text-sm py-3.5 rounded-full hover:bg-brand-gold/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Gift size={16} />
+                    Canjear mi oz gratis
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate("/mis-gramos")}
+                    className="flex items-center gap-1 text-brand-blue text-sm font-medium hover:text-brand-blue/80 transition-colors"
+                  >
+                    <ChevronRight size={14} />
+                    Ver historial de gramos
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -452,9 +497,12 @@ export default function ProfilePage() {
                 </button>
               </>
             ) : (
-              <p className="text-[13px] text-slate-400">
-                No tienes fichas pendientes. ¡Haz una compra para recibir una!
-              </p>
+              <div className="flex flex-col items-center gap-2 py-3">
+                <Dices size={22} className="text-slate-300" strokeWidth={1.5} />
+                <p className="text-[13px] text-slate-400 text-center leading-relaxed">
+                  ¡Haz una compra y recibe fichas para jugar!
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -465,7 +513,7 @@ export default function ProfilePage() {
             <button
               key={label}
               onClick={action}
-              className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 flex flex-col items-center gap-2.5 text-center hover:shadow-md hover:-translate-y-0.5 hover:border-brand-pink/20 transition-all duration-200"
+              className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 flex flex-col items-center gap-2.5 text-center hover:shadow-md hover:-translate-y-0.5 hover:border-brand-pink/20 transition-all duration-200 group"
             >
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center ${
@@ -475,20 +523,22 @@ export default function ProfilePage() {
                 <Icon size={20} className={accent ? "text-brand-pink" : "text-slate-600"} strokeWidth={1.5} />
               </div>
               <span className="text-[13px] font-medium text-slate-700 leading-tight">{label}</span>
+              <ChevronRight size={14} className="text-slate-300 group-hover:text-brand-pink/40 transition-colors" />
             </button>
           ))}
-
-          {/* Logout — separate, spans full width */}
-          <button
-            onClick={() => setShowLogoutDialog(true)}
-            className="sm:col-span-3 bg-white rounded-2xl border border-red-100 shadow-sm p-4 flex items-center gap-3 hover:bg-red-50 transition-colors"
-          >
-            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
-              <LogOut size={18} className="text-red-400" strokeWidth={1.5} />
-            </div>
-            <span className="text-[13px] font-medium text-red-500">Cerrar sesión</span>
-          </button>
         </div>
+
+        {/* Divider + Logout */}
+        <div className="h-px bg-gradient-to-r from-transparent via-red-100 to-transparent mb-4" />
+        <button
+          onClick={() => setShowLogoutDialog(true)}
+          className="w-full bg-white rounded-2xl border border-red-100 shadow-sm p-4 flex items-center gap-3 hover:bg-red-50 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+            <LogOut size={18} className="text-red-400" strokeWidth={1.5} />
+          </div>
+          <span className="text-[13px] font-medium text-red-500">Cerrar sesión</span>
+        </button>
       </main>
 
       <BottomTabBar />
