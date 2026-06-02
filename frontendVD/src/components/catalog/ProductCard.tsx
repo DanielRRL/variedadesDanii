@@ -8,10 +8,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
-import { Check } from "lucide-react";
+import { Check, ShoppingBag } from "lucide-react";
 import { useCartStore } from "../../stores/cartStore";
 import { formatCOP } from "../../utils/format";
 import type { Product } from "../../types";
+import "../../css/ProductCard.css";
 
 const TYPE_LABELS: Record<string, string> = {
   LOTION: "Loción", CREAM: "Crema", SHAMPOO: "Shampoo",
@@ -25,11 +26,13 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
+  const cartItems = useCartStore((s) => s.items);
   const [justAdded, setJustAdded] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const outOfStock = product.stockUnits <= 0;
   const lowStock = product.stockUnits > 0 && product.stockUnits <= 5;
+  const isInCart = cartItems.some((item) => item.productId === product.id);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -45,64 +48,51 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <article
       onClick={() => navigate(`/productos/${product.id}`)}
-      className={clsx(
-        "bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden cursor-pointer",
-        "transition-all duration-300",
-        "hover:shadow-lg hover:-translate-y-0.5 hover:border-brand-pink/20",
-        outOfStock && "opacity-50 cursor-not-allowed"
-      )}
+      className={clsx("product-card", outOfStock && "product-card--out-of-stock")}
       role="article"
       aria-label={product.name}
     >
       {/* Image */}
-      <div className="relative aspect-[4/3] bg-brand-pink/5 overflow-hidden">
+      <div className="product-card__image-area">
         {product.photoUrl ? (
           <img
             src={product.photoUrl}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="product-card__image"
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="font-display font-bold text-5xl text-brand-pink/20 select-none">
-              {product.name[0]?.toUpperCase()}
-            </span>
+          <div className="product-card__image-placeholder">
+            <span>{product.name[0]?.toUpperCase()}</span>
           </div>
         )}
 
         {/* Type badge */}
-        <span className="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-sm text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200/50">
+        <span className="product-card__type-badge">
           {TYPE_LABELS[product.productType] ?? product.productType}
         </span>
 
         {/* Gram badge */}
         {product.generatesGram && (
-          <span className="absolute top-2.5 right-2.5 bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-            +1g
-          </span>
+          <span className="product-card__gram-badge">+1g</span>
         )}
       </div>
 
       {/* Info */}
-      <div className="p-3.5 space-y-1.5">
-        <h3 className="font-heading font-semibold text-sm text-slate-800 leading-snug line-clamp-2">
-          {product.name}
-        </h3>
+      <div className="product-card__info">
+        <h3 className="product-card__name">{product.name}</h3>
 
-        <p className="font-heading font-bold text-base text-brand-gold">
-          {formatCOP(product.price)}
-        </p>
+        <p className="product-card__price">{formatCOP(product.price)}</p>
 
         {/* Stock indicator */}
-        <div className="flex items-center gap-1.5">
+        <div className="product-card__stock">
           <span
             className={clsx(
-              "w-2 h-2 rounded-full shrink-0",
-              outOfStock ? "bg-red-400" : lowStock ? "bg-amber-400" : "bg-emerald-400"
+              "product-card__stock-dot",
+              outOfStock ? "product-card__stock-dot--out" : lowStock ? "product-card__stock-dot--low" : "product-card__stock-dot--ok",
             )}
           />
-          <span className="text-[11px] text-slate-500">
+          <span className="product-card__stock-text">
             {outOfStock
               ? "Agotado"
               : lowStock
@@ -116,23 +106,26 @@ export default function ProductCard({ product }: ProductCardProps) {
           onClick={handleAdd}
           disabled={outOfStock}
           className={clsx(
-            "w-full mt-2 py-2.5 rounded-full text-[13px] font-semibold transition-all duration-200 flex items-center justify-center gap-1.5",
+            "product-card__add-btn",
             outOfStock
-              ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-              : justAdded
-                ? "bg-emerald-500 text-white"
-                : "bg-brand-pink text-white hover:bg-brand-pink/90 active:scale-[0.98]"
+              ? "product-card__add-btn--disabled"
+              : isInCart || justAdded
+                ? "product-card__add-btn--added"
+                : "product-card__add-btn--default",
           )}
         >
           {outOfStock ? (
             "Sin stock"
-          ) : justAdded ? (
+          ) : isInCart || justAdded ? (
             <>
               <Check size={14} strokeWidth={2.5} />
               Agregado
             </>
           ) : (
-            "Agregar"
+            <>
+              <ShoppingBag size={14} strokeWidth={2} />
+              Agregar
+            </>
           )}
         </button>
       </div>
