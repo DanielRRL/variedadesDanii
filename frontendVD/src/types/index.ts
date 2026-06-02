@@ -397,10 +397,9 @@ export interface OrderStatusHistory {
 
 /** Payload for POST /api/orders. */
 export interface CreateOrderInput {
-  items: { productId: string; quantity: number }[];
+  products: { productId: string; quantity: number }[];
   paymentMethod: Order['paymentMethod'];
   type: Order['type'];
-  deliveryAddress?: string;
   /** Points the customer wants to redeem for a discount. */
   pointsToRedeem?: number;
   referralCode?: string;

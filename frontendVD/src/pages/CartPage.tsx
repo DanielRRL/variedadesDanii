@@ -22,7 +22,7 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Trash2, Truck, Store, CreditCard, Smartphone, Banknote,
+  Trash2, Truck, Store, Smartphone, Banknote,
   Lock, MapPin, Minus, Plus, ShoppingBag, Gem,
   Tag, Check, X,
 } from 'lucide-react';
@@ -30,8 +30,8 @@ import { clsx } from 'clsx';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
-import { createOrder, applyReferral, getMyGramAccount } from '../services/api';
-import type { CartItem, Order } from '../types';
+import { createOrder, applyReferral, getMyGramAccount, getProducts } from '../services/api';
+import type { CartItem, Order, Product } from '../types';
 import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
@@ -64,11 +64,12 @@ interface CartItemRowProps {
   item: CartItem;
   onUpdateQty: (qty: number) => void;
   onRemove: () => void;
+  isOutOfStock?: boolean;
 }
 
-function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
+function CartItemRow({ item, onUpdateQty, onRemove, isOutOfStock }: CartItemRowProps) {
   return (
-    <div className="cart-item">
+    <div className={clsx('cart-item', isOutOfStock && 'cart-item--out-of-stock')}>
       {/* Thumbnail */}
       {item.photoUrl ? (
         <img
@@ -93,6 +94,9 @@ function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
           {item.generatesGram && (
             <span className="cart-item__gram-badge">Gana 1g</span>
           )}
+          {isOutOfStock && (
+            <span className="cart-item__out-of-stock-badge">Agotado</span>
+          )}
         </div>
 
         {/* Quantity stepper + line total */}
@@ -100,7 +104,7 @@ function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
           <div className="cart-item__stepper">
             <button
               onClick={() => onUpdateQty(item.quantity - 1)}
-              disabled={item.quantity <= 1}
+              disabled={item.quantity <= 1 || !!isOutOfStock}
               className="cart-item__stepper-btn"
               aria-label="Reducir cantidad"
             >
@@ -109,7 +113,7 @@ function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
             <span className="cart-item__stepper-qty">{item.quantity}</span>
             <button
               onClick={() => onUpdateQty(item.quantity + 1)}
-              disabled={item.quantity >= 10}
+              disabled={item.quantity >= 10 || !!isOutOfStock}
               className="cart-item__stepper-btn"
               aria-label="Aumentar cantidad"
             >
@@ -170,6 +174,17 @@ export default function CartPage() {
   });
   const gramBalance: number = gramRes?.data?.account?.currentGrams ?? gramRes?.data?.currentGrams ?? 0;
 
+  // ── Live product stock (to detect out-of-stock items in cart) ──────────────
+  const { data: productsRes } = useQuery({
+    queryKey: ['products'],
+    queryFn: getProducts,
+    staleTime: 60_000,
+  });
+  const allProducts: Product[] = useMemo(() => {
+    const body = productsRes?.data;
+    return Array.isArray(body) ? body : (body?.products ?? []);
+  }, [productsRes]);
+
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [referralInput, setReferralInput]     = useState('');
@@ -200,14 +215,31 @@ export default function CartPage() {
 
   const nequiValid = /^3\d{9}$/.test(nequiPhone);
 
+  const outOfStockItemNames = useMemo(() => {
+    if (!allProducts.length) return [];
+    const stockMap = new Map<string, number>();
+    for (const p of allProducts) stockMap.set(p.id, p.stockUnits);
+    return items
+      .filter(i => (stockMap.get(i.productId) ?? 0) <= 0)
+      .map(i => i.name);
+  }, [items, allProducts]);
+
+  const outOfStockIds = useMemo(() => {
+    if (!allProducts.length) return new Set<string>();
+    const stockMap = new Map<string, number>();
+    for (const p of allProducts) stockMap.set(p.id, p.stockUnits);
+    return new Set(items.filter(i => (stockMap.get(i.productId) ?? 0) <= 0).map(i => i.productId));
+  }, [items, allProducts]);
+
   // Determine why the button is disabled
   const disabledReason = useMemo(() => {
     if (items.length === 0) return '';
+    if (outOfStockItemNames.length > 0) return `"${outOfStockItemNames[0]}" está agotado. Elimínalo para continuar.`;
     if (!paymentMethod) return 'Selecciona un método de pago';
     if (paymentMethod === 'NEQUI' && !nequiValid) return 'Agrega tu número Nequi';
     if (deliveryType === 'delivery' && deliveryAddress.trim().length < 10) return 'Ingresa tu dirección de entrega';
     return '';
-  }, [items.length, paymentMethod, nequiValid, deliveryType, deliveryAddress]);
+  }, [items.length, paymentMethod, nequiValid, deliveryType, deliveryAddress, outOfStockItemNames]);
 
   const canSubmit = items.length > 0 && !disabledReason && !isSubmitting;
 
@@ -240,13 +272,12 @@ export default function CartPage() {
     setIsSubmitting(true);
     try {
       const orderRes = await createOrder({
-        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        products: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
         paymentMethod: paymentMethod as Order['paymentMethod'],
         type: 'ONLINE',
-        deliveryAddress:
-          deliveryType === 'delivery' && deliveryAddress.trim()
-            ? deliveryAddress.trim()
-            : undefined,
+        notes: deliveryType === 'delivery' && deliveryAddress.trim()
+          ? `Entrega: ${deliveryAddress.trim()}`
+          : undefined,
         referralCode: referralCodeApplied || undefined,
       });
 
@@ -323,6 +354,7 @@ export default function CartPage() {
               item={item}
               onUpdateQty={(qty) => updateQuantity(item.productId, qty)}
               onRemove={() => removeItem(item.productId)}
+              isOutOfStock={outOfStockIds.has(item.productId)}
             />
           ))}
         </div>
@@ -539,23 +571,6 @@ export default function CartPage() {
               <div>
                 <p className="cart-payment__method-label">Bancolombia</p>
                 <p className="cart-payment__method-desc">Transferencia inmediata</p>
-              </div>
-            </div>
-          </button>
-
-          {/* BRE-B */}
-          <button
-            onClick={() => setPaymentMethod('BREB')}
-            className={clsx(
-              'cart-payment__method',
-              paymentMethod === 'BREB' && 'cart-payment__method--active',
-            )}
-          >
-            <div className="cart-payment__method-inner">
-              <CreditCard size={20} className="cart-payment__method-icon" />
-              <div>
-                <p className="cart-payment__method-label">Bre-B</p>
-                <p className="cart-payment__method-desc">Pagos inmediatos Bre-B</p>
               </div>
             </div>
           </button>
