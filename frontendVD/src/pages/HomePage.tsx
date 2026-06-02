@@ -35,6 +35,7 @@ export default function HomePage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const cartItems = useCartStore((s) => s.items);
   const cartCount = cartItems.length;
+  const addItem = useCartStore((s) => s.addItem);
 
   const addRef = useScrollReveal();
 
@@ -82,6 +83,7 @@ export default function HomePage() {
         isError={productsError}
         onRetry={retryProducts}
         onProductPress={(id) => navigate(`/productos/${id}`)}
+        onAddToCart={(product) => addItem(product, 1)}
         addRef={addRef}
       />
 

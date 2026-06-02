@@ -8,6 +8,7 @@ interface CollectionSectionProps {
   isError: boolean;
   onRetry: () => void;
   onProductPress: (id: string) => void;
+  onAddToCart: (product: Product) => void;
   addRef: (el: HTMLElement | null) => void;
 }
 
@@ -43,11 +44,14 @@ function RefreshCwIcon({ size }: { size: number }) {
 function FeaturedProductCard({
   product,
   onPress,
+  onAddToCart,
 }: {
   product: Product;
   onPress: () => void;
+  onAddToCart: (product: Product) => void;
 }) {
   const outOfStock = product.stockUnits <= 0;
+  const lowStock = product.stockUnits > 0 && product.stockUnits <= 5;
 
   return (
     <article
@@ -83,17 +87,26 @@ function FeaturedProductCard({
             +1g
           </span>
         )}
-
-        {outOfStock && (
-          <div className="home-product-card__outofstock">
-            <span>Agotado</span>
-          </div>
-        )}
       </div>
 
       <div className="home-product-card__content">
         <p className="home-product-card__name">{product.name}</p>
         <p className="home-product-card__price">{formatCOP(product.price)}</p>
+
+        <div className="home-product-card__stock">
+          <span className={`home-product-card__stock-dot ${outOfStock ? 'home-product-card__stock-dot--out' : lowStock ? 'home-product-card__stock-dot--low' : 'home-product-card__stock-dot--ok'}`} />
+          <span className="home-product-card__stock-text">
+            {outOfStock ? 'Agotado' : lowStock ? `Quedan ${product.stockUnits}` : 'Disponible'}
+          </span>
+        </div>
+
+        <button
+          onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
+          disabled={outOfStock}
+          className={`home-product-card__add-btn ${outOfStock ? 'home-product-card__add-btn--disabled' : ''}`}
+        >
+          Agregar
+        </button>
       </div>
     </article>
   );
@@ -105,6 +118,7 @@ export function CollectionSection({
   isError,
   onRetry,
   onProductPress,
+  onAddToCart,
   addRef,
 }: CollectionSectionProps) {
   return (
@@ -168,6 +182,7 @@ export function CollectionSection({
               key={product.id}
               product={product}
               onPress={() => onProductPress(product.id)}
+              onAddToCart={() => onAddToCart(product)}
             />
           ))}
 
