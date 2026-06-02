@@ -1,0 +1,297 @@
+/* ── OrdersListPage — Pedidos list with tabs and cards ──────────────────── */
+
+.orders-page {
+  min-height: 100svh;
+  background: var(--color-background, #FAFAFA);
+  font-family: var(--font-body, 'Inter', sans-serif);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.orders-main {
+  flex: 1;
+  max-width: 32rem;
+  margin-inline: auto;
+  width: 100%;
+  padding: 1rem 1rem 2rem;
+}
+
+@media (min-width: 640px) {
+  .orders-main { padding-inline: 1.5rem; }
+}
+
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+.orders-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: #f1f5f9;
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.orders-tabs__btn {
+  flex: 1;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.375rem 0;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--color-muted, #757575);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.orders-tabs__btn:hover {
+  color: #424242;
+}
+
+.orders-tabs__btn--active {
+  background: var(--color-surface, #FFFFFF);
+  color: #212121;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Order list ─────────────────────────────────────────────────────────── */
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Order card ─────────────────────────────────────────────────────────── */
+.orders-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E0E0E0);
+  border-radius: 1rem;
+  padding: 1rem;
+  text-decoration: none;
+  transition: box-shadow 0.2s;
+}
+
+.orders-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.orders-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.orders-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.orders-card__number {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orders-card__status {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+/* Status badges — match original STATUS_COLORS from adminShared */
+.orders-card__status--pending {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.orders-card__status--paid {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.orders-card__status--preparing {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.orders-card__status--ready {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.orders-card__status--delivered {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.orders-card__status--cancelled {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.orders-card__meta {
+  font-size: 0.75rem;
+  color: var(--color-muted, #757575);
+  margin-top: 0.25rem;
+}
+
+.orders-card__total {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1f2937;
+  margin-top: 0.375rem;
+}
+
+.orders-card__chevron {
+  flex-shrink: 0;
+  color: var(--color-muted, #757575);
+}
+
+/* ── Skeleton cards ─────────────────────────────────────────────────────── */
+.orders-skeleton {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.orders-skeleton__line {
+  height: 0.75rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    90deg,
+    #f1f5f9 0%,
+    rgba(216, 27, 96, 0.04) 50%,
+    #f1f5f9 100%
+  );
+  background-size: 200% 100%;
+  animation: orders-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes orders-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.orders-skeleton__line--wide {
+  width: 70%;
+}
+
+.orders-skeleton__line--narrow {
+  width: 40%;
+}
+
+.orders-skeleton__line--medium {
+  width: 55%;
+}
+
+/* ── Empty state ────────────────────────────────────────────────────────── */
+.orders-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+
+.orders-empty__icon {
+  color: #d1d5db;
+}
+
+.orders-empty__text {
+  font-size: 0.875rem;
+  color: var(--color-muted, #757575);
+  font-family: var(--font-body, 'Inter', sans-serif);
+}
+
+.orders-empty__cta {
+  background: linear-gradient(135deg, var(--color-brand-pink, #D81B60), #880E4F);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: inline-block;
+}
+
+.orders-empty__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(216, 27, 96, 0.25);
+}
+
+/* ── Error state ────────────────────────────────────────────────────────── */
+.orders-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.orders-error__text {
+  font-size: 0.875rem;
+  color: var(--color-muted, #757575);
+}
+
+.orders-error__retry {
+  background: linear-gradient(135deg, var(--color-brand-pink, #D81B60), #880E4F);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.orders-error__retry:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(216, 27, 96, 0.3);
+}
+
+/* ── Loading spinner ────────────────────────────────────────────────────── */
+.orders-loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.orders-loading__spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-brand-pink, #D81B60);
+  border-top-color: transparent;
+  animation: orders-spin 0.6s linear infinite;
+}
+
+@keyframes orders-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .orders-skeleton__line {
+    animation: none;
+  }
+  .orders-loading__spinner {
+    animation: none;
+  }
+}

@@ -5,8 +5,12 @@ import { ShoppingBag, ChevronRight } from 'lucide-react';
 import { AppBar } from '../../components/layout/AppBar';
 import { BottomTabBar } from '../../components/layout/BottomTabBar';
 import { getMyOrders } from '../../services/api';
-import { STATUS_LABELS, STATUS_COLORS } from '../admin/adminShared';
+import { STATUS_LABELS } from '../admin/adminShared';
+import { formatCOP } from '../../utils/format';
 import type { Order } from '../../types';
+import '../../css/OrdersListPage.css';
+
+// ─── Constants ────────────────────────────────────────────────────────────
 
 const TABS = [
   { key: 'all',       label: 'Todos' },
@@ -34,40 +38,47 @@ function formatDate(iso: string): string {
   });
 }
 
-function formatCOP(n: number): string {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(n);
+// ─── OrderCard ────────────────────────────────────────────────────────────
+
+function statusModifier(status: string): string {
+  return `orders-card__status--${status.toLowerCase()}`;
 }
 
 function OrderCard({ order }: { order: Order }) {
   return (
-    <Link
-      to={`/pedido/${order.id}`}
-      className="bg-surface border border-border rounded-2xl p-4 flex items-center gap-3 hover:shadow-sm transition-shadow"
-    >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <span className="font-semibold text-sm text-gray-900 truncate">
+    <Link to={`/pedido/${order.id}`} className="orders-card">
+      <div className="orders-card__body">
+        <div className="orders-card__header">
+          <span className="orders-card__number">
             Pedido #{order.orderNumber}
           </span>
-          <span
-            className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'}`}
-          >
+          <span className={`orders-card__status ${statusModifier(order.status)}`}>
             {STATUS_LABELS[order.status] ?? order.status}
           </span>
         </div>
-        <p className="text-xs text-muted mt-1">{formatDate(order.createdAt)}</p>
-        <p className="text-sm font-medium text-gray-800 mt-1.5">
+        <p className="orders-card__meta">{formatDate(order.createdAt)}</p>
+        <p className="orders-card__total">
           {formatCOP(order.total)}
         </p>
       </div>
-      <ChevronRight size={16} className="shrink-0 text-muted" />
+      <ChevronRight size={16} className="orders-card__chevron" />
     </Link>
   );
 }
+
+// ─── SkeletonRow ──────────────────────────────────────────────────────────
+
+function SkeletonRow() {
+  return (
+    <div className="orders-skeleton">
+      <div className="orders-skeleton__line orders-skeleton__line--wide" />
+      <div className="orders-skeleton__line orders-skeleton__line--narrow" />
+      <div className="orders-skeleton__line orders-skeleton__line--medium" />
+    </div>
+  );
+}
+
+// ─── OrdersListPage ───────────────────────────────────────────────────────
 
 export default function OrdersListPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('all');
@@ -87,68 +98,64 @@ export default function OrdersListPage() {
   const activeCount = orders.filter((o) => ACTIVE_STATUSES.has(o.status)).length;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="orders-page">
       <AppBar title="Mis Pedidos" showBack />
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-4 pb-24">
-        {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">
+      <main className="orders-main">
+        {/* ── Tabs ──────────────────────────────────────────────────── */}
+        <div className="orders-tabs">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className={`flex-1 text-xs font-medium py-1.5 rounded-lg transition-colors ${
-                activeTab === t.key
-                  ? 'bg-surface shadow-sm text-gray-900'
-                  : 'text-muted hover:text-gray-700'
-              }`}
+              className={`orders-tabs__btn ${activeTab === t.key ? 'orders-tabs__btn--active' : ''}`}
             >
               {t.label}
             </button>
           ))}
         </div>
 
+        {/* ── Loading — 3 skeleton cards ────────────────────────────── */}
         {isLoading && (
-          <div className="flex justify-center py-12">
-            <div className="w-6 h-6 rounded-full border-2 border-brand-pink border-t-transparent animate-spin" />
+          <div className="orders-list">
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
           </div>
         )}
 
+        {/* ── Error ─────────────────────────────────────────────────── */}
         {isError && (
-          <div className="flex flex-col items-center gap-3 py-12 text-center">
-            <p className="text-muted text-sm">
+          <div className="orders-error">
+            <p className="orders-error__text">
               No se pudieron cargar tus pedidos.
             </p>
-            <button
-              onClick={() => refetch()}
-              className="bg-brand-pink text-white text-sm font-semibold px-5 py-2 rounded-xl"
-            >
+            <button onClick={() => refetch()} className="orders-error__retry">
               Reintentar
             </button>
           </div>
         )}
 
+        {/* ── Empty state ───────────────────────────────────────────── */}
         {!isLoading && !isError && filtered.length === 0 && (
-          <div className="flex flex-col items-center gap-4 py-16 text-center">
-            <ShoppingBag size={48} className="text-gray-300" />
-            <p className="text-muted text-sm">
+          <div className="orders-empty">
+            <ShoppingBag size={64} className="orders-empty__icon" strokeWidth={1.3} />
+            <p className="orders-empty__text">
               {activeTab === 'all'
                 ? 'Aún no tienes pedidos.'
                 : 'No hay pedidos en esta categoría.'}
             </p>
             {activeTab === 'all' && (
-              <Link
-                to="/catalogo"
-                className="bg-brand-pink hover:bg-pink-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors"
-              >
+              <Link to="/catalogo" className="orders-empty__cta">
                 Explorar catálogo
               </Link>
             )}
           </div>
         )}
 
+        {/* ── Order cards ───────────────────────────────────────────── */}
         {!isLoading && !isError && filtered.length > 0 && (
-          <div className="flex flex-col gap-3">
+          <div className="orders-list">
             {filtered.map((order) => (
               <OrderCard key={order.id} order={order} />
             ))}
