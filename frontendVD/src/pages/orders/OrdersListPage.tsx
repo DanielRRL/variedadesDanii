@@ -99,7 +99,7 @@ export default function OrdersListPage() {
 
   return (
     <div className="orders-page">
-      <AppBar title="Mis Pedidos" showBack />
+      <AppBar title="MIS PEDIDOS" showBack variant="catalog" />
 
       <main className="orders-main">
         {/* ── Tabs ──────────────────────────────────────────────────── */}

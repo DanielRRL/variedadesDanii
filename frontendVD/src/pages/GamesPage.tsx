@@ -1141,7 +1141,7 @@ export default function GamesPage() {
   return (
     <div className="games-page">
       <FloatingParticles count={25} />
-      <AppBar title="Sala de Juegos" showBack />
+      <AppBar title="SALA DE JUEGOS" showBack variant="catalog" />
 
       <main className="games-main">
 

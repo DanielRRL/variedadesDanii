@@ -21,7 +21,7 @@ import {
   RefreshCw, SearchX, Trophy, ShoppingBag, Star, Crown,
   LayoutGrid, Flower, Droplets, Container,
   Sparkles, Palette, Wind, Gem,
-  FilterX, PackageSearch, RotateCcw,
+  FilterX, PackageSearch, RotateCcw, ArrowLeft,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import '../css/CatalogPage.css';
@@ -386,19 +386,14 @@ export default function CatalogPage() {
 
       {/* ── Section 1 — Unified topbar ─────────────────────────────────── */}
       <header className="catalog-topbar">
-        {/* Left — logo (identical to AuthLayout) */}
-        <a
-          href="/"
-          className="catalog-hero__logo"
-          aria-label="Inicio"
-          onClick={(e) => { e.preventDefault(); navigate('/'); }}
+        {/* Left — back button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="catalog-topbar__back-btn"
+          aria-label="Volver"
         >
-          <div className="catalog-hero__logo-box">VD</div>
-          <div>
-            <p className="catalog-hero__logo-title">Variedades DANII</p>
-            <p className="catalog-hero__logo-subtitle">Perfumería · Armenia, Quindío</p>
-          </div>
-        </a>
+          <ArrowLeft size={20} strokeWidth={2} className="text-text-primary" />
+        </button>
 
         {/* Center — section title */}
         <div className="catalog-topbar__section-title">
@@ -565,12 +560,12 @@ export default function CatalogPage() {
       <div className="catalog-content">
 
         {/* ── Essences mode ────────────────────────────────────────── */}
-        {showingEssences && (
+        {(showingEssences || selectedType === 'ALL') && (
           <>
             {essencesLoading && (
-              <div className="grid grid-cols-1 gap-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="catalog-skeleton" style={{ height: '128px' }} />
+              <div className="catalog-grid">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="catalog-skeleton" style={{ height: '17rem' }} />
                 ))}
               </div>
             )}
@@ -594,19 +589,18 @@ export default function CatalogPage() {
             )}
 
             {!essencesLoading && !essencesError && filteredEssences.length > 0 && (
-              <div className="catalog-essence-list space-y-3">
+              <div className="catalog-grid">
                 {filteredEssences.map((essence) => (
                   <EssenceCard
                     key={essence.id}
                     essence={essence}
                     onPress={() => navigate(`/esencia/${essence.id}`)}
-                    className="catalog-essence-item"
                   />
                 ))}
               </div>
             )}
 
-            {!essencesLoading && !essencesError && filteredEssences.length === 0 && (
+            {!essencesLoading && !essencesError && filteredEssences.length === 0 && showingEssences && (
               <div className="catalog-empty py-10">
                 <div className="catalog-empty__card">
                   <div className="catalog-empty__icon-wrap">
@@ -637,7 +631,7 @@ export default function CatalogPage() {
         )}
 
         {/* ── Products mode ────────────────────────────────────────── */}
-        {!showingEssences && (
+        {selectedType !== 'ESSENCE' && (
           <>
             {/* Loading — 6 skeleton cards */}
             {isLoading && (

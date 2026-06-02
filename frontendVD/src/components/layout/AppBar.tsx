@@ -44,6 +44,8 @@ export interface AppBarProps {
   rightElement?: ReactNode;
   /** Callback when the search icon is pressed. */
   onSearchPress?: () => void;
+  /** Visual variant: "catalog" uses glass morphism + gradient border. */
+  variant?: 'default' | 'catalog';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -96,6 +98,7 @@ export function AppBar({
   showCart = true,
   rightElement,
   onSearchPress,
+  variant = 'default',
 }: AppBarProps) {
   const navigate   = useNavigate();
   const cartItems  = useCartStore((s) => s.items);
@@ -114,7 +117,7 @@ export function AppBar({
     : '?';
 
   return (
-    <header className="app-bar">
+    <header className={clsx("app-bar", variant === 'catalog' && "app-bar--catalog")}>
       {/* ── Left ──────────────────────────────────────────────────────────── */}
       <div className="app-bar__left">
         {showBack ? (

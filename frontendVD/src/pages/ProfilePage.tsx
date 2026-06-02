@@ -306,7 +306,7 @@ export default function ProfilePage() {
         <div className="profile-bg-circle profile-bg-circle--12" />
         <div className="profile-bg-circle profile-bg-circle--13" />
       </div>
-      <AppBar title="Mi Perfil" showBack />
+      <AppBar title="MI PERFIL" showBack variant="catalog" />
 
       <main className="profile-main">
 

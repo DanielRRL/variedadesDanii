@@ -1,8 +1,7 @@
 /**
- * EssenceCard — Premium horizontal catalog card for a single perfume essence.
+ * EssenceCard — Vertical catalog card for a single perfume essence.
  *
- * Layout:
- *   [Image 120px] | [Name, inspired by, family, stars, stock, price, "Ver más"]
+ * Layout: [Image 4:3] | [Name, brand, family, stars, stock, price, "Ver detalles"]
  *
  * Badges overlaid on image: "ORIGINAL" (gold), "POPULAR" (pink).
  * Out-of-stock state dims and disables interaction.
@@ -11,8 +10,8 @@
 import { Star } from "lucide-react";
 import { clsx } from "clsx";
 import type { Essence } from "../../types";
-import { StockIndicator } from "./StockIndicator";
 import { formatCOP } from "../../utils/format";
+import "../../css/EssenceCard.css";
 
 const PREMIUM_BRANDS = [
   "Chanel", "Dior", "Yves Saint Laurent", "YSL", "Givenchy", "Hermès", "Hermes",
@@ -25,37 +24,28 @@ function isPremiumBrand(brand: string | undefined): boolean {
   return PREMIUM_BRANDS.some((b) => brand.toLowerCase().includes(b.toLowerCase()));
 }
 
-// ─── StarRating ─────────────────────────────────────────────────────────────
-
 function StarRating({ rating = 0, reviewCount = 0 }: { rating?: number; reviewCount?: number }) {
-  const stars = Array.from({ length: 5 }, (_, i) => {
-    const filled = rating >= i + 1;
-    const half = !filled && rating >= i + 0.5;
-    return { filled, half };
-  });
-
   return (
-    <div className="flex items-center gap-0.5">
-      {stars.map(({ filled, half }, i) => (
-        <span key={i} className="relative inline-flex">
-          <Star size={13} className="text-slate-200" strokeWidth={1.5} />
-          {(filled || half) && (
-            <span className="absolute inset-0 overflow-hidden" style={{ width: half ? "50%" : "100%" }}>
-              <Star size={13} className="text-brand-gold fill-brand-gold" strokeWidth={1.5} />
-            </span>
-          )}
-        </span>
-      ))}
+    <div className="essence-card__rating">
+      {Array.from({ length: 5 }, (_, i) => {
+        const fillPct = Math.max(0, Math.min(100, (rating - i) * 100));
+        return (
+          <span key={i} className="essence-card__stars">
+            <Star size={12} strokeWidth={1.5} />
+            {fillPct > 0 && (
+              <span className="essence-card__stars-fill" style={{ width: `${fillPct}%` }}>
+                <Star size={12} strokeWidth={1.5} />
+              </span>
+            )}
+          </span>
+        );
+      })}
       {reviewCount > 0 && (
-        <span className="text-[11px] text-slate-400 ml-1">
-          ({reviewCount})
-        </span>
+        <span className="essence-card__rating-count">({reviewCount})</span>
       )}
     </div>
   );
 }
-
-// ─── EssenceCard ────────────────────────────────────────────────────────────
 
 export interface EssenceCardProps {
   essence: Essence;
@@ -65,6 +55,9 @@ export interface EssenceCardProps {
 
 export function EssenceCard({ essence, onPress, className }: EssenceCardProps) {
   const isOutOfStock = essence.currentStockMl === 0;
+  const lowStock = essence.currentStockMl !== undefined
+    && essence.currentStockMl > 0
+    && essence.currentStockMl < (essence.minStockGrams ?? 30);
   const pricePerOz = (essence.pricePerMl ?? 0) * 29.5735;
 
   const showOriginalBadge = isPremiumBrand(essence.inspirationBrand);
@@ -73,90 +66,81 @@ export function EssenceCard({ essence, onPress, className }: EssenceCardProps) {
   return (
     <article
       onClick={isOutOfStock ? undefined : onPress}
-      className={clsx(
-        "bg-white rounded-2xl border border-slate-200/60 shadow-sm flex gap-4 p-4 w-full",
-        "transition-all duration-300",
-        !isOutOfStock && "cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-brand-pink/20",
-        isOutOfStock && "opacity-60 cursor-not-allowed",
-        className
-      )}
+      className={clsx("essence-card", isOutOfStock && "essence-card--out-of-stock", className)}
       aria-disabled={isOutOfStock}
       role="button"
       tabIndex={isOutOfStock ? -1 : 0}
-      onKeyDown={(e) => { if (!isOutOfStock && (e.key === "Enter" || e.key === " ")) onPress(); }}
+      onKeyDown={(e) => { if (!isOutOfStock && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onPress(); } }}
     >
       {/* Image */}
-      <div className="relative flex-none w-[120px] h-[120px] rounded-xl overflow-hidden bg-brand-pink/5">
+      <div className="essence-card__image-area">
         {essence.photoUrl ? (
           <img
             src={essence.photoUrl}
             alt={essence.name}
-            className="w-full h-full object-cover"
+            className="essence-card__image"
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="font-display font-bold text-4xl text-brand-pink/25 select-none">
-              {essence.name[0]?.toUpperCase()}
-            </span>
+          <div className="essence-card__image-placeholder">
+            <span>{essence.name[0]?.toUpperCase()}</span>
           </div>
         )}
 
         {showOriginalBadge && (
-          <span className="absolute top-2 left-2 bg-brand-gold/90 text-white text-[9px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm">
+          <span className="essence-card__badge essence-card__badge--original">
             ORIGINAL
           </span>
         )}
         {showPopularBadge && (
-          <span className="absolute top-2 left-2 bg-brand-pink/90 text-white text-[9px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm">
+          <span className="essence-card__badge essence-card__badge--popular">
             POPULAR
           </span>
         )}
       </div>
 
       {/* Info */}
-      <div className="flex-1 flex flex-col gap-1 min-w-0">
-        <h3 className="font-heading font-semibold text-base text-slate-800 leading-snug truncate">
-          {essence.name}
-        </h3>
+      <div className="essence-card__info">
+        <h3 className="essence-card__name">{essence.name}</h3>
 
         {essence.inspirationBrand && (
-          <p className="text-xs text-slate-500 truncate">
-            Inspirado en: {essence.inspirationBrand}
-          </p>
+          <p className="essence-card__brand">Inspirado en: {essence.inspirationBrand}</p>
         )}
 
-        <p className="text-[11px] text-slate-400 truncate">
-          {essence.olfactiveFamily.name}
-        </p>
+        <p className="essence-card__family">{essence.olfactiveFamily.name}</p>
 
         <StarRating rating={essence.rating} reviewCount={essence.reviewCount} />
 
-        {essence.currentStockMl !== undefined && (
-          <StockIndicator
-            stockMl={essence.currentStockMl}
-            minStockMl={essence.minStockGrams ?? 30}
-          />
-        )}
+        <p className="essence-card__price">
+          {formatCOP(pricePerOz)}
+          <span className="essence-card__price-unit"> /oz</span>
+        </p>
 
-        <div className="flex items-center justify-between mt-auto pt-1">
-          <span className="font-heading font-semibold text-brand-gold text-sm">
-            Desde {formatCOP(pricePerOz)}/oz
-          </span>
-          <button
-            onClick={(e) => { e.stopPropagation(); if (!isOutOfStock) onPress(); }}
-            disabled={isOutOfStock}
+        {/* Stock indicator */}
+        <div className="essence-card__stock">
+          <span
             className={clsx(
-              "text-[13px] font-semibold transition-colors",
-              isOutOfStock
-                ? "text-slate-300 cursor-not-allowed"
-                : "text-brand-blue hover:text-brand-blue/80"
+              "essence-card__stock-dot",
+              isOutOfStock ? "essence-card__stock-dot--out" : lowStock ? "essence-card__stock-dot--low" : "essence-card__stock-dot--ok",
             )}
-            aria-disabled={isOutOfStock}
-          >
-            Ver más
-          </button>
+          />
+          <span className="essence-card__stock-text">
+            {isOutOfStock ? "Agotado" : lowStock ? "Pocas unidades" : "Disponible"}
+          </span>
         </div>
+
+        {/* Detail button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); if (!isOutOfStock) onPress(); }}
+          disabled={isOutOfStock}
+          className={clsx(
+            "essence-card__detail-btn",
+            isOutOfStock && "essence-card__detail-btn--disabled",
+          )}
+          aria-disabled={isOutOfStock}
+        >
+          Ver detalles
+        </button>
       </div>
     </article>
   );
