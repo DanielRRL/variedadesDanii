@@ -22,6 +22,7 @@ import { ArrowLeft, ShoppingBag, Search, Star, Crown } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCartStore } from '../../stores/cartStore';
 import { useAuthStore } from '../../stores/authStore';
+import '../../css/AppBar.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -58,22 +59,22 @@ function LoyaltyIndicator({ level }: { level: string | undefined }) {
   if (level === 'VIP') {
     return (
       <span
-        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center"
+        className="app-bar__loyalty-badge"
         title="Cliente VIP"
         aria-label="Nivel VIP"
       >
-        <Crown size={9} className="text-surface" strokeWidth={2.5} />
+        <Crown size={9} strokeWidth={2.5} />
       </span>
     );
   }
   if (level === 'PREFERRED') {
     return (
       <span
-        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center"
+        className="app-bar__loyalty-badge"
         title="Cliente Preferencial"
         aria-label="Nivel Preferencial"
       >
-        <Star size={9} className="text-surface" strokeWidth={2.5} />
+        <Star size={9} strokeWidth={2.5} />
       </span>
     );
   }
@@ -113,22 +114,22 @@ export function AppBar({
     : '?';
 
   return (
-    <header className="sticky top-0 z-40 bg-surface border-b border-border h-14 flex items-center px-4 gap-3 shadow-card">
+    <header className="app-bar">
       {/* ── Left ──────────────────────────────────────────────────────────── */}
-      <div className="flex-none w-8">
+      <div className="app-bar__left">
         {showBack ? (
           <button
             onClick={() => navigate(-1)}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-background transition-colors"
+            className="app-bar__icon-btn"
             aria-label="Volver"
           >
-            <ArrowLeft size={20} className="text-text-primary" strokeWidth={2} />
+            <ArrowLeft size={20} strokeWidth={2} />
           </button>
         ) : (
           /* Brand logo text — navigates home */
           <button
             onClick={() => navigate('/')}
-            className="font-heading font-bold text-brand-pink text-base leading-none"
+            className="app-bar__brand"
             aria-label="Inicio"
           >
             VD
@@ -137,22 +138,22 @@ export function AppBar({
       </div>
 
       {/* ── Center title ──────────────────────────────────────────────────── */}
-      <div className="flex-1 text-center">
-        <span className="font-heading font-medium text-text-primary text-base leading-none">
+      <div className="app-bar__center">
+        <span className="app-bar__title">
           {title ?? 'Variedades DANII'}
         </span>
       </div>
 
       {/* ── Right actions ─────────────────────────────────────────────────── */}
-      <div className="flex-none flex items-center gap-2">
+      <div className="app-bar__actions">
         {/* Optional search icon */}
         {showSearch && (
           <button
             onClick={onSearchPress}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-background transition-colors"
+            className="app-bar__icon-btn"
             aria-label="Buscar"
           >
-            <Search size={20} className="text-text-primary" strokeWidth={1.8} />
+            <Search size={20} strokeWidth={1.8} />
           </button>
         )}
 
@@ -160,12 +161,12 @@ export function AppBar({
         {showCart && (
           <button
             onClick={() => navigate('/carrito')}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-background transition-colors relative"
+            className="app-bar__icon-btn app-bar__icon-btn--cart"
             aria-label={`Carrito, ${cartCount} ${cartCount === 1 ? 'producto' : 'productos'}`}
           >
-            <ShoppingBag size={20} className="text-text-primary" strokeWidth={1.8} />
+            <ShoppingBag size={20} strokeWidth={1.8} />
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-brand-pink text-surface text-[10px] font-body font-medium flex items-center justify-center leading-none">
+              <span className="app-bar__cart-badge">
                 {cartCount > 9 ? '9+' : cartCount}
               </span>
             )}
@@ -176,13 +177,13 @@ export function AppBar({
         {user && (
           <button
             onClick={() => navigate('/perfil')}
-            className="relative w-8 h-8 rounded-full bg-brand-pink/10 border border-brand-pink/20 flex items-center justify-center"
+            className="app-bar__avatar"
             aria-label="Perfil"
           >
             <span
               className={clsx(
-                'font-heading font-bold text-[11px] leading-none',
-                level === 'VIP' ? 'text-brand-gold' : 'text-brand-pink'
+                'app-bar__avatar-text',
+                level === 'VIP' ? 'app-bar__avatar-text--vip' : 'app-bar__avatar-text--default'
               )}
             >
               {initials}
