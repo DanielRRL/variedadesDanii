@@ -47,7 +47,8 @@ export const loginValidator = [
     .notEmpty()
     .withMessage("Email is required")
     .isEmail()
-    .withMessage("Invalid email format"),
+    .withMessage("Invalid email format")
+    .normalizeEmail(),
 
   body("password").notEmpty().withMessage("Password is required"),
 ];
@@ -86,13 +87,23 @@ export const resetPasswordValidator = [
   body("newPassword")
     .notEmpty()
     .withMessage("New password is required")
-    .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters")
+    .isLength({ min: 8, max: 128 })
+    .withMessage("Password must be between 8 and 128 characters")
+    .matches(/[A-Z]/)
+    .withMessage("Password must contain at least one uppercase letter")
     .matches(/[0-9]/)
-    .withMessage("Password must contain at least one number"),
+    .withMessage("Password must contain at least one number")
+    .matches(/[#@%$*]/)
+    .withMessage("Password must contain at least one special character (#, @, %, $, *)"),
 
   body("confirmPassword")
     .notEmpty()
-    .withMessage("Confirm password is required"),
+    .withMessage("Confirm password is required")
+    .custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error("Passwords do not match");
+      }
+      return true;
+    }),
 ];
 

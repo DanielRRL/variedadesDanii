@@ -12,6 +12,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, X, AlertTriangle, CheckCircle2, Package } from 'lucide-react';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 
 import { getEssences, registerEssenceMovement, adminGetProducts } from '../../services/api';
 import type { Essence, Product } from '../../types';
@@ -228,15 +229,14 @@ export default function AdminInventoryPage() {
   const [activeTab, setActiveTab] = useState('ALL');
   const [selectedEssence, setSelectedEssence] = useState<Essence | null>(null);
 
-  // Fetch essences
-  const { data: essencesData, isLoading: loadingEssences } = useQuery({
+  const { data: essencesData, isLoading: loadingEssences, isError: isEssencesError } = useQuery({
     queryKey: ['essences-inventory'],
     queryFn: () => getEssences({ limit: 200 }),
     staleTime: 60_000,
   });
 
   // Fetch products
-  const { data: productsData, isLoading: loadingProducts } = useQuery({
+  const { data: productsData, isLoading: loadingProducts, isError: isProductsError } = useQuery({
     queryKey: ['products-inventory'],
     queryFn: () => adminGetProducts({ page: 1 }),
     staleTime: 60_000,
@@ -246,6 +246,8 @@ export default function AdminInventoryPage() {
   const rawProducts: Product[] = productsData?.data?.products ?? productsData?.data ?? [];
 
   const isLoading = loadingEssences || loadingProducts;
+
+  if (isEssencesError || isProductsError) return <AdminQueryError />;
 
   // Filter essences
   const filteredEssences = rawEssences.filter((e) =>

@@ -9,6 +9,8 @@
 
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToastStore } from '../../stores/toastStore';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import {
   BarChart3,
   Trophy,
@@ -133,6 +135,7 @@ function StatsTab({ stats }: { stats: Record<string, unknown> }) {
 
 function ChallengesTab({ currentChallenge }: { currentChallenge?: WeeklyChallenge }) {
   const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
   const [createOpen, setCreateOpen] = useState(false);
   const [loading, setLoading]       = useState(false);
 
@@ -161,7 +164,7 @@ function ChallengesTab({ currentChallenge }: { currentChallenge?: WeeklyChalleng
       setWeekStart('');
       setWeekEnd('');
     } catch {
-      alert('Error al crear desafío.');
+      addToast('Error al crear desafío.', 'error');
     } finally {
       setLoading(false);
     }
@@ -291,13 +294,14 @@ function ChallengesTab({ currentChallenge }: { currentChallenge?: WeeklyChalleng
 
 function AdjustTab() {
   const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
   const [userSearch, setUserSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [delta, setDelta]   = useState(1);
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { data: usersRes, isFetching } = useQuery({
+  const { data: usersRes, isFetching, isError } = useQuery({
     queryKey: ['admin-search-users', userSearch],
     queryFn: () => searchUsers({ search: userSearch }),
     enabled: userSearch.length >= 2,
@@ -306,6 +310,8 @@ function AdjustTab() {
 
   const users: User[] = usersRes?.data?.users ?? usersRes?.data ?? [];
 
+  if (isError) return <AdminQueryError />;
+
   const handleAdjust = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
@@ -313,12 +319,12 @@ function AdjustTab() {
     try {
       await adminAdjustGrams({ userId: selectedUser.id, delta, reason });
       queryClient.invalidateQueries({ queryKey: ['admin-gamification-stats'] });
-      alert(`Ajuste de ${delta > 0 ? '+' : ''}${delta}g aplicado a ${selectedUser.name}.`);
+      addToast(`Ajuste de ${delta > 0 ? '+' : ''}${delta}g aplicado a ${selectedUser.name}.`, 'success');
       setSelectedUser(null);
       setDelta(1);
       setReason('');
     } catch {
-      alert('Error al ajustar gramos.');
+      addToast('Error al ajustar gramos.', 'error');
     } finally {
       setLoading(false);
     }
@@ -441,7 +447,7 @@ function AdjustTab() {
 export default function AdminGamificationPage() {
   const [tab, setTab] = useState<Tab>('stats');
 
-  const { data: res, isLoading } = useQuery({
+  const { data: res, isLoading, isError } = useQuery({
     queryKey: ['admin-gamification-stats'],
     queryFn: getGamificationStats,
     staleTime: 60_000,
@@ -449,6 +455,8 @@ export default function AdminGamificationPage() {
 
   const stats: Record<string, unknown> = res?.data ?? {};
   const currentChallenge = stats.currentChallenge as WeeklyChallenge | undefined;
+
+  if (isError) return <AdminQueryError />;
 
   if (isLoading) {
     return (

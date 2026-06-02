@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Scale, CheckCircle2, Gamepad2, Gift, TrendingUp } from 'lucide-react';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import { searchUsers, adminAdjustGrams, getGamificationStats } from '../../services/api';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ interface UserHit {
 
 export default function AdminLoyaltyPage() {
   // ── Gamification stats ──────────────────────────────────────────────────────
-  const { data: statsRes } = useQuery({
+  const { data: statsRes, isError: isStatsError } = useQuery({
     queryKey: ['admin-gamification-stats'],
     queryFn: getGamificationStats,
     staleTime: 60_000,
@@ -52,21 +53,23 @@ export default function AdminLoyaltyPage() {
   const [selectedUser, setSelectedUser] = useState<UserHit | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const { data: usersRes } = useQuery({
+  const { data: usersRes, isError: isUsersError } = useQuery({
     queryKey: ['admin-users-search', userSearch],
     queryFn: () => searchUsers({ search: userSearch }),
     enabled: userSearch.length >= 2,
     staleTime: 30_000,
   });
 
-  const userHits: UserHit[] = usersRes?.data?.users ?? usersRes?.data ?? [];
-
-  // ── Adjustment form ──────────────────────────────────────────────────────────
+  // ── Adjustment form state (must be declared before early return) ─────────
   const [grams, setGrams]     = useState('');
   const [reason, setReason]   = useState(REASONS[0]);
   const [busy, setBusy]       = useState(false);
   const [error, setError]     = useState('');
   const [success, setSuccess] = useState('');
+
+  if (isStatsError || isUsersError) return <AdminQueryError />;
+
+  const userHits: UserHit[] = usersRes?.data?.users ?? usersRes?.data ?? [];
 
   const handleAdjust = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -16,6 +16,12 @@ import { authMiddleware } from "../middleware/authMiddleware";
 // roleMiddleware - Restringe acceso a roles especificos (ADMIN).
 import { roleMiddleware } from "../middleware/roleMiddleware";
 
+// Validadores de gramos.
+import { redeemGramsValidator, adminAdjustGramsValidator } from "../validators/gramValidator";
+
+// validate - Middleware que revisa errores de express-validator.
+import { validate } from "../validators/validate";
+
 /**
  * Crea y retorna el router de gramos para las rutas del cliente.
  * Se monta en /api/grams en app.ts.
@@ -36,7 +42,12 @@ export const createGramRoutes = (
   router.get("/account", gramController.getMyAccount);
 
   // Canje de gramos por esencia
-  router.post("/redeem", gramController.redeemGrams);
+  router.post(
+    "/redeem",
+    redeemGramsValidator,
+    validate,
+    gramController.redeemGrams
+  );
 
   // Historial paginado: GET /history?page=1&limit=20
   router.get("/history", gramController.getTransactionHistory);
@@ -59,7 +70,12 @@ export const createAdminGramRoutes = (
   router.use(authMiddleware, roleMiddleware("ADMIN"));
 
   // Ajuste manual de gramos
-  router.post("/adjust", gramController.adminAdjustGrams);
+  router.post(
+    "/adjust",
+    adminAdjustGramsValidator,
+    validate,
+    gramController.adminAdjustGrams
+  );
 
   return router;
 };

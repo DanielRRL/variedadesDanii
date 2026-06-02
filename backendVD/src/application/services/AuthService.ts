@@ -109,15 +109,26 @@ export class AuthService {
     // Hashear contrasena con 12 rondas de salt
     const hashedPassword = await bcrypt.hash(data.password, 12);
 
-    // Crear usuario con rol CLIENT por defecto
-    const user = await this.userRepo.create({
-      name: data.name,
-      phone: data.phone,
-      email: data.email,
-      password: hashedPassword,
-      role: UserRole.CLIENT,
-      active: true,
-    });
+    // Crear usuario con rol CLIENT por defecto.
+    // La unicidad de email/phone se garantiza mediante @unique constraints en la BD.
+    // Si ocurre una race condition (dos registros concurrentes con mismo email/phone),
+    // Prisma lanza P2002 que capturamos como AppError.conflict.
+    let user;
+    try {
+      user = await this.userRepo.create({
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        password: hashedPassword,
+        role: UserRole.CLIENT,
+        active: true,
+      });
+    } catch (error: any) {
+      if (error?.code === "P2002") {
+        throw AppError.conflict("Email or phone already registered");
+      }
+      throw error;
+    }
 
     // Generar token de verificacion de correo (256 bits de entropia)
     const verificationToken = crypto.randomBytes(32).toString("hex");

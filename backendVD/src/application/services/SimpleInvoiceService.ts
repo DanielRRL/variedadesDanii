@@ -104,10 +104,10 @@ export class SimpleInvoiceService {
 
     const invoice: SimpleInvoiceData = {
       invoiceNumber,
-      businessName: "Variedades DANII",
+      businessName: env.business.name || "Variedades DANII",
       businessNit: env.business.nit || "Por configurar",
-      businessAddress: "Armenia, Quindío, Colombia",
-      businessPhone: "300 383 7442",
+      businessAddress: env.business.address || "Armenia, Quindío, Colombia",
+      businessPhone: env.business.phone || "300 383 7442",
       clientName,
       clientEmail: clientEmail || undefined,
       clientPhone: clientPhone || undefined,

@@ -72,7 +72,7 @@ export class InvoiceController {
    * (que provee el PDF) o una libreria de generacion (pdfmake, puppeteer).
    * Una vez disponible, la URL del PDF se almacena en invoice.pdfUrl.
    */
-  downloadPdf = async (_req: Request, res: Response): Promise<void> => {
+  downloadPdf = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     res.status(501).json({
       success: false,
       message:

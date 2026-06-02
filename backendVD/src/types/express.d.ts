@@ -9,11 +9,11 @@
  * controlador o middleware.
  */
 declare namespace Express {
+  /** UUID del usuario autenticado. Inyectado por authMiddleware. */
   interface Request {
-    /** UUID del usuario autenticado. Inyectado por authMiddleware. */
     userId?: string;
     /** Rol del usuario autenticado (ADMIN, CLIENT, SELLER, DELIVERY). */
-    userRole?: string;
+    userRole?: "ADMIN" | "CLIENT" | "SELLER" | "DELIVERY";
     /** UUID unico de la request para trazabilidad en logs. */
     requestId?: string;
   }

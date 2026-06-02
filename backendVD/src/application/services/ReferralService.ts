@@ -141,41 +141,37 @@ export class ReferralService {
         },
       });
 
-      // Acreditar puntos al nuevo usuario con escritura directa a BD (para usar tx)
-      const newUserAccount = await tx.loyaltyAccount.findUnique({ where: { userId: newUserId } });
-      if (newUserAccount) {
-        await tx.loyaltyAccount.update({
-          where: { id: newUserAccount.id },
-          data: { points: newUserAccount.points + REFERRAL_BONUS_BOTH_PARTIES },
-        });
-        await tx.loyaltyTransaction.create({
-          data: {
-            accountId: newUserAccount.id,
-            type: "EARN" as any,
-            points: REFERRAL_BONUS_BOTH_PARTIES,
-            reason: `Bono por usar codigo de referido: ${code.toUpperCase()}`,
-            referenceId: referralCode.id,
-          },
-        });
-      }
+      // Acreditar puntos al nuevo usuario: crear o actualizar cuenta si no existe
+      const newUserAccount = await tx.loyaltyAccount.upsert({
+        where: { userId: newUserId },
+        create: { userId: newUserId, points: REFERRAL_BONUS_BOTH_PARTIES },
+        update: { points: { increment: REFERRAL_BONUS_BOTH_PARTIES } },
+      });
+      await tx.loyaltyTransaction.create({
+        data: {
+          accountId: newUserAccount.id,
+          type: "EARN" as any,
+          points: REFERRAL_BONUS_BOTH_PARTIES,
+          reason: `Bono por usar codigo de referido: ${code.toUpperCase()}`,
+          referenceId: referralCode.id,
+        },
+      });
 
-      // Acreditar puntos al dueno del codigo (referidor)
-      const referrerAccount = await tx.loyaltyAccount.findUnique({ where: { userId: referralCode.userId } });
-      if (referrerAccount) {
-        await tx.loyaltyAccount.update({
-          where: { id: referrerAccount.id },
-          data: { points: referrerAccount.points + REFERRAL_BONUS_BOTH_PARTIES },
-        });
-        await tx.loyaltyTransaction.create({
-          data: {
-            accountId: referrerAccount.id,
-            type: "EARN" as any,
-            points: REFERRAL_BONUS_BOTH_PARTIES,
-            reason: "Bono por referir a un nuevo cliente",
-            referenceId: newUserId,
-          },
-        });
-      }
+      // Acreditar puntos al dueno del codigo (referidor): crear o actualizar si no existe
+      const referrerAccount = await tx.loyaltyAccount.upsert({
+        where: { userId: referralCode.userId },
+        create: { userId: referralCode.userId, points: REFERRAL_BONUS_BOTH_PARTIES },
+        update: { points: { increment: REFERRAL_BONUS_BOTH_PARTIES } },
+      });
+      await tx.loyaltyTransaction.create({
+        data: {
+          accountId: referrerAccount.id,
+          type: "EARN" as any,
+          points: REFERRAL_BONUS_BOTH_PARTIES,
+          reason: "Bono por referir a un nuevo cliente",
+          referenceId: newUserId,
+        },
+      });
 
       // Incrementar contador de usos del codigo
       await tx.referralCode.update({

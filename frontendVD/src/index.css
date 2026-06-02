@@ -1,5 +1,5 @@
 /* ── Google Fonts — must be first @import ────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@600;700&family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@600;700&family=Inter:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap');
 
 /* ── Tailwind v4 — import base styles ─────────────────────────────────────── */
 @import "tailwindcss";
@@ -283,7 +283,8 @@ h1, h2, h3, h4, h5, h6 {
   .hero-blob,
   .hero-text,
   .glass-card-hover,
-  .scroll-reveal {
+  .scroll-reveal,
+  .admin-dashboard-blob {
     animation: none !important;
     transform: none !important;
     opacity: 1 !important;
@@ -404,4 +405,192 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(0);
 }
 
+/* ── Admin Panel Animations ───────────────────────────────────────────────── */
+
+.animate-slideUp {
+  animation: slideUp 0.4s var(--ease-smooth) forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s var(--ease-smooth) forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(216, 27, 96, 0.3); }
+  50%      { box-shadow: 0 0 0 8px rgba(216, 27, 96, 0); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ── Admin content staggered entrance ──────────────────────────────────────── */
+
+.stagger-item {
+  opacity: 0;
+  animation: slideUp 0.4s var(--ease-smooth) forwards;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.40s; }
+
 /* ── Google Fonts import ──────────────────────────────────────────────────── */
+
+/* ── Admin dashboard background blobs ─────────────────────────────────────── */
+/* Soft, atmospheric rose blobs floating behind dashboard content — same       */
+/* technique used by CatalogPage for its "Premium Perfume Boutique" aesthetic. */
+
+.admin-dashboard-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.admin-dashboard-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
+}
+
+.admin-dashboard-blob--1 {
+  width: 420px;
+  height: 420px;
+  background: #D81B60;
+  top: -10%;
+  right: -8%;
+  opacity: 0.055;
+  animation: admin-blob-drift-1 24s ease-in-out infinite;
+}
+
+.admin-dashboard-blob--2 {
+  width: 300px;
+  height: 300px;
+  background: #880E4F;
+  bottom: 12%;
+  left: -6%;
+  opacity: 0.045;
+  animation: admin-blob-drift-2 20s ease-in-out infinite;
+}
+
+.admin-dashboard-blob--3 {
+  width: 260px;
+  height: 260px;
+  background: #D81B60;
+  top: 45%;
+  right: 18%;
+  opacity: 0.04;
+  animation: admin-blob-drift-3 28s ease-in-out infinite;
+}
+
+@keyframes admin-blob-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(30px, -40px) scale(1.08); }
+  66%      { transform: translate(-20px, 25px) scale(0.94); }
+}
+
+@keyframes admin-blob-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(35px, -30px) scale(1.12); }
+}
+
+@keyframes admin-blob-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%      { transform: translate(-25px, 20px) scale(1.1); }
+}
+
+/* ── Admin topbar — glass morphism + gradient glow border ───────────────── */
+/* Mirrors CatalogPage's catalog-topbar aesthetic with subtle rose gradient    */
+/* hairlines. The ::after draws a sharp 1px gradient line; ::before creates   */
+/* a soft blur(4px) glow beneath it for depth.                                */
+
+.admin-topbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: none;
+}
+
+.admin-topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 5%,
+    rgba(216, 27, 96, 0.18) 30%,
+    rgba(21, 101, 192, 0.12) 50%,
+    rgba(216, 27, 96, 0.18) 70%,
+    transparent 95%
+  );
+}
+
+.admin-topbar::before {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(
+    90deg,
+    transparent 5%,
+    rgba(216, 27, 96, 0.05) 30%,
+    rgba(21, 101, 192, 0.03) 50%,
+    rgba(216, 27, 96, 0.05) 70%,
+    transparent 95%
+  );
+  filter: blur(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-topbar .animate-slideUp {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* ── Dashboard card reveal ─────────────────────────────────────────────────── */
+/* Staggered entrance animation for dashboard cards, mirrors CatalogPage's      */
+/* catalog-card-reveal pattern — opacity + translateY for each grid child.      */
+
+.dashboard-card-reveal {
+  animation: dashboard-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dashboard-card-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -12,6 +12,8 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, RefreshCw, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { useToastStore } from '../../stores/toastStore';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import { getAdminInvoices, retryInvoice } from '../../services/api';
 import { formatCOP } from '../../utils/format';
 import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
@@ -48,6 +50,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
 
   const handleCopy = async () => {
     try {
@@ -55,7 +58,7 @@ function CopyButton({ text }: { text: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      alert('No se pudo copiar el CUFE.');
+      addToast('No se pudo copiar el CUFE.', 'error');
     }
   };
 
@@ -79,6 +82,7 @@ function RetryButton({ orderId, onDone }: { orderId: string; onDone: () => void 
   const [busy, setBusy]   = useState(false);
   const [done, setDone]   = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
 
   const executeRetry = async () => {
     setBusy(true);
@@ -87,7 +91,7 @@ function RetryButton({ orderId, onDone }: { orderId: string; onDone: () => void 
       setDone(true);
       onDone();
     } catch {
-      alert('Error al reintentar la factura.');
+      addToast('Error al reintentar la factura.', 'error');
     } finally {
       setBusy(false);
     }
@@ -133,11 +137,13 @@ export default function AdminInvoicesPage() {
   const [page, setPage]           = useState(1);
   const limit                     = 20;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['admin-invoices', activeTab, page],
     queryFn: () => getAdminInvoices({ status: activeTab || undefined, page }),
     staleTime: 60_000,
   });
+
+  if (isError) return <AdminQueryError />;
 
   const invoices: AdminInvoice[] = data?.data?.invoices ?? data?.data ?? [];
   const total: number            = data?.data?.total    ?? invoices.length;

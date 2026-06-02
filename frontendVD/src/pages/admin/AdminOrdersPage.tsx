@@ -18,6 +18,8 @@ import AdminEmptyState from "../../components/admin/AdminEmptyState";
 import AdminConfirmDialog from "../../components/admin/AdminConfirmDialog";
 import type { BadgeColor } from "../../components/admin/AdminStatusBadge";
 import type { AdminOrder } from "../../types";
+import { useToastStore } from "../../stores/toastStore";
+import { AdminQueryError } from "../../components/admin/AdminQueryError";
 
 // ─── Status transition dropdown ────────────────────────────────────────────
 
@@ -33,6 +35,7 @@ function StatusDropdown({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
   const next = VALID_TRANSITIONS[current] ?? [];
   if (next.length === 0)
     return <span className="text-[11px] text-slate-400 italic">—</span>;
@@ -52,7 +55,7 @@ function StatusDropdown({
       await updateOrderStatus(orderId, status);
       onUpdated();
     } catch {
-      alert("Error al actualizar el estado del pedido.");
+      addToast("Error al actualizar el estado del pedido.", "error");
     } finally {
       setLoading(false);
     }
@@ -141,6 +144,7 @@ const PAGE_SIZES = [10, 25, 50];
 
 export default function AdminOrdersPage() {
   const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -150,7 +154,7 @@ export default function AdminOrdersPage() {
   const [limit, setLimit] = useState(25);
   const [csvBusy, setCsvBusy] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-orders", search, status, from, to, page, limit],
     queryFn: () =>
       getAdminOrders({
@@ -164,6 +168,9 @@ export default function AdminOrdersPage() {
 
   const orders: AdminOrder[] = data?.data?.orders ?? data?.data ?? [];
   const total: number = data?.data?.total ?? orders.length;
+
+  if (isError) return <AdminQueryError message={error?.message} />;
+
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const invalidate = () =>
@@ -184,7 +191,7 @@ export default function AdminOrdersPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert("Error al exportar el CSV.");
+      addToast("Error al exportar el CSV.", "error");
     } finally {
       setCsvBusy(false);
     }

@@ -27,18 +27,27 @@ interface AdminStatusBadgeProps {
   label: string;
   color?: BadgeColor;
   icon?: ReactNode;
+  pulse?: boolean;
 }
 
 export default function AdminStatusBadge({
   label,
   color = "default",
   icon,
+  pulse = false,
 }: AdminStatusBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap ${COLOR_CLASSES[color]}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors duration-200 ${COLOR_CLASSES[color]}`}
     >
-      {icon}
+      {pulse ? (
+        <span className="relative flex size-2">
+          <span className={`animate-ping absolute inline-flex size-full rounded-full opacity-75 ${color === "warning" ? "bg-amber-500" : color === "info" ? "bg-blue-500" : "bg-brand-pink"}`} />
+          <span className={`relative inline-flex rounded-full size-2 ${color === "warning" ? "bg-amber-500" : color === "info" ? "bg-blue-500" : "bg-brand-pink"}`} />
+        </span>
+      ) : icon ? (
+        <span className="shrink-0">{icon}</span>
+      ) : null}
       {label}
     </span>
   );

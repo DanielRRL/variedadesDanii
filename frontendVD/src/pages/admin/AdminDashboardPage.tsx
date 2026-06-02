@@ -1,5 +1,5 @@
 /**
- * AdminDashboardPage — Main admin overview with bento-grid layout.
+ * AdminDashboardPage — Premium corporate dashboard.
  *
  * Data sources:
  *  - GET /api/admin/dashboard            → KPI cards + recent orders + top essences
@@ -14,15 +14,14 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToastStore } from "../../stores/toastStore";
 import {
-  TrendingUp,
   ShoppingBag,
   CreditCard,
   UserPlus,
   AlertTriangle,
   Eye,
-  ChevronDown,
   Gem,
   Gift,
   Clock,
@@ -52,15 +51,15 @@ import {
   getSalesByProductType,
   adminGetPendingRedemptions,
 } from "../../services/api";
-import { formatCOP } from "../../utils/format";
+import { formatCOP, formatCOPSplit } from "../../utils/format";
+import { cn } from "../../utils/cn";
 import { STATUS_LABELS, VALID_TRANSITIONS } from "./adminShared";
 import AdminKpiCard from "../../components/admin/AdminKpiCard";
 import AdminStatusBadge from "../../components/admin/AdminStatusBadge";
 import AdminConfirmDialog from "../../components/admin/AdminConfirmDialog";
 import { AdminSkeleton } from "../../components/admin/AdminSkeleton";
+import { AdminQueryError } from "../../components/admin/AdminQueryError";
 import type { AdminOrder } from "../../types";
-
-// ─── Types ─────────────────────────────────────────────────────────────────
 
 type Period = "today" | "week" | "month";
 const PERIOD_LABELS: Record<Period, string> = {
@@ -71,17 +70,23 @@ const PERIOD_LABELS: Record<Period, string> = {
 
 function getDateRange(period: Period): { from: string; to: string } {
   const today = new Date();
-  const to = today.toISOString().slice(0, 10);
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   const from = new Date(today);
   if (period === "week") from.setDate(from.getDate() - 7);
   if (period === "month") from.setDate(from.getDate() - 30);
-  return { from: from.toISOString().slice(0, 10), to };
+  from.setHours(0, 0, 0, 0);
+
+  return {
+    from: from.toISOString(),
+    to: period === "today" ? tomorrow.toISOString() : today.toISOString(),
+  };
 }
 
-// ─── Chart color tokens ────────────────────────────────────────────────────
-
-const CHART_PINK = "#D81B60";
-const GRID_STROKE = "#E2E8F0";
+const CHART_PINK = "#0F0F0F";
+const GRID_STROKE = "#F1F5F9";
 
 const DONUT_COLORS = [
   "#D81B60",
@@ -93,8 +98,6 @@ const DONUT_COLORS = [
   "#26A69A",
 ];
 
-// ─── Status dropdown for recent orders ─────────────────────────────────────
-
 function StatusDropdown({
   orderId,
   current,
@@ -104,48 +107,42 @@ function StatusDropdown({
   current: string;
   onUpdated: () => void;
 }) {
+  const addToast = useToastStore((s) => s.addToast);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const next = VALID_TRANSITIONS[current] ?? [];
+
+  const mutation = useMutation({
+    mutationFn: (status: string) => updateOrderStatus(orderId, status),
+    onSuccess: () => onUpdated(),
+    onError: () => addToast("Error al actualizar el estado del pedido.", "error"),
+  });
+
   if (next.length === 0) return null;
 
-  const handleSelect = (status: string) => {
-    if (status === "CANCELLED") {
-      setOpen(false);
-      setConfirmCancel(true);
-      return;
-    }
-    executeTransition(status);
-  };
-
-  const executeTransition = async (status: string) => {
-    setLoading(true);
+  const executeTransition = (status: string) => {
     setOpen(false);
-    try {
-      await updateOrderStatus(orderId, status);
-      onUpdated();
-    } catch {
-      alert("Error al actualizar el estado del pedido.");
-    } finally {
-      setLoading(false);
-    }
+    mutation.mutate(status);
   };
 
   return (
     <>
       <div className="relative">
         <button
-          disabled={loading}
+          disabled={mutation.isPending}
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+          className="p-1.5 text-slate-300 hover:text-slate-600 rounded transition-colors disabled:opacity-50"
+          aria-label="Cambiar estado"
         >
-          {loading ? (
-            <span className="w-3 h-3 border border-t-transparent border-brand-pink rounded-full animate-spin" />
+          {mutation.isPending ? (
+            <span className="block w-3 h-3 border border-slate-300 border-t-transparent rounded-full animate-spin" />
           ) : (
-            <ChevronDown size={11} />
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+              <circle cx="3" cy="7" r="1.5" />
+              <circle cx="7" cy="7" r="1.5" />
+              <circle cx="11" cy="7" r="1.5" />
+            </svg>
           )}
-          Mover
         </button>
         {open && (
           <>
@@ -154,12 +151,17 @@ function StatusDropdown({
               {next.map((s) => (
                 <button
                   key={s}
-                  onClick={() => handleSelect(s)}
-                  className={`w-full text-left px-3 py-2 text-[13px] hover:bg-slate-50 transition-colors ${
+                  onClick={() =>
+                    s === "CANCELLED"
+                      ? (setOpen(false), setConfirmCancel(true))
+                      : executeTransition(s)
+                  }
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-[13px] hover:bg-slate-50 transition-colors",
                     s === "CANCELLED"
                       ? "text-red-600 font-medium"
-                      : "text-slate-700"
-                  }`}
+                      : "text-slate-700",
+                  )}
                 >
                   {STATUS_LABELS[s] ?? s}
                 </button>
@@ -180,7 +182,7 @@ function StatusDropdown({
         message="¿Confirmas cancelar este pedido? Esta acción no se puede deshacer."
         confirmLabel="Cancelar pedido"
         variant="danger"
-        loading={loading}
+        loading={mutation.isPending}
       />
     </>
   );
@@ -200,43 +202,92 @@ function statusColor(status: string): BadgeColor {
   return map[status] ?? "default";
 }
 
-// ─── Main page ─────────────────────────────────────────────────────────────
+function PageSectionHeading({
+  children,
+  className,
+}: {
+  children: string;
+  className?: string;
+}) {
+  return (
+    <h2
+      className={cn(
+        "font-display text-base text-slate-800 tracking-tight mb-4",
+        className,
+      )}
+    >
+      {children}
+    </h2>
+  );
+}
+
+function PeriodToggle({
+  period,
+  onChange,
+}: {
+  period: Period;
+  onChange: (p: Period) => void;
+}) {
+  return (
+    <div className="flex border-b border-slate-200 w-full sm:w-auto">
+      {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+        <button
+          key={p}
+          onClick={() => onChange(p)}
+          className={cn(
+            "flex-1 sm:flex-none px-3 py-2 text-[11px] font-medium transition-colors border-b-2 -mb-[1px]",
+            period === p
+              ? "border-brand-pink text-brand-pink"
+              : "border-transparent text-slate-400 hover:text-brand-pink/70",
+          )}
+        >
+          {PERIOD_LABELS[p]}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
   const [period, setPeriod] = useState<Period>("today");
 
-  const { data: dashRes, isLoading } = useQuery({
+  const {
+    data: dashRes,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["admin-dashboard"],
     queryFn: getDashboardStats,
     refetchInterval: 30_000,
   });
 
-  const { data: salesRes } = useQuery({
+  const { data: salesRes, isError: salesError } = useQuery({
     queryKey: ["admin-sales-chart", period],
     queryFn: () => getDailySales(getDateRange(period)),
     staleTime: 2 * 60_000,
   });
 
-  const { data: lowStockRes } = useQuery({
+  const { data: lowStockRes, isError: lowStockError } = useQuery({
     queryKey: ["admin-low-stock"],
     queryFn: () => getLowStockAlerts(),
     staleTime: 5 * 60_000,
   });
 
-  const { data: gamifRes } = useQuery({
+  const { data: gamifRes, isError: gamifError } = useQuery({
     queryKey: ["admin-gamification-stats"],
     queryFn: getGamificationStats,
     staleTime: 5 * 60_000,
   });
 
-  const { data: salesTypeRes } = useQuery({
+  const { data: salesTypeRes, isError: salesTypeError } = useQuery({
     queryKey: ["admin-sales-by-type", period],
     queryFn: () => getSalesByProductType(getDateRange(period)),
     staleTime: 5 * 60_000,
   });
 
-  const { data: redemptionsRes } = useQuery({
+  const { data: redemptionsRes, isError: redemptionsError } = useQuery({
     queryKey: ["admin-pending-redemptions-dash"],
     queryFn: () => adminGetPendingRedemptions(1),
     staleTime: 60_000,
@@ -246,9 +297,9 @@ export default function AdminDashboardPage() {
 
   const salesToday = stats.salesToday ?? 0;
   const salesGoal = stats.salesGoal ?? 1_000_000;
-  const salesPct = stats.salesPercent ?? Math.round(
-    (salesToday / Math.max(1, salesGoal)) * 100
-  );
+  const salesPct =
+    stats.salesPercent ??
+    Math.round((salesToday / Math.max(1, salesGoal)) * 100);
   const ordersToday = stats.ordersToday ?? 0;
   const vsYesterday = stats.ordersTodayVsYesterday ?? 0;
   const avgTicket = stats.averageTicket ?? 0;
@@ -265,8 +316,11 @@ export default function AdminDashboardPage() {
     (redemptionsRes?.data as { total?: number } | undefined)?.total ?? 0;
 
   const salesByType: { name: string; value: number }[] =
-    (salesTypeRes?.data as { types?: { name: string; value: number }[] } | undefined)
-      ?.types ?? [];
+    (
+      salesTypeRes?.data as {
+        types?: { name: string; value: number }[];
+      } | undefined
+    )?.types ?? [];
 
   const chartLabels: string[] = salesRes?.data?.labels ?? [];
   const chartValues: number[] = salesRes?.data?.values ?? [];
@@ -279,424 +333,532 @@ export default function AdminDashboardPage() {
     lowStockRes?.data?.essences ?? lowStockRes?.data ?? [];
 
   const topEssenceData = topEssences.slice(0, 5).map((ess) => ({
-    name: ess.name.length > 18 ? ess.name.slice(0, 16) + "…" : ess.name,
+    name: ess.name.length > 18 ? ess.name.slice(0, 16) + "\u2026" : ess.name,
     revenue: ess.revenue,
   }));
 
-  // ─── Loading skeleton ────────────────────────────────────────────────────
-
   if (isLoading) {
     return (
-      <div className="space-y-5 max-w-7xl mx-auto">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <AdminSkeleton.Card />
-          <AdminSkeleton.Card />
-          <AdminSkeleton.Card />
-          <AdminSkeleton.Card />
+      <div className="relative">
+        <div className="admin-dashboard-bg" aria-hidden="true">
+          <div className="admin-dashboard-blob admin-dashboard-blob--1" />
+          <div className="admin-dashboard-blob admin-dashboard-blob--2" />
+          <div className="admin-dashboard-blob admin-dashboard-blob--3" />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          <AdminSkeleton.Card />
-          <AdminSkeleton.Card />
-          <AdminSkeleton.Card />
+        <div className="relative z-[1] space-y-14 lg:space-y-20 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <AdminSkeleton.Card />
+            <AdminSkeleton.Card />
+            <AdminSkeleton.Card />
+            <AdminSkeleton.Card />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <AdminSkeleton.Card />
+            <AdminSkeleton.Card />
+            <AdminSkeleton.Card />
+          </div>
+          <AdminSkeleton.Chart />
         </div>
-        <AdminSkeleton.Chart />
       </div>
     );
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────
+  if (isError) {
+    return (
+      <div className="relative">
+        <div className="admin-dashboard-bg" aria-hidden="true">
+          <div className="admin-dashboard-blob admin-dashboard-blob--1" />
+          <div className="admin-dashboard-blob admin-dashboard-blob--2" />
+          <div className="admin-dashboard-blob admin-dashboard-blob--3" />
+        </div>
+        <div className="relative z-[1] space-y-14 lg:space-y-20 max-w-7xl mx-auto">
+          <AdminQueryError
+            message={error?.message}
+            onRetry={() =>
+              queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] })
+            }
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto">
-      {/* ── Alert cards (compact, inline) ─────────────────────────────────── */}
-      <div className="flex flex-wrap gap-3">
-        {lowStockList.length > 0 && (
-          <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
-            <AlertTriangle size={16} className="text-amber-600 shrink-0" />
-            <p className="text-[13px] text-amber-800">
-              <span className="font-semibold">Stock bajo</span>{" "}
-              en {lowStockList.length} esencia
-              {lowStockList.length > 1 ? "s" : ""}:{" "}
-              {lowStockList.slice(0, 2).map((e) => e.name).join(", ")}
-              {lowStockList.length > 2
-                ? ` y ${lowStockList.length - 2} más`
-                : ""}
-              .
+    <div className="relative">
+      {/* ── Background decorative blobs ──────────────────────────────────── */}
+      <div className="admin-dashboard-bg" aria-hidden="true">
+        <div className="admin-dashboard-blob admin-dashboard-blob--1" />
+        <div className="admin-dashboard-blob admin-dashboard-blob--2" />
+        <div className="admin-dashboard-blob admin-dashboard-blob--3" />
+      </div>
+
+      <div className="relative z-[1] space-y-14 lg:space-y-20 max-w-7xl mx-auto pb-6 sm:pb-10">
+        {/* ── Alert cards ────────────────────────────────────────────────── */}
+        <div className="flex flex-wrap gap-3">
+          {lowStockError && (
+            <div className="flex items-center gap-2 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-lg px-4 py-3 w-full sm:w-auto min-h-[40px]">
+              <AlertTriangle size={14} className="text-red-500 shrink-0" />
+              <p className="text-[11px] sm:text-[12px] text-red-700">
+                Error al cargar alertas de stock.
+              </p>
+            </div>
+          )}
+          {!lowStockError && lowStockList.length > 0 && (
+            <div className="flex items-center gap-2 bg-amber-50/80 backdrop-blur-sm border border-amber-200/50 rounded-lg px-4 py-3 w-full sm:w-auto min-h-[40px]">
+              <AlertTriangle size={14} className="text-amber-500 shrink-0" />
+              <p className="text-[11px] sm:text-[12px] text-amber-700 truncate">
+                <span className="font-semibold">{lowStockList.length}</span>{" "}
+                stock bajo:{" "}
+                {lowStockList
+                  .slice(0, 2)
+                  .map((e) => e.name)
+                  .join(", ")}
+                {lowStockList.length > 2
+                  ? ` y ${lowStockList.length - 2} m\u00e1s`
+                  : ""}
+              </p>
+              <Link
+                to="/admin/inventario"
+                className="text-[10px] font-medium text-amber-600 underline whitespace-nowrap shrink-0 ml-auto sm:ml-1"
+              >
+                Ver
+              </Link>
+            </div>
+          )}
+
+          {redemptionsError && (
+            <div className="flex items-center gap-2 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-lg px-4 py-3 w-full sm:w-auto min-h-[40px]">
+              <AlertTriangle size={14} className="text-red-500 shrink-0" />
+              <p className="text-[11px] sm:text-[12px] text-red-700">
+                Error al cargar canjes pendientes.
+              </p>
+            </div>
+          )}
+          {!redemptionsError && pendingRedemptions > 0 && (
+            <div className="flex items-center gap-2 bg-purple-50/80 backdrop-blur-sm border border-purple-200/50 rounded-lg px-4 py-3 w-full sm:w-auto min-h-[40px]">
+              <Gift size={14} className="text-purple-500 shrink-0" />
+              <p className="text-[11px] sm:text-[12px] text-purple-700">
+                <span className="font-semibold">
+                  {pendingRedemptions} canje
+                  {pendingRedemptions > 1 ? "s" : ""} pendiente
+                  {pendingRedemptions > 1 ? "s" : ""}
+                </span>
+              </p>
+              <Link
+                to="/admin/canjes"
+                className="text-[10px] font-medium text-purple-600 underline whitespace-nowrap shrink-0 ml-auto sm:ml-1"
+              >
+                Gestionar
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* ── Commerce KPIs ──────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 stagger-item stagger-1">
+          <AdminKpiCard
+            label="Ventas Hoy"
+            splitValue={formatCOPSplit(salesToday)}
+            progress={salesPct}
+            progressLabel={`${salesPct}% del objetivo`}
+          />
+          <AdminKpiCard
+            icon={ShoppingBag}
+            label="Pedidos Hoy"
+            value={String(ordersToday)}
+            trend={vsYesterday > 0 ? "up" : vsYesterday < 0 ? "down" : "flat"}
+            trendPct={Math.abs(vsYesterday)}
+            trendLabel="vs ayer"
+          />
+          <AdminKpiCard
+            icon={CreditCard}
+            label="Ticket Promedio"
+            splitValue={formatCOPSplit(avgTicket)}
+            subtitle="Pedidos de hoy"
+          />
+          <AdminKpiCard
+            icon={UserPlus}
+            label="Clientes Nuevos"
+            value={String(newClients)}
+            subtitle="Registrados hoy"
+          />
+        </div>
+
+        {/* ── Gamification ───────────────────────────────────────────────── */}
+        {gamifError ? (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <p className="text-[13px] text-red-700">
+              Error al cargar estadísticas de gamificación.
             </p>
-            <Link
-              to="/admin/inventario"
-              className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 underline whitespace-nowrap shrink-0 ml-1"
-            >
-              Ver inventario
-            </Link>
+          </div>
+        ) : (
+          <div className="bg-brand-gold/5 backdrop-blur-sm rounded-2xl border border-brand-gold/20 p-8 lg:p-10 stagger-item stagger-2">
+            <p className="font-display text-sm text-brand-gold/80 mb-4 tracking-tight">
+              Gamificación
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <AdminKpiCard
+                icon={Gem}
+                label="Gramos Emitidos"
+                value={`${gramsIssued}g`}
+                subtitle="Total acumulado"
+              />
+              <AdminKpiCard
+                icon={Gift}
+                label="Canjes Pendientes"
+                value={String(pendingRedemptions)}
+                subtitle="Esperando entrega"
+              />
+              <AdminKpiCard
+                icon={Clock}
+                label="Fichas Activas"
+                value={String(activeTokens)}
+                subtitle="Sin jugar aún"
+              />
+            </div>
           </div>
         )}
 
-        {pendingRedemptions > 0 && (
-          <div className="inline-flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5">
-            <Gift size={16} className="text-purple-600 shrink-0" />
-            <p className="text-[13px] text-purple-800">
-              <span className="font-semibold">
-                {pendingRedemptions} canje
-                {pendingRedemptions > 1 ? "s" : ""} pendiente
-                {pendingRedemptions > 1 ? "s" : ""}
-              </span>{" "}
-              de entrega.
-            </p>
-            <Link
-              to="/admin/canjes"
-              className="text-[11px] font-semibold text-purple-700 hover:text-purple-800 underline whitespace-nowrap shrink-0 ml-1"
-            >
-              Gestionar
-            </Link>
+        {/* ── Sales chart + Top 5 essences ────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
+          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-8 lg:p-10 shadow-card stagger-item stagger-3 hover:shadow-md transition-shadow duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <PageSectionHeading className="mb-0">
+                Ventas por período
+              </PageSectionHeading>
+              <PeriodToggle period={period} onChange={setPeriod} />
+            </div>
+
+            {salesError ? (
+              <div className="h-48 flex items-center justify-center text-[13px] text-red-500">
+                Error al cargar datos de ventas.
+              </div>
+            ) : chartData.length === 0 ? (
+              <div className="h-48 flex items-center justify-center text-[13px] text-slate-400">
+                Sin datos para este período
+              </div>
+            ) : (
+              <div className="mt-2">
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={CHART_PINK} stopOpacity={0.04} />
+                        <stop offset="95%" stopColor={CHART_PINK} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={GRID_STROKE}
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="time"
+                      tick={{ fontSize: 11, fill: "#94A3B8" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tickFormatter={(v: number) =>
+                        `$${(v / 1_000).toFixed(0)}k`
+                      }
+                      tick={{ fontSize: 11, fill: "#94A3B8" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={40}
+                    />
+                    <Tooltip
+                      formatter={(v: unknown) => [formatCOP(v as number), "Ventas"]}
+                      contentStyle={{
+                        fontSize: 12,
+                        borderRadius: 8,
+                        border: "1px solid #E2E8F0",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="amount"
+                      stroke={CHART_PINK}
+                      strokeWidth={1.5}
+                      fill="url(#areaGrad)"
+                      dot={false}
+                      activeDot={{ r: 3, fill: CHART_PINK }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* ── KPI row — commerce ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <AdminKpiCard
-          icon={TrendingUp}
-          label="Ventas Hoy"
-          value={formatCOP(salesToday)}
-          accent
-          progress={{ pct: salesPct }}
-        />
-        <AdminKpiCard
-          icon={ShoppingBag}
-          label="Pedidos Hoy"
-          value={String(ordersToday)}
-          trend={{
-            value: vsYesterday,
-            label: "vs ayer",
-          }}
-        />
-        <AdminKpiCard
-          icon={CreditCard}
-          label="Ticket Promedio"
-          value={formatCOP(avgTicket)}
-          sub="Basado en pedidos de hoy"
-        />
-        <AdminKpiCard
-          icon={UserPlus}
-          label="Clientes Nuevos"
-          value={String(newClients)}
-          sub="Registrados hoy"
-        />
-      </div>
-
-      {/* ── KPI row — gamification ────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <AdminKpiCard
-          icon={Gem}
-          label="Gramos Emitidos"
-          value={`${gramsIssued}g`}
-          sub="Total acumulado"
-        />
-        <AdminKpiCard
-          icon={Gift}
-          label="Canjes Pendientes"
-          value={String(pendingRedemptions)}
-          sub="Esperando entrega"
-          accent={pendingRedemptions > 0}
-        />
-        <AdminKpiCard
-          icon={Clock}
-          label="Fichas Activas"
-          value={String(activeTokens)}
-          sub="Sin jugar aún"
-        />
-      </div>
-
-      {/* ── Sales chart + Top 5 essences ──────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Area chart */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-heading font-semibold text-slate-800 text-sm">
-              Ventas por período
-            </h2>
-            <div className="flex bg-slate-100 rounded-lg p-0.5">
-              {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                    period === p
-                      ? "bg-white text-brand-pink shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
+          <div className="bg-white rounded-xl border border-slate-100 p-8 lg:p-10 shadow-card stagger-item stagger-4 hover:shadow-md transition-shadow duration-300">
+            <PageSectionHeading>Top 5 Esencias hoy</PageSectionHeading>
+            {topEssenceData.length === 0 ? (
+              <p className="text-[13px] text-slate-400 mt-4">
+                Sin ventas registradas hoy.
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height={200} className="mt-2">
+                <BarChart
+                  data={topEssenceData}
+                  layout="vertical"
+                  margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
                 >
-                  {PERIOD_LABELS[p]}
-                </button>
-              ))}
-            </div>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={GRID_STROKE}
+                    horizontal={false}
+                  />
+                  <XAxis
+                    type="number"
+                    tickFormatter={(v: number) =>
+                      `$${(v / 1_000).toFixed(0)}k`
+                    }
+                    tick={{ fontSize: 10, fill: "#94A3B8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: "#475569" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={100}
+                  />
+                  <Tooltip
+                    formatter={(v: unknown) => [formatCOP(v as number), "Ventas"]}
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: "1px solid #E2E8F0",
+                    }}
+                  />
+                  <Bar
+                    dataKey="revenue"
+                    fill="#1A1A1A"
+                    radius={[0, 2, 2, 0]}
+                    barSize={12}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
+        </div>
 
-          {chartData.length === 0 ? (
-            <div className="h-48 flex items-center justify-center text-[13px] text-slate-400">
-              Sin datos para este período
+        {/* ── Sales by product type donut ──────────────────────────────────── */}
+        {salesTypeError ? (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <p className="text-[13px] text-red-700">
+              Error al cargar ventas por tipo de producto.
+            </p>
+          </div>
+        ) : (
+          salesByType.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-100 p-8 lg:p-10 shadow-card stagger-item stagger-5 hover:shadow-md transition-shadow duration-300">
+              <PageSectionHeading>
+                Ventas por tipo de producto
+              </PageSectionHeading>
+              <ResponsiveContainer width="100%" height={240} className="mt-2">
+                <PieChart>
+                  <Pie
+                    data={salesByType}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={3}
+                    stroke="none"
+                  >
+                    {salesByType.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={DONUT_COLORS[i % DONUT_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v: unknown) => [formatCOP(v as number), "Ventas"]}
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: "1px solid #E2E8F0",
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: 11 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="pinkGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_PINK} stopOpacity={0.18} />
-                    <stop offset="95%" stopColor={CHART_PINK} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke={GRID_STROKE}
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="time"
-                  tick={{ fontSize: 11, fill: "#94A3B8" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tickFormatter={(v: number) => `$${(v / 1_000).toFixed(0)}k`}
-                  tick={{ fontSize: 11, fill: "#94A3B8" }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={44}
-                />
-                <Tooltip
-                  formatter={(v: unknown) => [formatCOP(v as number), "Ventas"]}
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    border: "1px solid #E2E8F0",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="amount"
-                  stroke={CHART_PINK}
-                  strokeWidth={2}
-                  fill="url(#pinkGrad)"
-                  dot={false}
-                  activeDot={{ r: 4, fill: CHART_PINK }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+          )
+        )}
 
-        {/* Top 5 essences — horizontal bar chart */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h2 className="font-heading font-semibold text-slate-800 text-sm mb-4">
-            Top 5 Esencias hoy
-          </h2>
-          {topEssenceData.length === 0 ? (
-            <p className="text-[13px] text-slate-400">Sin ventas registradas hoy.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart
-                data={topEssenceData}
-                layout="vertical"
-                margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke={GRID_STROKE}
-                  horizontal={false}
-                />
-                <XAxis
-                  type="number"
-                  tickFormatter={(v: number) => `$${(v / 1_000).toFixed(0)}k`}
-                  tick={{ fontSize: 10, fill: "#94A3B8" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: "#475569" }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={100}
-                />
-                <Tooltip
-                  formatter={(v: unknown) => [formatCOP(v as number), "Ventas"]}
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    border: "1px solid #E2E8F0",
-                  }}
-                />
-                <Bar
-                  dataKey="revenue"
-                  fill={CHART_PINK}
-                  radius={[0, 4, 4, 0]}
-                  barSize={16}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* ── Sales by product type donut ────────────────────────────────────── */}
-      {salesByType.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h2 className="font-heading font-semibold text-slate-800 text-sm mb-2">
-            Ventas por tipo de producto
-          </h2>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
-              <Pie
-                data={salesByType}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={55}
-                outerRadius={90}
-                paddingAngle={3}
-                stroke="none"
-              >
-                {salesByType.map((_, i) => (
-                  <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(v: unknown) => [formatCOP(v as number), "Ventas"]}
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: "1px solid #E2E8F0",
-                }}
-              />
-              <Legend
-                verticalAlign="bottom"
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: 11 }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* ── Recent orders table ────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="font-heading font-semibold text-slate-800 text-sm">
-            Pedidos Recientes
-          </h2>
-          <Link
-            to="/admin/pedidos"
-            className="text-[11px] text-brand-blue font-semibold hover:underline"
-          >
-            Ver todos →
-          </Link>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                {["PEDIDO #", "CLIENTE", "ESENCIAS", "TOTAL", "ESTADO", "ACCIONES"].map(
-                  (h) => (
+        {/* ── Recent orders ────────────────────────────────────────────────── */}
+        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-card stagger-item stagger-6">
+          <div className="px-6 lg:px-8 py-5 border-b border-slate-100 flex items-center justify-between">
+            <PageSectionHeading className="mb-0">
+              Pedidos Recientes
+            </PageSectionHeading>
+            <Link
+              to="/admin/pedidos"
+              className="text-[11px] text-slate-400 hover:text-slate-900 font-medium transition-colors"
+            >
+              Ver todos →
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  {[
+                    { label: "PEDIDO #", hide: false as const },
+                    { label: "CLIENTE", hide: "md" as const },
+                    { label: "ESENCIAS", hide: "md" as const },
+                    { label: "TOTAL", hide: false as const },
+                    { label: "ESTADO", hide: false as const },
+                    { label: "", hide: false as const },
+                  ].map((col) => (
                     <th
-                      key={h}
-                      className="px-4 py-3 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]"
+                      key={col.label}
+                      className={cn(
+                        "px-6 lg:px-8 py-4 text-left font-medium text-slate-400 uppercase text-[10px] tracking-[0.15em] whitespace-nowrap",
+                        col.hide === "md" ? "hidden md:table-cell" : "",
+                      )}
                     >
-                      {h}
+                      {col.label}
                     </th>
-                  )
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {recentOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-400 text-[13px]">
-                    Sin pedidos registrados hoy.
-                  </td>
+                  ))}
                 </tr>
-              ) : (
-                recentOrders.map((order) => {
-                  const initials =
-                    order.client?.name
-                      ?.split(" ")
-                      .slice(0, 2)
-                      .map((w) => w[0])
-                      .join("") ?? "?";
-                  const essenceList =
-                    order.items
-                      ?.map(
-                        (it) =>
-                          it.product?.essence?.name ?? it.product?.name ?? ""
-                      )
-                      .filter(Boolean)
-                      .join(", ") ?? "—";
-
-                  return (
-                    <tr
-                      key={order.id}
-                      className="hover:bg-slate-50 transition-colors"
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {recentOrders.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 lg:px-8 py-28 sm:py-36 text-center align-middle"
                     >
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-brand-blue font-semibold text-[11px]">
-                          {order.orderNumber}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-brand-pink/15 flex items-center justify-center shrink-0">
-                            <span className="text-brand-pink font-bold text-[10px]">
-                              {initials}
+                      <div className="flex flex-col items-center gap-4 mx-auto">
+                        <div className="relative w-[72px] h-[72px] rounded-2xl bg-brand-pink/6 flex items-center justify-center shadow-[inset_0_1px_2px_rgba(216,27,96,0.08),0_4px_16px_rgba(216,27,96,0.08)]">
+                          <div className="absolute inset-[-6px] rounded-[1.125rem] border-2 border-brand-pink/8 animate-pulse-ring pointer-events-none" />
+                          <ShoppingBag size={28} className="text-brand-pink/40" strokeWidth={1.5} />
+                        </div>
+                        <div>
+                          <p className="font-display text-base text-slate-800">
+                            Sin pedidos aún
+                          </p>
+                          <p className="text-[13px] text-slate-400 mt-1">
+                            Los pedidos del día aparecerán aquí.
+                          </p>
+                        </div>
+                        <Link
+                          to="/admin/pedidos"
+                          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-brand-pink to-brand-pink-dark text-white text-[13px] font-semibold shadow-[0_4px_16px_rgba(216,27,96,0.25)] hover:-translate-y-[2px] hover:shadow-[0_8px_24px_rgba(216,27,96,0.35)] transition-all duration-300"
+                        >
+                          <Eye size={14} />
+                          Ver pedidos anteriores
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  recentOrders.map((order) => {
+                    const initials =
+                      order.client?.name
+                        ?.split(" ")
+                        .slice(0, 2)
+                        .map((w) => w[0])
+                        .join("") ?? "?";
+                    const essenceItems =
+                      order.items
+                        ?.map(
+                          (it) =>
+                            it.product?.essence?.name ?? it.product?.name ?? "",
+                        )
+                        .filter(Boolean) ?? [];
+
+                    return (
+                      <tr
+                        key={order.id}
+                        className="hover:bg-slate-50/50 transition-colors"
+                      >
+                        <td className="px-6 lg:px-8 py-5 align-middle">
+                          <span className="font-mono text-slate-900 font-medium text-[11px]">
+                            {order.orderNumber}
+                          </span>
+                        </td>
+                        <td className="px-6 lg:px-8 py-5 align-middle hidden md:table-cell">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-sm bg-slate-900 flex items-center justify-center shrink-0">
+                              <span className="text-white font-medium text-[10px]">
+                                {initials}
+                              </span>
+                            </div>
+                            <span className="font-medium text-slate-700 truncate max-w-[120px] text-[13px]">
+                              {order.client?.name ?? "N/A"}
                             </span>
                           </div>
-                          <span className="font-medium text-slate-700 truncate max-w-[120px]">
-                            {order.client?.name ?? "N/A"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-slate-500 truncate max-w-[180px] block">
-                          {essenceList}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-slate-800">
-                        {formatCOP(order.total)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <AdminStatusBadge
-                          label={STATUS_LABELS[order.status] ?? order.status}
-                          color={statusColor(order.status)}
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            to={`/admin/pedidos/${order.id}`}
-                            className="p-1.5 text-slate-400 hover:text-brand-blue rounded-lg hover:bg-blue-50 transition-colors"
-                            aria-label={`Ver pedido ${order.orderNumber}`}
-                          >
-                            <Eye size={14} />
-                          </Link>
-                          <StatusDropdown
-                            orderId={order.id}
-                            current={order.status}
-                            onUpdated={() =>
-                              queryClient.invalidateQueries({
-                                queryKey: ["admin-dashboard"],
-                              })
-                            }
+                        </td>
+                        <td className="px-6 lg:px-8 py-5 align-middle hidden md:table-cell">
+                          <div className="flex flex-wrap gap-1.5">
+                            {essenceItems.slice(0, 3).map((name, i) => (
+                              <span
+                                key={i}
+                                className="bg-slate-100 px-2.5 py-1 rounded-full text-[11px] text-slate-600 whitespace-nowrap truncate max-w-[120px]"
+                              >
+                                {name}
+                              </span>
+                            ))}
+                            {essenceItems.length > 3 && (
+                              <span className="text-[10px] text-slate-400 self-center">
+                                +{essenceItems.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 lg:px-8 py-5 align-middle font-medium text-slate-800">
+                          {formatCOP(order.total)}
+                        </td>
+                        <td className="px-6 lg:px-8 py-5 align-middle">
+                          <AdminStatusBadge
+                            label={STATUS_LABELS[order.status] ?? order.status}
+                            color={statusColor(order.status)}
                           />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                        </td>
+                        <td className="px-6 lg:px-8 py-5 align-middle">
+                          <div className="flex items-center gap-1">
+                            <Link
+                              to={`/admin/pedidos/${order.id}`}
+                              className="hidden sm:inline-flex p-1.5 text-slate-300 hover:text-slate-600 rounded transition-colors"
+                              aria-label={`Ver pedido ${order.orderNumber}`}
+                            >
+                              <Eye size={14} />
+                            </Link>
+                            <StatusDropdown
+                              orderId={order.id}
+                              current={order.status}
+                              onUpdated={() =>
+                                queryClient.invalidateQueries({
+                                  queryKey: ["admin-dashboard"],
+                                })
+                              }
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

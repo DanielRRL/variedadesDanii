@@ -45,7 +45,7 @@ export const authMiddleware = (
 
     // Adjuntar datos del usuario al request
     req.userId = decoded.userId;
-    req.userRole = decoded.role;
+    req.userRole = decoded.role as "ADMIN" | "CLIENT" | "SELLER" | "DELIVERY";
 
     next();
   } catch (error) {

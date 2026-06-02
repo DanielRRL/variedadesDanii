@@ -16,6 +16,17 @@ import { authMiddleware } from "../middleware/authMiddleware";
 // roleMiddleware - Restringe acceso por rol.
 import { roleMiddleware } from "../middleware/roleMiddleware";
 
+// Validadores de esencias, familias y casas.
+import {
+  createEssenceValidator,
+  createFamilyValidator,
+  createHouseValidator,
+  updateEssenceValidator,
+} from "../validators/essenceValidator";
+
+// validate - Middleware que revisa errores de express-validator.
+import { validate } from "../validators/validate";
+
 /**
  * Crea y retorna el router de esencias.
  * @param essenceController - Controlador inyectado desde app.ts.
@@ -35,10 +46,34 @@ export const createEssenceRoutes = (
   // A partir de aqui, se requiere autenticacion
   router.use(authMiddleware);
   // Solo ADMIN puede crear, editar y eliminar esencias, familias y casas
-  router.post("/", roleMiddleware("ADMIN"), essenceController.create);
-  router.post("/families", roleMiddleware("ADMIN"), essenceController.createFamily);
-  router.post("/houses", roleMiddleware("ADMIN"), essenceController.createHouse);
-  router.put("/:id", roleMiddleware("ADMIN"), essenceController.update);
+  router.post(
+    "/",
+    roleMiddleware("ADMIN"),
+    createEssenceValidator,
+    validate,
+    essenceController.create
+  );
+  router.post(
+    "/families",
+    roleMiddleware("ADMIN"),
+    createFamilyValidator,
+    validate,
+    essenceController.createFamily
+  );
+  router.post(
+    "/houses",
+    roleMiddleware("ADMIN"),
+    createHouseValidator,
+    validate,
+    essenceController.createHouse
+  );
+  router.put(
+    "/:id",
+    roleMiddleware("ADMIN"),
+    updateEssenceValidator,
+    validate,
+    essenceController.update
+  );
   router.delete("/:id", roleMiddleware("ADMIN"), essenceController.delete);
 
   return router;

@@ -38,11 +38,12 @@ export class AdminService {
 
   /**
    * Obtiene reporte de ventas diarias en un rango de fechas.
-   * Valida que from < to y que el rango no exceda 90 dias.
+   * Valida que from no sea posterior a to y que el rango no exceda 90 dias.
+   * El `to` se ajusta al final del dia (23:59:59.999) para cubrir el dia completo.
    */
   async getDailySales(from: Date, to: Date): Promise<DailySalesResult[]> {
-    if (from >= to) {
-      throw AppError.badRequest("'from' date must be before 'to' date");
+    if (from.getTime() > to.getTime()) {
+      throw AppError.badRequest("'from' date cannot be after 'to' date");
     }
 
     const diffDays =
@@ -51,7 +52,10 @@ export class AdminService {
       throw AppError.badRequest("Date range cannot exceed 90 days");
     }
 
-    return this.adminRepo.getDailySales(from, to);
+    const endOfDay = new Date(to);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return this.adminRepo.getDailySales(from, endOfDay);
   }
 
   /**
