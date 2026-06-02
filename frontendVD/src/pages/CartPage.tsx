@@ -35,6 +35,7 @@ import type { CartItem, Order } from '../types';
 import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
+import '../css/CartPage.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -67,82 +68,63 @@ interface CartItemRowProps {
 
 function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
   return (
-    <div className="flex gap-3 py-4">
+    <div className="cart-item">
       {/* Thumbnail */}
       {item.photoUrl ? (
         <img
           src={item.photoUrl}
           alt={item.name}
-          className="w-15 h-15 rounded-lg object-cover flex-none"
+          className="cart-item__thumb"
+          loading="lazy"
         />
       ) : (
-        <div className="w-15 h-15 rounded-lg bg-brand-pink/5 flex items-center justify-center flex-none">
-          <span className="font-heading font-bold text-lg text-brand-pink/30">
-            {item.name.charAt(0)}
-          </span>
+        <div className="cart-item__thumb-placeholder">
+          <span>{item.name.charAt(0)}</span>
         </div>
       )}
 
       {/* Center info */}
-      <div className="flex-1 min-w-0">
-        <p className="font-heading font-semibold text-sm text-text-primary leading-tight line-clamp-2">
-          {item.name}
-        </p>
-        <div className="flex items-center gap-1.5 mt-1">
-          <span className="text-[10px] font-body font-medium text-muted bg-background px-1.5 py-0.5 rounded">
+      <div className="cart-item__info">
+        <p className="cart-item__name">{item.name}</p>
+        <div className="cart-item__meta">
+          <span className="cart-item__type-badge">
             {PRODUCT_TYPE_LABELS[item.productType] ?? item.productType}
           </span>
           {item.generatesGram && (
-            <span className="text-[10px] font-body font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-              Gana 1g
-            </span>
+            <span className="cart-item__gram-badge">Gana 1g</span>
           )}
         </div>
 
         {/* Quantity stepper + line total */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-2">
+        <div className="cart-item__row">
+          <div className="cart-item__stepper">
             <button
               onClick={() => onUpdateQty(item.quantity - 1)}
               disabled={item.quantity <= 1}
-              className={clsx(
-                'w-7 h-7 rounded-full border flex items-center justify-center',
-                item.quantity <= 1
-                  ? 'border-border text-border'
-                  : 'border-brand-pink text-brand-pink active:bg-brand-pink/10'
-              )}
+              className="cart-item__stepper-btn"
               aria-label="Reducir cantidad"
             >
               <Minus size={14} strokeWidth={2} />
             </button>
-            <span className="font-heading font-bold text-sm text-text-primary w-5 text-center">
-              {item.quantity}
-            </span>
+            <span className="cart-item__stepper-qty">{item.quantity}</span>
             <button
               onClick={() => onUpdateQty(item.quantity + 1)}
               disabled={item.quantity >= 10}
-              className={clsx(
-                'w-7 h-7 rounded-full border flex items-center justify-center',
-                item.quantity >= 10
-                  ? 'border-border text-border'
-                  : 'border-brand-pink text-brand-pink active:bg-brand-pink/10'
-              )}
+              className="cart-item__stepper-btn"
               aria-label="Aumentar cantidad"
             >
               <Plus size={14} strokeWidth={2} />
             </button>
           </div>
 
-          <p className="font-heading font-bold text-sm text-text-primary">
-            {formatCOP(item.lineTotal)}
-          </p>
+          <p className="cart-item__price">{formatCOP(item.lineTotal)}</p>
         </div>
       </div>
 
       {/* Delete */}
       <button
         onClick={onRemove}
-        className="self-start p-1.5 text-gray-300 hover:text-red-500 transition-colors flex-none"
+        className="cart-item__delete"
         aria-label={`Eliminar ${item.name}`}
       >
         <Trash2 size={16} />
@@ -177,7 +159,6 @@ export default function CartPage() {
   const gramPreview      = useCartStore((s) => s.gramPreview());
 
   // ── Auth store ─────────────────────────────────────────────────────────────
-  const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   // ── Gram balance (if authenticated) ────────────────────────────────────────
@@ -304,22 +285,17 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background flex flex-col font-body">
+      <div className="cart-page">
         <AppBar title="Mi carrito" showBack />
-        <div className="flex-1 flex flex-col items-center justify-center px-8 gap-5 pb-20">
-          <ShoppingBag size={56} className="text-brand-pink/40" strokeWidth={1.2} />
-          <div className="text-center">
-            <h2 className="font-heading text-xl font-bold text-text-primary">
-              Tu carrito está vacío
-            </h2>
-            <p className="text-muted text-sm mt-1.5">
+        <div className="cart-empty">
+          <ShoppingBag size={56} className="cart-empty__icon" strokeWidth={1.2} />
+          <div>
+            <h2 className="cart-empty__heading">Tu carrito está vacío</h2>
+            <p className="cart-empty__text">
               Explora nuestro catálogo y encuentra tu próximo producto favorito.
             </p>
           </div>
-          <Link
-            to="/catalogo"
-            className="bg-brand-pink text-white font-body font-semibold px-8 py-3 rounded-full"
-          >
+          <Link to="/catalogo" className="cart-empty__cta">
             Explorar productos
           </Link>
         </div>
@@ -331,16 +307,16 @@ export default function CartPage() {
   // ── FILLED CART ────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background font-body">
+    <div className="cart-page">
       <AppBar
         title={`Mi carrito (${items.length} producto${items.length !== 1 ? 's' : ''})`}
         showBack
       />
 
-      <main className="px-4 py-4 pb-36 space-y-4">
+      <main className="cart-main">
 
         {/* ── SECTION 2 — Items list ───────────────────────────────────────── */}
-        <div className="bg-surface rounded-xl border border-border px-4 divide-y divide-border">
+        <div className="cart-items">
           {items.map((item) => (
             <CartItemRow
               key={item.productId}
@@ -353,75 +329,71 @@ export default function CartPage() {
 
         {/* ── SECTION 3 — Gram preview card ────────────────────────────────── */}
         {gramPreview > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <Gem size={20} className="text-amber-600 flex-none mt-0.5" />
-              <div className="flex-1">
-                <p className="font-heading font-semibold text-sm text-text-primary">
-                  Con este pedido ganarás {gramPreview} gramo{gramPreview !== 1 ? 's' : ''} acumulable{gramPreview !== 1 ? 's' : ''}
+          <div className="cart-gram-card">
+            <Gem size={20} className="cart-gram-card__icon" />
+            <div className="cart-gram-card__content">
+              <p className="cart-gram-card__title">
+                Con este pedido ganarás {gramPreview} gramo{gramPreview !== 1 ? 's' : ''} acumulable{gramPreview !== 1 ? 's' : ''}
+              </p>
+              <p className="cart-gram-card__desc">
+                Cada gramo te acerca a una esencia gratis (necesitas 13)
+              </p>
+              {isAuthenticated ? (
+                <p className={clsx('cart-gram-card__progress', 'cart-gram-card__progress--auth')}>
+                  Tienes {gramBalance}g · Te faltarán {Math.max(0, 13 - gramBalance - gramPreview)}g para 1 oz
                 </p>
-                <p className="font-body text-[12px] text-muted mt-1">
-                  Cada gramo te acerca a una esencia gratis (necesitas 13)
+              ) : (
+                <p className={clsx('cart-gram-card__progress', 'cart-gram-card__progress--guest')}>
+                  Crea tu cuenta para acumular gramos
                 </p>
-                {isAuthenticated ? (
-                  <p className="font-body text-[12px] text-amber-700 font-medium mt-1.5">
-                    Tienes {gramBalance}g · Te faltarán {Math.max(0, 13 - gramBalance - gramPreview)}g para 1 oz
-                  </p>
-                ) : (
-                  <p className="font-body text-[12px] text-amber-600 mt-1.5">
-                    Crea tu cuenta para acumular gramos
-                  </p>
-                )}
-              </div>
+              )}
             </div>
           </div>
         )}
 
         {/* ── SECTION 4 — Order summary ────────────────────────────────────── */}
-        <div className="bg-surface rounded-xl border border-border p-4 space-y-2.5">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Subtotal</span>
-            <span className="text-text-primary font-medium">{formatCOP(subtotal)}</span>
+        <div className="cart-summary">
+          <div className="cart-summary__row">
+            <span className="cart-summary__row-label">Subtotal</span>
+            <span className="cart-summary__row-value">{formatCOP(subtotal)}</span>
           </div>
 
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Domicilio</span>
-            <span className={clsx('font-medium', deliveryFee > 0 ? 'text-text-primary' : 'text-emerald-600')}>
+          <div className="cart-summary__row">
+            <span className="cart-summary__row-label">Domicilio</span>
+            <span className={clsx('cart-summary__row-value', deliveryFee === 0 && 'cart-summary__row-value--free')}>
               {deliveryFee > 0 ? `+${formatCOP(deliveryFee)}` : 'Gratis (recoger en tienda)'}
             </span>
           </div>
 
           {referralDiscount > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted">
+            <div className={clsx('cart-summary__row', 'cart-summary__row--discount')}>
+              <span className="cart-summary__row-label">
                 Descuento referido (5% · {referralCodeApplied})
               </span>
-              <span className="text-emerald-600 font-medium">-{formatCOP(referralDiscount)}</span>
+              <span className="cart-summary__row-value">-{formatCOP(referralDiscount)}</span>
             </div>
           )}
 
-          <div className="border-t border-border pt-3 flex justify-between items-center">
-            <span className="font-heading font-bold text-text-primary">TOTAL</span>
-            <span className="font-heading font-bold text-xl text-brand-gold">
-              {formatCOP(finalTotal)}
-            </span>
+          <hr className="cart-summary__divider" />
+
+          <div className="cart-summary__total">
+            <span className="cart-summary__total-label">TOTAL</span>
+            <span className="cart-summary__total-value">{formatCOP(finalTotal)}</span>
           </div>
         </div>
 
         {/* ── SECTION 5 — Referral code ────────────────────────────────────── */}
         {isAuthenticated && (
-          <div className="bg-surface rounded-xl border border-border p-4">
+          <div className="cart-referral">
             {referralCodeApplied ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Tag size={16} className="text-emerald-500" />
-                  <span className="font-body text-sm text-emerald-600 font-medium">
-                    Código {referralCodeApplied} aplicado — 5% en lociones
-                  </span>
-                </div>
+              <div className="cart-referral__applied">
+                <span className="cart-referral__applied-label">
+                  <Tag size={16} />
+                  Código {referralCodeApplied} aplicado — 5% en lociones
+                </span>
                 <button
                   onClick={handleRemoveReferral}
-                  className="text-xs text-red-500 font-body font-medium"
+                  className="cart-referral__remove-btn"
                 >
                   Quitar
                 </button>
@@ -429,39 +401,32 @@ export default function CartPage() {
             ) : !referralExpanded ? (
               <button
                 onClick={() => setReferralExpanded(true)}
-                className="flex items-center gap-2 w-full"
+                className="cart-referral__toggle"
               >
-                <Tag size={16} className="text-muted" />
-                <span className="font-body text-sm text-brand-pink font-medium">
-                  ¿Tienes un código de referido? Aplicar
-                </span>
+                <Tag size={16} />
+                ¿Tienes un código de referido? Aplicar
               </button>
             ) : (
-              <div className="space-y-2.5">
-                <div className="flex gap-2">
+              <div className="cart-referral__input-wrap">
+                <div className="cart-referral__input-row">
                   <input
                     type="text"
                     value={referralInput}
                     onChange={(e) => { setReferralInput(e.target.value.toUpperCase()); setReferralError(''); }}
                     placeholder="Ej: MARIA15"
-                    className="flex-1 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-brand-pink uppercase"
+                    className="cart-referral__input"
                     maxLength={20}
                   />
                   <button
                     onClick={handleApplyReferral}
                     disabled={referralLoading || !referralInput.trim()}
-                    className={clsx(
-                      'px-4 py-2 rounded-lg font-body font-semibold text-sm text-white',
-                      referralLoading || !referralInput.trim()
-                        ? 'bg-gray-300'
-                        : 'bg-brand-pink active:bg-brand-pink/80'
-                    )}
+                    className="cart-referral__apply-btn"
                   >
                     {referralLoading ? '...' : 'Aplicar'}
                   </button>
                 </div>
                 {referralError && (
-                  <p className="text-xs text-red-500 font-body">{referralError}</p>
+                  <p className="cart-referral__error">{referralError}</p>
                 )}
               </div>
             )}
@@ -469,90 +434,77 @@ export default function CartPage() {
         )}
 
         {/* ── SECTION 6 — Delivery type ────────────────────────────────────── */}
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="cart-delivery">
+          <div className="cart-delivery__options">
             <button
               onClick={() => setDeliveryType('pickup')}
               className={clsx(
-                'rounded-xl border-2 p-4 text-center transition-all',
-                deliveryType === 'pickup'
-                  ? 'border-brand-pink bg-brand-pink/5'
-                  : 'border-border bg-surface'
+                'cart-delivery__option',
+                deliveryType === 'pickup' && 'cart-delivery__option--active',
               )}
             >
-              <Store size={22} className={clsx('mx-auto mb-1.5', deliveryType === 'pickup' ? 'text-brand-pink' : 'text-muted')} strokeWidth={1.8} />
-              <p className="font-heading font-semibold text-sm text-text-primary">
-                Recoger en tienda
-              </p>
-              <p className="font-body text-[11px] text-muted mt-0.5">Armenia · Gratis</p>
+              <Store size={22} className="cart-delivery__option-icon" strokeWidth={1.8} />
+              <p className="cart-delivery__option-label">Recoger en tienda</p>
+              <p className="cart-delivery__option-hint">Armenia · Gratis</p>
             </button>
 
             <button
               onClick={() => setDeliveryType('delivery')}
               className={clsx(
-                'rounded-xl border-2 p-4 text-center transition-all',
-                deliveryType === 'delivery'
-                  ? 'border-brand-pink bg-brand-pink/5'
-                  : 'border-border bg-surface'
+                'cart-delivery__option',
+                deliveryType === 'delivery' && 'cart-delivery__option--active',
               )}
             >
-              <Truck size={22} className={clsx('mx-auto mb-1.5', deliveryType === 'delivery' ? 'text-brand-pink' : 'text-muted')} strokeWidth={1.8} />
-              <p className="font-heading font-semibold text-sm text-text-primary">
-                Domicilio Armenia
-              </p>
-              <p className="font-body text-[11px] text-muted mt-0.5">+{formatCOP(DELIVERY_FEE)}</p>
+              <Truck size={22} className="cart-delivery__option-icon" strokeWidth={1.8} />
+              <p className="cart-delivery__option-label">Domicilio Armenia</p>
+              <p className="cart-delivery__option-hint">+{formatCOP(DELIVERY_FEE)}</p>
             </button>
           </div>
 
           {/* Address input — slides down when delivery selected */}
           <div className={clsx(
-            'overflow-hidden transition-all duration-300',
-            deliveryType === 'delivery' ? 'max-h-24' : 'max-h-0'
+            'cart-delivery__address',
+            deliveryType === 'delivery' ? 'cart-delivery__address--visible' : 'cart-delivery__address--hidden',
           )}>
-            <div className="flex items-center gap-2 bg-surface rounded-xl border border-border px-3 py-2.5">
-              <MapPin size={16} className="text-muted flex-none" />
+            <div className="cart-delivery__address-input">
+              <MapPin size={16} />
               <input
                 type="text"
                 value={deliveryAddress}
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 placeholder="Dirección de entrega (mín. 10 caracteres)"
-                className="flex-1 text-sm font-body text-text-primary outline-none bg-transparent placeholder:text-muted"
               />
             </div>
           </div>
         </div>
 
         {/* ── SECTION 7 — Payment method ───────────────────────────────────── */}
-        <div className="space-y-3">
-          <h3 className="font-heading font-semibold text-sm text-text-primary">
-            ¿Cómo vas a pagar?
-          </h3>
+        <div className="cart-payment">
+          <h3 className="cart-payment__title">¿Cómo vas a pagar?</h3>
 
           {/* NEQUI */}
           <button
             onClick={() => setPaymentMethod('NEQUI')}
             className={clsx(
-              'w-full rounded-xl border-2 p-4 text-left transition-all',
-              paymentMethod === 'NEQUI'
-                ? 'border-l-4 border-brand-pink bg-brand-pink/5'
-                : 'border-border bg-surface'
+              'cart-payment__method',
+              paymentMethod === 'NEQUI' && 'cart-payment__method--active',
             )}
           >
-            <div className="flex items-center gap-3">
-              <Smartphone size={20} className={paymentMethod === 'NEQUI' ? 'text-brand-pink' : 'text-muted'} />
+            <div className="cart-payment__method-inner">
+              <Smartphone size={20} className="cart-payment__method-icon" />
               <div>
-                <p className="font-heading font-bold text-sm text-text-primary">Nequi</p>
-                <p className="font-body text-[12px] text-muted">Pago instantáneo</p>
+                <p className="cart-payment__method-label">Nequi</p>
+                <p className="cart-payment__method-desc">Pago instantáneo</p>
               </div>
             </div>
           </button>
 
           {/* Nequi phone input */}
           <div className={clsx(
-            'overflow-hidden transition-all duration-300',
-            paymentMethod === 'NEQUI' ? 'max-h-24' : 'max-h-0'
+            'cart-payment__phone',
+            paymentMethod === 'NEQUI' ? 'cart-payment__phone--visible' : 'cart-payment__phone--hidden',
           )}>
-            <div className="flex items-center gap-2 bg-surface rounded-xl border border-border px-3 py-2.5">
+            <div className="cart-payment__phone-input">
               <input
                 type="tel"
                 value={nequiPhone}
@@ -560,18 +512,15 @@ export default function CartPage() {
                 placeholder="3XX XXX XXXX"
                 inputMode="numeric"
                 maxLength={10}
-                className={clsx(
-                  'flex-1 text-sm font-body text-text-primary outline-none bg-transparent placeholder:text-muted',
-                )}
               />
               {nequiPhone.length === 10 && (
                 nequiValid
-                  ? <Check size={16} className="text-emerald-500" />
-                  : <X size={16} className="text-red-400" />
+                  ? <Check size={16} className="cart-payment__phone-valid" />
+                  : <X size={16} className="cart-payment__phone-invalid" />
               )}
             </div>
             {nequiPhone && !nequiValid && nequiPhone.length >= 3 && (
-              <p className="text-[11px] text-red-500 font-body mt-1 px-1">
+              <p className="cart-payment__phone-hint">
                 Número colombiano: 10 dígitos, inicia con 3
               </p>
             )}
@@ -581,17 +530,15 @@ export default function CartPage() {
           <button
             onClick={() => setPaymentMethod('BANCOLOMBIA')}
             className={clsx(
-              'w-full rounded-xl border-2 p-4 text-left transition-all',
-              paymentMethod === 'BANCOLOMBIA'
-                ? 'border-l-4 border-brand-pink bg-brand-pink/5'
-                : 'border-border bg-surface'
+              'cart-payment__method',
+              paymentMethod === 'BANCOLOMBIA' && 'cart-payment__method--active',
             )}
           >
-            <div className="flex items-center gap-3">
-              <Banknote size={20} className={paymentMethod === 'BANCOLOMBIA' ? 'text-brand-pink' : 'text-muted'} />
+            <div className="cart-payment__method-inner">
+              <Banknote size={20} className="cart-payment__method-icon" />
               <div>
-                <p className="font-heading font-bold text-sm text-text-primary">Bancolombia</p>
-                <p className="font-body text-[12px] text-muted">Transferencia inmediata</p>
+                <p className="cart-payment__method-label">Bancolombia</p>
+                <p className="cart-payment__method-desc">Transferencia inmediata</p>
               </div>
             </div>
           </button>
@@ -600,17 +547,15 @@ export default function CartPage() {
           <button
             onClick={() => setPaymentMethod('BREB')}
             className={clsx(
-              'w-full rounded-xl border-2 p-4 text-left transition-all',
-              paymentMethod === 'BREB'
-                ? 'border-l-4 border-brand-pink bg-brand-pink/5'
-                : 'border-border bg-surface'
+              'cart-payment__method',
+              paymentMethod === 'BREB' && 'cart-payment__method--active',
             )}
           >
-            <div className="flex items-center gap-3">
-              <CreditCard size={20} className={paymentMethod === 'BREB' ? 'text-brand-pink' : 'text-muted'} />
+            <div className="cart-payment__method-inner">
+              <CreditCard size={20} className="cart-payment__method-icon" />
               <div>
-                <p className="font-heading font-bold text-sm text-text-primary">Bre-B</p>
-                <p className="font-body text-[12px] text-muted">Pagos inmediatos Bre-B</p>
+                <p className="cart-payment__method-label">Bre-B</p>
+                <p className="cart-payment__method-desc">Pagos inmediatos Bre-B</p>
               </div>
             </div>
           </button>
@@ -618,32 +563,30 @@ export default function CartPage() {
 
         {/* Error banner */}
         {errorMsg && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            <p className="text-red-600 text-sm font-body">{errorMsg}</p>
+          <div className="cart-error">
+            <p className="cart-error__text">{errorMsg}</p>
           </div>
         )}
       </main>
 
       {/* ── SECTION 8 — Sticky confirm bar ─────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-surface border-t border-border px-4 pt-3 pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="flex items-center gap-1.5 text-muted">
+      <div className="cart-confirm-bar">
+        <div className="cart-confirm-bar__inner">
+          <span className="cart-confirm-bar__secure">
             <Lock size={12} strokeWidth={2} />
-            <span className="font-body text-[11px]">Pago seguro</span>
-          </div>
+            Pago seguro
+          </span>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
             className={clsx(
-              'flex-1 py-3.5 rounded-full font-heading font-bold text-[15px] transition-all flex items-center justify-center gap-2',
-              canSubmit
-                ? 'bg-brand-pink text-white active:scale-[0.98]'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              'cart-confirm-bar__submit',
+              canSubmit ? 'cart-confirm-bar__submit--active' : 'cart-confirm-bar__submit--disabled',
             )}
           >
             {isSubmitting ? (
               <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="cart-confirm-bar__spinner" />
                 Procesando...
               </>
             ) : (
@@ -652,9 +595,7 @@ export default function CartPage() {
           </button>
         </div>
         {disabledReason && (
-          <p className="text-[11px] text-orange-500 font-body text-center pb-1">
-            {disabledReason}
-          </p>
+          <p className="cart-confirm-bar__reason">{disabledReason}</p>
         )}
       </div>
 

@@ -297,11 +297,11 @@ export const createOrder = (data: CreateOrderInput) =>
 
 /**
  * List all orders belonging to the authenticated user.
- * GET /api/orders
+ * GET /api/orders/my-orders
  * Returns: { orders: Order[] }
  */
 export const getMyOrders = () =>
-  api.get('/api/orders');
+  api.get('/api/orders/my-orders');
 
 /**
  * Fetch a single order by its UUID.
