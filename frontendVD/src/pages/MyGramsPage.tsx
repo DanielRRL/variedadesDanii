@@ -6,11 +6,11 @@
  *       GET /api/essences?active=true (for redeem modal)
  *
  * Sections:
- *  1. Gram balance hero (gradient, jar SVG, progress)
- *  2. Action buttons (redeem / play)
- *  3. How to earn grams (collapsible explainer)
- *  4. Transaction history
- *  5. Redemption history (collapsible)
+ *  1. Gram balance hero (gradient, jar SVG, stats badges, progress dots)
+ *  2. Action card (redeem / play, section header)
+ *  3. How to earn grams (collapsible explainer, section header)
+ *  4. Transaction history (section header + list)
+ *  5. Redemption history (collapsible, section header)
  */
 
 import { useState, useMemo } from 'react';
@@ -19,7 +19,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ShoppingBag, Gamepad2, Trophy, Star, Lock,
   ChevronDown, ChevronUp, Gem, ArrowDownCircle, Settings, Minus, Plus,
-  Check,
+  Check, Info, List, Package,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import {
@@ -29,6 +29,7 @@ import { useToastStore } from '../stores/toastStore';
 import type { GramTransaction, EssenceRedemption, Essence } from '../types';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
+import '../css/MyGramsPage.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SVG jar component
@@ -36,7 +37,6 @@ import { BottomTabBar } from '../components/layout/BottomTabBar';
 
 function GramJar({ fillPct }: { fillPct: number }) {
   const clampedFill = Math.max(0, Math.min(100, fillPct));
-  // Jar body: viewBox 0 0 80 120. Neck 24-56 y0-20, body rounded rect 8-72 y20-110.
   return (
     <svg viewBox="0 0 80 120" className="w-20 h-28" aria-hidden>
       {/* Jar body outline */}
@@ -117,31 +117,30 @@ function RedeemModal({ currentGrams, onClose, onSuccess }: RedeemModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 font-body" onClick={onClose}>
+    <div className="grams-modal__overlay" onClick={onClose}>
       <div
-        className="w-full max-w-lg bg-surface rounded-t-2xl overflow-y-auto"
-        style={{ maxHeight: '85vh' }}
+        className="grams-modal"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-5 space-y-4">
-          <div className="w-10 h-1 bg-border rounded-full mx-auto" />
+        <div className="grams-modal__inner">
+          <div className="grams-modal__handle" />
 
           {successData ? (
             /* ── Success state ─── */
-            <div className="text-center py-6 space-y-3">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-                <Check size={32} className="text-emerald-500" />
+            <div className="grams-modal__success">
+              <div className="grams-modal__success-icon">
+                <Check size={32} />
               </div>
-              <p className="font-heading font-bold text-lg text-text-primary">¡Canje registrado!</p>
-              <p className="text-sm text-muted">
+              <p className="grams-modal__success-title">¡Canje registrado!</p>
+              <p className="grams-modal__success-desc">
                 El equipo de Variedades DANII te contactará para entregar tu esencia.
               </p>
-              <p className="font-body font-medium text-sm text-text-primary">
-                Número de canje: <span className="text-brand-pink">#{successData.redemptionNumber}</span>
+              <p className="grams-modal__success-number">
+                Número de canje: <em>#{successData.redemptionNumber}</em>
               </p>
               <button
                 onClick={onClose}
-                className="bg-brand-pink text-white font-heading font-bold px-8 py-3 rounded-full text-sm"
+                className="grams-modal__success-btn"
               >
                 Entendido
               </button>
@@ -149,80 +148,78 @@ function RedeemModal({ currentGrams, onClose, onSuccess }: RedeemModalProps) {
           ) : (
             /* ── Redeem form ─── */
             <>
-              <h2 className="font-heading font-bold text-base text-text-primary text-center">
+              <h2 className="grams-modal__title">
                 Canjear gramos por esencia
               </h2>
 
               {/* Gram stepper */}
-              <div className="text-center">
-                <p className="text-xs text-muted mb-2">¿Cuántos gramos canjear?</p>
-                <div className="flex items-center justify-center gap-4">
+              <div>
+                <p className="grams-modal__label">¿Cuántos gramos canjear?</p>
+                <div className="grams-modal__stepper">
                   <button
                     onClick={() => setGrams((g) => Math.max(1, g - 1))}
                     disabled={grams <= 1}
                     className={clsx(
-                      'w-10 h-10 rounded-full border flex items-center justify-center',
-                      grams <= 1 ? 'border-border text-border' : 'border-brand-pink text-brand-pink',
+                      'grams-modal__stepper-btn',
+                      grams <= 1 ? 'grams-modal__stepper-btn--disabled' : 'grams-modal__stepper-btn--active',
                     )}
                   >
                     <Minus size={18} />
                   </button>
-                  <span className="font-heading font-bold text-3xl text-brand-gold w-12 text-center">{grams}</span>
+                  <span className="grams-modal__stepper-val">{grams}</span>
                   <button
                     onClick={() => setGrams((g) => Math.min(currentGrams, g + 1))}
                     disabled={grams >= currentGrams}
                     className={clsx(
-                      'w-10 h-10 rounded-full border flex items-center justify-center',
-                      grams >= currentGrams ? 'border-border text-border' : 'border-brand-pink text-brand-pink',
+                      'grams-modal__stepper-btn',
+                      grams >= currentGrams ? 'grams-modal__stepper-btn--disabled' : 'grams-modal__stepper-btn--active',
                     )}
                   >
                     <Plus size={18} />
                   </button>
                 </div>
-                <p className="text-xs text-muted mt-1.5">
+                <p className="grams-modal__label">
                   {grams}g = {ozPreview} oz de esencia
                 </p>
               </div>
 
-              <p className="text-[11px] text-muted text-center bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <p className="grams-modal__info-banner">
                 Necesitas 13g para 1 oz completa. Puedes canjear fracciones.
               </p>
 
               {/* Essence selector */}
               <div>
-                <p className="font-body font-medium text-sm text-text-primary mb-2">Elige tu esencia:</p>
-                <div className="space-y-2 max-h-50 overflow-y-auto pr-1">
+                <p className="grams-modal__field-label">Elige tu esencia:</p>
+                <div className="grams-modal__essence-list">
                   {essences.length === 0 && (
-                    <p className="text-sm text-muted text-center py-3">Cargando esencias...</p>
+                    <p className="grams-modal__label">Cargando esencias...</p>
                   )}
                   {essences.map((ess) => (
                     <button
                       key={ess.id}
                       onClick={() => setSelectedEssence({ id: ess.id, name: ess.name })}
                       className={clsx(
-                        'w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all',
-                        selectedEssence?.id === ess.id
-                          ? 'border-brand-pink bg-brand-pink/5'
-                          : 'border-border bg-surface',
+                        'grams-modal__essence-item',
+                        selectedEssence?.id === ess.id && 'grams-modal__essence-item--selected',
                       )}
                     >
                       {ess.photoUrl ? (
-                        <img src={ess.photoUrl} alt={ess.name} className="w-10 h-10 rounded-lg object-cover flex-none" />
+                        <img src={ess.photoUrl} alt={ess.name} className="grams-modal__essence-img" />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-brand-pink/5 flex items-center justify-center flex-none">
-                          <span className="font-heading font-bold text-brand-pink/30">{ess.name.charAt(0)}</span>
+                        <div className="grams-modal__essence-placeholder">
+                          <span>{ess.name.charAt(0)}</span>
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-body font-medium text-sm text-text-primary truncate">{ess.name}</p>
+                      <div className="grams-modal__essence-info">
+                        <p className="grams-modal__essence-name">{ess.name}</p>
                         {ess.olfactiveFamily && (
-                          <span className="text-[10px] bg-background text-muted px-1.5 py-0.5 rounded">
+                          <span className="grams-modal__essence-family">
                             {ess.olfactiveFamily.name}
                           </span>
                         )}
                       </div>
                       {selectedEssence?.id === ess.id && (
-                        <Check size={18} className="text-brand-pink flex-none" />
+                        <Check size={18} className="grams-section-header__icon" />
                       )}
                     </button>
                   ))}
@@ -231,18 +228,18 @@ function RedeemModal({ currentGrams, onClose, onSuccess }: RedeemModalProps) {
 
               {/* Summary */}
               {selectedEssence && (
-                <div className="bg-background rounded-xl p-3 space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted">Canjearás:</span>
-                    <span className="font-bold text-text-primary">{grams}g</span>
+                <div className="grams-modal__summary">
+                  <div className="grams-modal__summary-row">
+                    <span className="grams-modal__summary-label">Canjearás:</span>
+                    <span className="grams-modal__summary-value">{grams}g</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted">Recibirás:</span>
-                    <span className="font-bold text-text-primary">{ozPreview} oz de {selectedEssence.name}</span>
+                  <div className="grams-modal__summary-row">
+                    <span className="grams-modal__summary-label">Recibirás:</span>
+                    <span className="grams-modal__summary-value">{ozPreview} oz de {selectedEssence.name}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted">Saldo restante:</span>
-                    <span className="font-bold text-brand-gold">{remainingGrams}g</span>
+                  <div className="grams-modal__summary-row">
+                    <span className="grams-modal__summary-label">Saldo restante:</span>
+                    <span className="grams-modal__summary-value" style={{ color: 'var(--grams-gold, #F9A825)' }}>{remainingGrams}g</span>
                   </div>
                 </div>
               )}
@@ -252,15 +249,13 @@ function RedeemModal({ currentGrams, onClose, onSuccess }: RedeemModalProps) {
                 onClick={handleConfirm}
                 disabled={!selectedEssence || isSubmitting}
                 className={clsx(
-                  'w-full py-3.5 rounded-full font-heading font-bold text-sm text-white flex items-center justify-center gap-2',
-                  !selectedEssence || isSubmitting
-                    ? 'bg-gray-300 cursor-not-allowed'
-                    : 'bg-brand-pink active:bg-brand-pink/80',
+                  'grams-modal__confirm-btn',
+                  (!selectedEssence || isSubmitting) && 'grams-modal__confirm-btn--disabled',
                 )}
               >
                 {isSubmitting ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="grams-modal__spinner" />
                     Procesando...
                   </>
                 ) : (
@@ -279,15 +274,15 @@ function RedeemModal({ currentGrams, onClose, onSuccess }: RedeemModalProps) {
 // Source type icon helper
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SOURCE_ICON: Record<string, { Icon: React.ElementType; color: string }> = {
-  PRODUCT_PURCHASE:  { Icon: ShoppingBag,     color: 'text-brand-pink bg-brand-pink/10' },
-  ESSENCE_OZ_BONUS:  { Icon: Star,            color: 'text-brand-gold bg-amber-50' },
-  GAME_ROULETTE:     { Icon: Gem,             color: 'text-brand-gold bg-amber-50' },
-  GAME_PUZZLE:       { Icon: Gamepad2,        color: 'text-blue-500 bg-blue-50' },
-  WEEKLY_CHALLENGE:  { Icon: Trophy,          color: 'text-brand-gold bg-amber-50' },
-  MONTHLY_RANKING:   { Icon: Star,            color: 'text-brand-gold bg-amber-50' },
-  ADMIN_ADJUSTMENT:  { Icon: Settings,        color: 'text-gray-400 bg-gray-100' },
-  REDEMPTION:        { Icon: ArrowDownCircle, color: 'text-red-400 bg-red-50' },
+const SOURCE_ICON: Record<string, { Icon: React.ElementType; variant: string }> = {
+  PRODUCT_PURCHASE:  { Icon: ShoppingBag,     variant: 'pink' },
+  ESSENCE_OZ_BONUS:  { Icon: Star,            variant: 'gold' },
+  GAME_ROULETTE:     { Icon: Gem,             variant: 'gold' },
+  GAME_PUZZLE:       { Icon: Gamepad2,        variant: 'blue' },
+  WEEKLY_CHALLENGE:  { Icon: Trophy,          variant: 'gold' },
+  MONTHLY_RANKING:   { Icon: Star,            variant: 'gold' },
+  ADMIN_ADJUSTMENT:  { Icon: Settings,        variant: 'gray' },
+  REDEMPTION:        { Icon: ArrowDownCircle, variant: 'red' },
 };
 
 function formatDate(iso: string): string {
@@ -324,6 +319,7 @@ export default function MyGramsPage() {
 
   const account = accountRes?.data?.account ?? accountRes?.data;
   const currentGrams: number = account?.currentGrams ?? 0;
+  const totalEarned: number = account?.totalEarned ?? 0;
   const totalPurchases: number = account?.totalPurchases ?? 0;
   const canRedeem: boolean = account?.canRedeem ?? false;
   const totalRedeemed: number = account?.totalRedeemed ?? 0;
@@ -344,43 +340,56 @@ export default function MyGramsPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background font-body pb-24">
-      <AppBar title="Mis Gramos" showBack />
+    <div className="grams-page">
+      <AppBar title="Mis Gramos" showBack variant='catalog' />
 
       {/* ── SECTION 1 — Gram balance hero ──────────────────────────────── */}
-      <div className="bg-linear-to-br from-brand-pink to-brand-pink/80 px-6 pt-8 pb-10 text-center">
+      <div className="grams-hero">
         {accountLoading ? (
-          <div className="h-32 flex items-center justify-center">
-            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '8rem' }}>
+            <div className="grams-hero__spinner" />
           </div>
         ) : (
           <>
-            <div className="flex justify-center mb-3">
+            <div className="grams-hero__jar">
               <GramJar fillPct={fillPct} />
             </div>
 
-            <p className="font-heading font-extrabold text-[72px] leading-none text-white">
+            <p className="grams-hero__number">
               {currentGrams}
             </p>
-            <p className="text-white text-lg mt-1 font-body">gramos</p>
-            <p className="text-white/70 text-sm mt-0.5">de 13 máximos</p>
+            <p className="grams-hero__label">gramos</p>
+            <p className="grams-hero__subtitle">de 13 máximos</p>
+
+            {/* Stats badges row */}
+            <div className="grams-hero__stats">
+              <span className="grams-hero__stat-badge">
+                <Trophy size={12} /> Ganados: <strong>{totalEarned}</strong>
+              </span>
+              <span className="grams-hero__stat-badge">
+                <ArrowDownCircle size={12} /> Canjeados: <strong>{totalRedeemed}</strong>
+              </span>
+              <span className="grams-hero__stat-badge">
+                <ShoppingBag size={12} /> Compras: <strong>{totalPurchases}</strong>
+              </span>
+            </div>
 
             {canRedeem && currentGrams > 0 ? (
-              <span className="inline-block mt-3 bg-emerald-400 text-white font-body font-semibold text-xs px-4 py-1.5 rounded-full">
+              <span className="grams-hero__redeem-badge">
                 Canje disponible
               </span>
             ) : (
-              <div className="mt-3 flex items-center justify-center gap-1.5">
+              <div className="grams-hero__purchase-dots">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <span
                     key={i}
                     className={clsx(
-                      'w-2.5 h-2.5 rounded-full',
-                      i < totalPurchases ? 'bg-white' : 'bg-white/30',
+                      'grams-hero__dot',
+                      i < totalPurchases ? 'grams-hero__dot--filled' : 'grams-hero__dot--empty',
                     )}
                   />
                 ))}
-                <span className="text-white/60 text-xs ml-1.5">
+                <span className="grams-hero__dots-label">
                   Disponible en compra {Math.min(totalPurchases + 1, 5)} de 5
                 </span>
               </div>
@@ -389,21 +398,26 @@ export default function MyGramsPage() {
         )}
       </div>
 
-      <main className="px-4 -mt-5 space-y-4">
+      <div className="grams-main">
 
-        {/* ── SECTION 2 — Action buttons ───────────────────────────────── */}
-        <div className="bg-surface rounded-xl border border-border p-4 space-y-3">
+        {/* ── SECTION 2 — Action card ──────────────────────────────────── */}
+        <div className="grams-card">
+          <div className="grams-section-header">
+            <Gem size={16} className="grams-section-header__icon" strokeWidth={2} />
+            <h2 className="grams-section-header__title">Canje</h2>
+          </div>
+
           {canRedeem && currentGrams > 0 ? (
             <button
               onClick={() => setShowRedeem(true)}
-              className="w-full py-3.5 rounded-full bg-brand-pink text-white font-heading font-bold text-sm"
+              className="grams-actions__redeem-btn"
             >
               Canjear {currentGrams}g por esencia
             </button>
           ) : (
             <button
               disabled
-              className="w-full py-3.5 rounded-full bg-gray-200 text-gray-400 font-heading font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed"
+              className="grams-actions__redeem-btn grams-actions__redeem-btn--locked"
             >
               <Lock size={14} />
               Canjea desde tu 5ª compra
@@ -411,17 +425,17 @@ export default function MyGramsPage() {
           )}
 
           {!canRedeem && purchasesUntilRedeem > 0 && (
-            <div className="flex items-center justify-center gap-1.5">
+            <div className="grams-actions__purchase-dots">
               {Array.from({ length: 5 }).map((_, i) => (
                 <span
                   key={i}
                   className={clsx(
-                    'w-2 h-2 rounded-full',
-                    i < totalPurchases ? 'bg-brand-pink' : 'bg-gray-200',
+                    'grams-actions__dot',
+                    i < totalPurchases ? 'grams-actions__dot--filled' : 'grams-actions__dot--empty',
                   )}
                 />
               ))}
-              <span className="text-xs text-muted ml-1">
+              <span className="grams-actions__dots-label">
                 {totalPurchases} de 5 compras confirmadas
               </span>
             </div>
@@ -429,51 +443,52 @@ export default function MyGramsPage() {
 
           <Link
             to="/juegos"
-            className="block w-full py-3 rounded-full border-2 border-brand-pink text-brand-pink font-heading font-bold text-sm text-center"
+            className="grams-actions__play-link"
           >
             Ir a jugar (hasta 4g posibles)
           </Link>
         </div>
 
         {/* ── SECTION 3 — How to earn grams ─────────────────────────────── */}
-        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+        <div className="grams-howto">
           <button
             onClick={() => setHowToExpanded((v) => !v)}
-            className="w-full flex items-center justify-between p-4"
+            className="grams-howto__toggle"
           >
-            <span className="font-heading font-semibold text-sm text-text-primary">
-              ¿Cómo ganar gramos?
-            </span>
+            <div className="grams-section-header" style={{ marginBottom: 0, flex: 1 }}>
+              <Info size={16} className="grams-section-header__icon" strokeWidth={2} />
+              <span className="grams-section-header__title">¿Cómo ganar gramos?</span>
+            </div>
             {howToExpanded
-              ? <ChevronUp size={16} className="text-muted" />
-              : <ChevronDown size={16} className="text-muted" />}
+              ? <ChevronUp size={16} style={{ color: 'var(--color-muted)' }} />
+              : <ChevronDown size={16} style={{ color: 'var(--color-muted)' }} />}
           </button>
 
           <div className={clsx(
-            'overflow-hidden transition-all duration-300',
-            howToExpanded ? 'max-h-80' : 'max-h-0',
+            'grams-howto__body',
+            howToExpanded ? 'grams-howto__body--expanded' : 'grams-howto__body--collapsed',
           )}>
-            <div className="px-4 pb-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <ShoppingBag size={18} className="text-brand-pink flex-none mt-0.5" />
-                <p className="text-sm text-muted">+1g por cada loción, crema o shampoo comprado</p>
+            <div className="grams-howto__content">
+              <div className="grams-howto__item">
+                <ShoppingBag size={18} className="grams-howto__item-icon grams-howto__item-icon--pink" />
+                <p className="grams-howto__item-text">+1g por cada loción, crema o shampoo comprado</p>
               </div>
-              <div className="flex items-start gap-3">
-                <Gamepad2 size={18} className="text-blue-500 flex-none mt-0.5" />
-                <p className="text-sm text-muted">+1 a 4g jugando en la Sala de Juegos</p>
+              <div className="grams-howto__item">
+                <Gamepad2 size={18} className="grams-howto__item-icon grams-howto__item-icon--blue" />
+                <p className="grams-howto__item-text">+1 a 4g jugando en la Sala de Juegos</p>
               </div>
-              <div className="flex items-start gap-3">
-                <Trophy size={18} className="text-brand-gold flex-none mt-0.5" />
-                <p className="text-sm text-muted">+Xg completando el reto semanal</p>
+              <div className="grams-howto__item">
+                <Trophy size={18} className="grams-howto__item-icon grams-howto__item-icon--gold" />
+                <p className="grams-howto__item-text">+Xg completando el reto semanal</p>
               </div>
-              <div className="flex items-start gap-3">
-                <Star size={18} className="text-brand-gold flex-none mt-0.5" />
-                <p className="text-sm text-muted">+Xg al estar en el top 10 mensual</p>
+              <div className="grams-howto__item">
+                <Star size={18} className="grams-howto__item-icon grams-howto__item-icon--gold" />
+                <p className="grams-howto__item-text">+Xg al estar en el top 10 mensual</p>
               </div>
               {totalRedeemed > 0 && (
-                <div className="flex items-start gap-3">
-                  <Gem size={18} className="text-amber-500 flex-none mt-0.5" />
-                  <p className="text-sm text-muted">Al recargar una esencia canjeada también acumulas gramos</p>
+                <div className="grams-howto__item">
+                  <Gem size={18} className="grams-howto__item-icon grams-howto__item-icon--amber" />
+                  <p className="grams-howto__item-text">Al recargar una esencia canjeada también acumulas gramos</p>
                 </div>
               )}
             </div>
@@ -481,93 +496,93 @@ export default function MyGramsPage() {
         </div>
 
         {/* ── SECTION 4 — Transaction history ──────────────────────────── */}
-        <div className="space-y-3">
-          <h2 className="font-heading font-bold text-base text-text-primary">
-            Historial de movimientos
-          </h2>
+        <div>
+          <div className="grams-section-header">
+            <List size={16} className="grams-section-header__icon" strokeWidth={2} />
+            <h2 className="grams-section-header__title">Historial de movimientos</h2>
+          </div>
 
           {transactions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted">
-                Aún no tienes movimientos. ¡Haz tu primera compra!
-              </p>
+            <div className="grams-tx__empty">
+              Aún no tienes movimientos. ¡Haz tu primera compra!
             </div>
           ) : (
-            <>
-              <div className="space-y-2">
-                {visibleTx.map((tx) => {
-                  const cfg = SOURCE_ICON[tx.sourceType] ?? SOURCE_ICON.ADMIN_ADJUSTMENT;
-                  const positive = tx.gramsDelta > 0;
-                  return (
-                    <div key={tx.id} className="bg-surface rounded-xl border border-border p-3.5 flex items-center gap-3">
-                      <div className={clsx('w-9 h-9 rounded-full flex items-center justify-center flex-none', cfg.color)}>
-                        <cfg.Icon size={16} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-body text-sm text-text-primary truncate">{tx.description}</p>
-                        <p className="font-body text-[11px] text-muted">{formatDate(tx.createdAt)}</p>
-                      </div>
-                      <span className={clsx(
-                        'font-heading font-bold text-base flex-none',
-                        positive ? 'text-emerald-500' : 'text-red-400',
-                      )}>
-                        {positive ? '+' : ''}{tx.gramsDelta}g
-                      </span>
+            <div className="grams-tx__list">
+              {visibleTx.map((tx) => {
+                const cfg = SOURCE_ICON[tx.sourceType] ?? SOURCE_ICON.ADMIN_ADJUSTMENT;
+                const positive = tx.gramsDelta > 0;
+                return (
+                  <div key={tx.id} className="grams-tx__item">
+                    <div className={clsx('grams-tx__icon-wrap', `grams-tx__icon-wrap--${cfg.variant}`)}>
+                      <cfg.Icon size={16} />
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="grams-tx__info">
+                      <p className="grams-tx__desc">{tx.description}</p>
+                      <p className="grams-tx__date">{formatDate(tx.createdAt)}</p>
+                    </div>
+                    <span className={clsx(
+                      'grams-tx__delta',
+                      positive ? 'grams-tx__delta--positive' : 'grams-tx__delta--negative',
+                    )}>
+                      {positive ? '+' : ''}{tx.gramsDelta}g
+                    </span>
+                  </div>
+                );
+              })}
 
               {transactions.length > 10 && !showAllTx && (
                 <button
                   onClick={() => setShowAllTx(true)}
-                  className="w-full text-center text-sm text-brand-pink font-body font-medium py-2"
+                  className="grams-tx__more-btn"
                 >
                   Ver todos ({transactions.length})
                 </button>
               )}
-            </>
+            </div>
           )}
         </div>
 
         {/* ── SECTION 5 — Redemption history ───────────────────────────── */}
         {redemptions.length > 0 && (
-          <div className="bg-surface rounded-xl border border-border overflow-hidden">
+          <div className="grams-redemptions">
             <button
               onClick={() => setRedemptionsExpanded((v) => !v)}
-              className="w-full flex items-center justify-between p-4"
+              className="grams-redemptions__toggle"
             >
-              <span className="font-heading font-semibold text-sm text-text-primary">
-                Mis canjes de esencias ({redemptions.length})
-              </span>
+              <div className="grams-section-header" style={{ marginBottom: 0, flex: 1 }}>
+                <Package size={16} className="grams-section-header__icon" strokeWidth={2} />
+                <span className="grams-section-header__title">
+                  Mis canjes de esencias ({redemptions.length})
+                </span>
+              </div>
               {redemptionsExpanded
-                ? <ChevronUp size={16} className="text-muted" />
-                : <ChevronDown size={16} className="text-muted" />}
+                ? <ChevronUp size={16} style={{ color: 'var(--color-muted)' }} />
+                : <ChevronDown size={16} style={{ color: 'var(--color-muted)' }} />}
             </button>
 
             <div className={clsx(
-              'overflow-hidden transition-all duration-300',
-              redemptionsExpanded ? 'max-h-150' : 'max-h-0',
+              'grams-redemptions__body',
+              redemptionsExpanded ? 'grams-redemptions__body--expanded' : 'grams-redemptions__body--collapsed',
             )}>
-              <div className="px-4 pb-4 space-y-3">
+              <div className="grams-redemptions__content">
                 {redemptions.map((r) => (
-                  <div key={r.id} className="bg-background rounded-xl p-3.5 space-y-1.5">
-                    <p className="font-body font-medium text-sm text-text-primary">
+                  <div key={r.id} className="grams-redemptions__item">
+                    <p className="grams-redemptions__name">
                       {r.essenceName || 'Esencia pendiente de selección'}
                     </p>
-                    <p className="text-xs text-muted">{r.ozRedeemed.toFixed(1)} oz · {r.gramsUsed}g</p>
-                    <div className="flex items-center justify-between">
+                    <p className="grams-redemptions__detail">{r.ozRedeemed.toFixed(1)} oz · {r.gramsUsed}g</p>
+                    <div className="grams-redemptions__footer">
                       <span className={clsx(
-                        'text-[11px] font-body font-semibold px-2.5 py-0.5 rounded-full',
-                        r.status === 'PENDING_DELIVERY' && 'bg-orange-100 text-orange-600',
-                        r.status === 'DELIVERED' && 'bg-emerald-100 text-emerald-600',
-                        r.status === 'CANCELLED' && 'bg-gray-100 text-gray-500',
+                        'grams-redemptions__status',
+                        r.status === 'PENDING_DELIVERY' && 'grams-redemptions__status--pending',
+                        r.status === 'DELIVERED' && 'grams-redemptions__status--delivered',
+                        r.status === 'CANCELLED' && 'grams-redemptions__status--cancelled',
                       )}>
                         {r.status === 'PENDING_DELIVERY' && 'Pendiente de entrega'}
                         {r.status === 'DELIVERED' && 'Entregado'}
                         {r.status === 'CANCELLED' && 'Cancelado'}
                       </span>
-                      <span className="text-[11px] text-muted">{formatDate(r.createdAt)}</span>
+                      <span className="grams-redemptions__date">{formatDate(r.createdAt)}</span>
                     </div>
                   </div>
                 ))}
@@ -576,7 +591,7 @@ export default function MyGramsPage() {
           </div>
         )}
 
-      </main>
+      </div>
 
       {/* ── Redeem modal ───────────────────────────────────────────────── */}
       {showRedeem && (
