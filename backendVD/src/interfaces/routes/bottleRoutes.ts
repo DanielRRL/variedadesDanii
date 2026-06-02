@@ -16,6 +16,12 @@ import { authMiddleware } from "../middleware/authMiddleware";
 // roleMiddleware - Restringe acceso por rol.
 import { roleMiddleware } from "../middleware/roleMiddleware";
 
+// Validadores de frascos.
+import { createBottleValidator, updateBottleValidator } from "../validators/bottleValidator";
+
+// validate - Middleware que revisa errores de express-validator.
+import { validate } from "../validators/validate";
+
 /**
  * Crea y retorna el router de frascos.
  * @param bottleController - Controlador inyectado desde app.ts.
@@ -37,8 +43,20 @@ export const createBottleRoutes = (
   // A partir de aqui, se requiere autenticacion
   router.use(authMiddleware);
   // Solo ADMIN puede crear, editar y eliminar frascos
-  router.post("/", roleMiddleware("ADMIN"), bottleController.create);
-  router.put("/:id", roleMiddleware("ADMIN"), bottleController.update);
+  router.post(
+    "/",
+    roleMiddleware("ADMIN"),
+    createBottleValidator,
+    validate,
+    bottleController.create
+  );
+  router.put(
+    "/:id",
+    roleMiddleware("ADMIN"),
+    updateBottleValidator,
+    validate,
+    bottleController.update
+  );
   router.delete("/:id", roleMiddleware("ADMIN"), bottleController.delete);
 
   return router;

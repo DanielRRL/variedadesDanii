@@ -16,7 +16,7 @@ import {
   Gamepad2,
   Bell,
   Shield,
-  Info,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,13 +77,21 @@ export default function AdminConfigPage() {
         <Settings size={24} className="text-brand-pink" />
       </div>
 
-      {/* Info banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-2">
-        <Info size={16} className="text-blue-500 mt-0.5 shrink-0" />
-        <p className="text-sm text-blue-800">
-          Estos valores se configuran desde las variables de entorno del servidor.
-          Contacta al desarrollador para modificarlos.
-        </p>
+      {/* Warning banner */}
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6">
+        <div className="flex items-start gap-3">
+          <AlertTriangle size={20} className="text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-heading font-semibold text-amber-800 text-sm mb-1">
+              Configuración de referencia
+            </h3>
+            <p className="text-[13px] text-amber-700 leading-relaxed">
+              Estos valores son la configuración de referencia documentada. La configuración real se define 
+              en las variables de entorno del servidor y puede diferir de lo mostrado aquí. 
+              Para modificar cualquier valor, contacta al desarrollador.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

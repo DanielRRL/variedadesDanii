@@ -28,7 +28,7 @@ export const optionalAuth = (
       const token = header.slice(7);
       const payload = jwt.verify(token, env.jwt.secret) as { userId: string; role: string };
       req.userId = payload.userId;
-      req.userRole = payload.role;
+      req.userRole = payload.role as "ADMIN" | "CLIENT" | "SELLER" | "DELIVERY";
     } catch {
       // Token invalido: se ignora, sigue como anonimo
     }

@@ -16,7 +16,7 @@ interface SkeletonProps {
 function Pulse({ className = "" }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse bg-slate-200 rounded ${className}`}
+      className={`animate-shimmer bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 rounded ${className}`}
       aria-hidden="true"
     />
   );
@@ -24,10 +24,10 @@ function Pulse({ className = "" }: SkeletonProps) {
 
 function Card() {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col gap-3">
+    <div className="rounded-2xl border border-white/20 bg-white/40 backdrop-blur-sm p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <Pulse className="h-3 w-20" />
-        <Pulse className="h-8 w-8 rounded-lg" />
+        <Pulse className="h-8 w-8 rounded-xl" />
       </div>
       <Pulse className="h-7 w-28" />
       <Pulse className="h-3 w-32" />
@@ -37,12 +37,12 @@ function Card() {
 
 function Chart() {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
+    <div className="rounded-2xl border border-white/20 bg-white/40 backdrop-blur-sm p-6">
       <div className="flex items-center justify-between mb-5">
-        <Pulse className="h-4 w-32" />
-        <Pulse className="h-7 w-36 rounded-lg" />
+        <Pulse className="h-4 w-36" />
+        <Pulse className="h-7 w-28 rounded-lg" />
       </div>
-      <Pulse className="h-48 w-full rounded-lg" />
+      <Pulse className="h-52 w-full rounded-xl" />
     </div>
   );
 }

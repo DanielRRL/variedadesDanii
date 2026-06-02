@@ -654,8 +654,9 @@ export const getGamificationStats = () =>
  * GET /api/admin/redemptions?page&limit
  * Paginated list of pending essence redemptions for admin fulfillment.
  */
-export const adminGetPendingRedemptions = (page = 1) =>
-  api.get('/api/admin/redemptions', { params: { page, limit: 20 } });
+export const adminGetPendingRedemptions = (page = 1, status?: string) =>
+  // TODO: Backend should support a `status` query parameter to filter by redemption status server-side.
+  api.get('/api/admin/redemptions', { params: { page, limit: 20, ...(status && { status }) } });
 
 /**
  * PATCH /api/admin/redemptions/:id/deliver

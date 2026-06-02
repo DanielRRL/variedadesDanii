@@ -10,6 +10,8 @@
 
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToastStore } from '../../stores/toastStore';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import {
   CheckCircle2,
   XCircle,
@@ -89,6 +91,7 @@ interface AdminRedemption extends EssenceRedemption {
 
 export default function AdminRedemptionsPage() {
   const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
   const [filter, setFilter] = useState<StatusFilter>('PENDING_DELIVERY');
   const [page, setPage]     = useState(1);
 
@@ -98,17 +101,14 @@ export default function AdminRedemptionsPage() {
   const [notes, setNotes]     = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { data: res, isLoading } = useQuery({
+  const { data: res, isLoading, isError } = useQuery({
     queryKey: ['admin-redemptions', filter, page],
-    queryFn: () => adminGetPendingRedemptions(page),
+    queryFn: () => adminGetPendingRedemptions(page, filter),
     staleTime: 30_000,
   });
 
-  const allRedemptions: AdminRedemption[] = res?.data?.redemptions ?? res?.data ?? [];
+  const redemptions: AdminRedemption[] = res?.data?.redemptions ?? res?.data ?? [];
   const totalPages: number = res?.data?.totalPages ?? 1;
-
-  // Client-side filter by status
-  const redemptions = allRedemptions.filter((r) => r.status === filter);
 
   // ── Confirm delivery ──
   const handleConfirm = async (e: FormEvent) => {
@@ -123,7 +123,7 @@ export default function AdminRedemptionsPage() {
       setConfirmTarget(null);
       setNotes('');
     } catch {
-      alert('Error al confirmar entrega.');
+      addToast('Error al confirmar entrega.', 'error');
     } finally {
       setLoading(false);
     }
@@ -143,11 +143,13 @@ export default function AdminRedemptionsPage() {
       setCancelTarget(null);
       setNotes('');
     } catch {
-      alert('Error al cancelar canje.');
+      addToast('Error al cancelar canje.', 'error');
     } finally {
       setLoading(false);
     }
   };
+
+  if (isError) return <AdminQueryError />;
 
   if (isLoading) {
     return (
@@ -225,15 +227,15 @@ export default function AdminRedemptionsPage() {
                     <td className="px-4 py-3">
                       {r.status === 'PENDING_DELIVERY' && (
                         <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => setConfirmTarget(r)}
+                           <button
+                            onClick={() => { setConfirmTarget(r); setNotes(''); }}
                             className="p-1.5 text-muted hover:text-green-600 rounded-lg hover:bg-green-50 transition-colors"
                             title="Confirmar entrega"
                           >
                             <CheckCircle2 size={14} />
                           </button>
                           <button
-                            onClick={() => setCancelTarget(r)}
+                            onClick={() => { setCancelTarget(r); setNotes(''); }}
                             className="p-1.5 text-muted hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
                             title="Cancelar canje"
                           >

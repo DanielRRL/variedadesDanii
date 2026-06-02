@@ -28,6 +28,8 @@ import {
 import clsx from 'clsx';
 
 import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
+import { useToastStore } from '../../stores/toastStore';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import {
   getEssences,
   getOlfactiveFamilies,
@@ -463,6 +465,7 @@ function EssenceFormModal({
 
 export default function AdminEssencesPage() {
   const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Essence | null>(null);
 
@@ -477,23 +480,23 @@ export default function AdminEssencesPage() {
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [toggleTarget, setToggleTarget] = useState<Essence | null>(null);
   // Data queries
-  const { data: essencesRes, isLoading } = useQuery({
+  const { data: essencesRes, isLoading, isError } = useQuery({
     queryKey: ['admin-essences'],
     queryFn: () => getEssences(),
   });
 
-  const { data: lowStockRes } = useQuery({
+  const { data: lowStockRes, isError: isLowStockError } = useQuery({
     queryKey: ['admin-low-stock'],
     queryFn: () => getLowStockAlerts(),
     staleTime: 5 * 60_000,
   });
 
-  const { data: familiesRes } = useQuery({
+  const { data: familiesRes, isError: isFamiliesError } = useQuery({
     queryKey: ['olfactive-families'],
     queryFn: () => getOlfactiveFamilies(),
   });
 
-  const { data: housesRes } = useQuery({
+  const { data: housesRes, isError: isHousesError } = useQuery({
     queryKey: ['houses'],
     queryFn: () => getHouses(),
   });
@@ -502,6 +505,8 @@ export default function AdminEssencesPage() {
   const lowStock: { name: string; stockMl: number }[] = lowStockRes?.data?.essences ?? lowStockRes?.data ?? [];
   const families: OlfactiveFamily[] = familiesRes?.data ?? [];
   const houses: House[] = housesRes?.data ?? [];
+
+  if (isError || isLowStockError || isFamiliesError || isHousesError) return <AdminQueryError />;
 
   const filtered = search
     ? essences.filter((e) =>
@@ -529,7 +534,7 @@ export default function AdminEssencesPage() {
       setCreateOpen(false);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error desconocido';
-      alert(`Error al crear esencia: ${msg}`);
+      addToast(`Error al crear esencia: ${msg}`, 'error');
     } finally {
       setSaving(false);
     }
@@ -553,7 +558,7 @@ export default function AdminEssencesPage() {
       setEditTarget(null);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error desconocido';
-      alert(`Error al actualizar esencia: ${msg}`);
+      addToast(`Error al actualizar esencia: ${msg}`, 'error');
     } finally {
       setSaving(false);
     }
@@ -573,7 +578,7 @@ export default function AdminEssencesPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-essences'] });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error desconocido';
-      alert(`Error al cambiar estado: ${msg}`);
+      addToast(`Error al cambiar estado: ${msg}`, 'error');
     }
   };
 

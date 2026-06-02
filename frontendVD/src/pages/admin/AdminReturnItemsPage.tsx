@@ -8,8 +8,9 @@
  *  - GET  /api/bottles                   → list returnable bottles
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import {
   RotateCcw,
   Search,
@@ -54,7 +55,7 @@ function ReturnModal({
   const [quantity, setQuantity] = useState(1);
   const [success, setSuccess] = useState(false);
 
-  const { data: bottlesRes, isLoading: bottlesLoading } = useQuery({
+  const { data: bottlesRes, isLoading: bottlesLoading, isError: isBottlesError } = useQuery({
     queryKey: ['bottles'],
     queryFn: getBottles,
   });
@@ -68,6 +69,8 @@ function ReturnModal({
       queryClient.invalidateQueries({ queryKey: ['admin-returns'] });
     },
   });
+
+  if (isBottlesError) return <AdminQueryError />;
 
   const selectedBottle = bottles.find((b) => b.id === bottleId);
   const canSubmit = bottleId && orderId && quantity > 0 && !mutation.isPending;
@@ -182,20 +185,23 @@ function ReturnModal({
 export default function AdminReturnItemsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserHit | null>(null);
 
-  // Debounce search
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    clearTimeout((window as any).__returnSearchTimer);
-    (window as any).__returnSearchTimer = setTimeout(() => setDebouncedSearch(value), 400);
-  };
+  useEffect(() => {
+    timerRef.current = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [search]);
 
-  const { data: usersRes, isLoading: usersLoading } = useQuery({
+  const { data: usersRes, isLoading: usersLoading, isError: isUsersError } = useQuery({
     queryKey: ['admin-search-users-returns', debouncedSearch],
     queryFn: () => searchUsers({ search: debouncedSearch }),
     enabled: debouncedSearch.length >= 2,
   });
+
+  if (isUsersError) return <AdminQueryError />;
 
   const users: UserHit[] = usersRes?.data?.users ?? usersRes?.data ?? [];
 
@@ -228,7 +234,7 @@ export default function AdminReturnItemsPage() {
         <input
           type="text"
           value={search}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar cliente por nombre, email o teléfono..."
           className="w-full pl-9 pr-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/30"
         />

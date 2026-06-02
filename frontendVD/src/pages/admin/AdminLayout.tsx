@@ -8,7 +8,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -33,6 +33,7 @@ import {
   Sunset,
   Moon,
   ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/authStore";
@@ -117,8 +118,22 @@ function useGreeting(): GreetingData {
 export default function AdminLayout() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const location = useLocation();
   const greeting = useGreeting();
   const GreetingIcon = greeting.icon;
+
+  const pathname = location.pathname;
+  const pathSegments = pathname.startsWith("/admin/")
+    ? pathname.replace("/admin/", "").split("/").filter(Boolean)
+    : [];
+
+  const buildPath = (index: number) => {
+    const parts = pathSegments.slice(0, index + 1);
+    return `/admin${parts.length ? "/" + parts.join("/") : ""}`;
+  };
+
+  const formatSegment = (segment: string) =>
+    segment.charAt(0).toUpperCase() + segment.slice(1);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -175,7 +190,7 @@ export default function AdminLayout() {
 
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
       <aside
-        className={`shrink-0 ${sidebarWidth} bg-sidebar-bg flex flex-col h-screen transition-[width,margin] duration-200 ${
+        className={`shrink-0 ${sidebarWidth} bg-sidebar-bg/95 backdrop-blur-xl border-r border-white/10 flex flex-col h-screen transition-[width,margin] duration-200 ${
           sidebarOpen ? "ml-0" : "-ml-60 lg:ml-0"
         } ${collapsed ? "lg:w-[68px]" : ""}`}
       >
@@ -183,8 +198,10 @@ export default function AdminLayout() {
         <div className="px-4 py-4 border-b border-white/[0.08] shrink-0 flex items-center justify-between">
           {!collapsed && (
             <div className="min-w-0">
-              <p className="font-heading font-bold text-brand-pink text-sm leading-tight">
-                Variedades DANII
+              <p className="font-heading font-bold text-sm leading-tight">
+                <span className="bg-gradient-to-r from-brand-pink to-brand-gold bg-clip-text text-transparent font-bold">
+                  Variedades DANII
+                </span>
               </p>
               <p className="text-[10px] text-sidebar-text/60 uppercase tracking-[0.15em] mt-0.5">
                 Panel Admin
@@ -300,10 +317,11 @@ export default function AdminLayout() {
               collapsed ? "justify-center" : ""
             }`}
           >
-            <div className="w-8 h-8 rounded-full bg-brand-pink flex items-center justify-center shrink-0">
+            <div className="relative w-8 h-8 rounded-full bg-brand-pink flex items-center justify-center shrink-0 ring-2 ring-offset-1 ring-offset-sidebar-bg ring-brand-pink/30">
               <span className="text-white text-xs font-bold leading-none">
                 {initials}
               </span>
+              <span className="absolute bottom-0 right-0 size-1 rounded-full bg-green-500 ring-2 ring-sidebar-bg" />
             </div>
             {!collapsed && (
               <div className="min-w-0">
@@ -322,8 +340,8 @@ export default function AdminLayout() {
       {/* ── Main content ──────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         {/* Sticky top bar */}
-        <header className="sticky top-0 z-20 bg-white border-b border-slate-200 h-14 flex items-center justify-between px-4 sm:px-6 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md h-14 flex items-center justify-between px-4 sm:px-6 shrink-0 relative admin-topbar">
+          <div className="flex items-center gap-3 min-w-0 z-10">
             {/* Hamburger — mobile only */}
             <button
               onClick={() => setSidebarOpen(true)}
@@ -332,17 +350,42 @@ export default function AdminLayout() {
             >
               <Menu size={18} />
             </button>
-
-            <div className="flex items-center gap-2 min-w-0">
-              <GreetingIcon size={17} className="text-brand-pink shrink-0" />
-              <p className="text-[13px] text-slate-600 truncate">
-                {greeting.text},{" "}
-                <span className="font-semibold text-slate-800">{firstName}</span>
-              </p>
-            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          {/* ── Greeting — centered, editorial, animated on each nav ── */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none whitespace-nowrap z-0"
+            key={location.pathname}
+          >
+            {GreetingIcon && (
+              <span
+                className="animate-fadeIn shrink-0"
+                style={{ animationDelay: "0.1s" }}
+              >
+                <GreetingIcon size={15} className="text-brand-pink" />
+              </span>
+            )}
+            <span
+              className="animate-slideUp text-sm font-medium"
+              style={{ animationDelay: "0.15s" }}
+            >
+              <span className="text-slate-600">{greeting.text}</span>
+              <span className="hidden sm:inline text-slate-400">, </span>
+              <span
+                className="hidden sm:inline font-semibold"
+                style={{
+                  background: "linear-gradient(90deg, #D81B60 0%, #880E4F 100%)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                {firstName}
+              </span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 z-10">
             <button
               className="relative p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               aria-label="Notificaciones"
@@ -359,6 +402,22 @@ export default function AdminLayout() {
 
         {/* Page content */}
         <main id="admin-main-content" className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+          {pathname !== "/admin" && pathSegments.length > 0 && (
+            <nav className="flex items-center gap-1.5 text-[13px] text-slate-400 mb-4">
+              <Link to="/admin" className="hover:text-brand-pink transition-colors">Dashboard</Link>
+              {pathSegments.map((segment, i) => (
+                <span key={segment} className="flex items-center gap-1.5">
+                  <ChevronRight size={13} />
+                  <Link
+                    to={buildPath(i)}
+                    className={`${i === pathSegments.length - 1 ? "text-slate-700 font-medium" : "hover:text-brand-pink transition-colors"}`}
+                  >
+                    {formatSegment(segment)}
+                  </Link>
+                </span>
+              ))}
+            </nav>
+          )}
           <Outlet />
         </main>
       </div>

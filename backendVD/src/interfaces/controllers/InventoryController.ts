@@ -14,6 +14,9 @@ import { InventoryService } from "../../application/services/InventoryService";
 // param - Helper de Express 5.
 import { param } from "../../utils/param";
 
+// AppError - Errores HTTP estandarizados.
+import { AppError } from "../../utils/AppError";
+
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
@@ -103,12 +106,10 @@ export class InventoryController {
       const { type, ml, reason, notes } = req.body;
 
       if (!type || !["IN", "OUT"].includes(type)) {
-        res.status(400).json({ success: false, message: "type must be IN or OUT" });
-        return;
+        throw AppError.badRequest("type must be IN or OUT");
       }
       if (!ml || ml <= 0) {
-        res.status(400).json({ success: false, message: "ml must be greater than 0" });
-        return;
+        throw AppError.badRequest("ml must be greater than 0");
       }
 
       // Map human-readable reason to enum value, fallback to raw value

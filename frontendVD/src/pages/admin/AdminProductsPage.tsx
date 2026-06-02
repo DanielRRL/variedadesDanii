@@ -37,6 +37,8 @@ import {
 } from '../../services/api';
 import { formatCOP } from '../../utils/format';
 import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
+import { useToastStore } from '../../stores/toastStore';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import type { Product, Essence, House } from '../../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -282,6 +284,7 @@ function AddStockModal({
   const [notes, setNotes]   = useState('');
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -294,7 +297,7 @@ function AddStockModal({
       setNotes('');
       onClose();
     } catch {
-      alert('Error al agregar stock.');
+      addToast('Error al agregar stock.', 'error');
     } finally {
       setLoading(false);
     }
@@ -341,6 +344,7 @@ function AddStockModal({
 
 export default function AdminProductsPage() {
   const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
 
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -359,7 +363,7 @@ export default function AdminProductsPage() {
   const [toggleTarget, setToggleTarget] = useState<Product | null>(null);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
 
-  const { data: res, isLoading } = useQuery({
+  const { data: res, isLoading, isError } = useQuery({
     queryKey: ['admin-products', typeFilter, activeFilter, page],
     queryFn: () =>
       adminGetProducts({
@@ -401,7 +405,7 @@ export default function AdminProductsPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setCreateOpen(false);
     } catch {
-      alert('Error al crear producto.');
+      addToast('Error al crear producto.', 'error');
     } finally {
       setSaving(false);
     }
@@ -425,7 +429,7 @@ export default function AdminProductsPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setEditTarget(null);
     } catch {
-      alert('Error al actualizar producto.');
+      addToast('Error al actualizar producto.', 'error');
     } finally {
       setSaving(false);
     }
@@ -444,7 +448,7 @@ export default function AdminProductsPage() {
       await adminToggleProduct(p.id);
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     } catch {
-      alert('Error al cambiar estado.');
+      addToast('Error al cambiar estado.', 'error');
     }
   };
 
@@ -465,6 +469,8 @@ export default function AdminProductsPage() {
       setDeleting(false);
     }
   };
+
+  if (isError) return <AdminQueryError />;
 
   if (isLoading) {
     return (

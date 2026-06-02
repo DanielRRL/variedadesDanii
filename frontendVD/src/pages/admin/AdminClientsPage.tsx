@@ -23,6 +23,8 @@ import AdminPageHeader from "../../components/admin/AdminPageHeader";
 import AdminModal from "../../components/admin/AdminModal";
 import AdminStatusBadge from "../../components/admin/AdminStatusBadge";
 import AdminEmptyState from "../../components/admin/AdminEmptyState";
+import { useToastStore } from "../../stores/toastStore";
+import { AdminQueryError } from "../../components/admin/AdminQueryError";
 import type { BadgeColor } from "../../components/admin/AdminStatusBadge";
 import type { User, Order, GramTransaction, EssenceRedemption } from "../../types";
 
@@ -49,7 +51,7 @@ function ClientHistoryModal({
 }) {
   const [tab, setTab] = useState<HistoryTab>("orders");
 
-  const { data: res, isLoading } = useQuery({
+  const { data: res, isLoading, isError } = useQuery({
     queryKey: ["admin-client-history", userId],
     queryFn: () => getClientHistory(userId),
     enabled: open,
@@ -90,6 +92,8 @@ function ClientHistoryModal({
         <div className="flex items-center justify-center py-10">
           <div className="w-6 h-6 border-[3px] border-brand-pink border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : isError ? (
+        <AdminQueryError />
       ) : (
         <>
           {tab === "orders" &&
@@ -250,6 +254,7 @@ function roleBadgeColor(role: string): BadgeColor {
 
 export default function AdminClientsPage() {
   const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [historyUser, setHistoryUser] = useState<{
@@ -258,11 +263,13 @@ export default function AdminClientsPage() {
   } | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
-  const { data: res, isLoading } = useQuery({
+  const { data: res, isLoading, isError } = useQuery({
     queryKey: ["admin-clients", search, page],
     queryFn: () => searchUsers({ search: search || undefined, page }),
     staleTime: 30_000,
   });
+
+  if (isError) return <AdminQueryError />;
 
   const users: User[] = res?.data?.users ?? [];
   const totalPages: number = res?.data?.totalPages ?? 1;
@@ -273,7 +280,7 @@ export default function AdminClientsPage() {
       await adminVerifyUser(userId);
       queryClient.invalidateQueries({ queryKey: ["admin-clients"] });
     } catch {
-      alert("Error al verificar el usuario.");
+      addToast("Error al verificar el usuario.", 'error');
     } finally {
       setVerifyingId(null);
     }

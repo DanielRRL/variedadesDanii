@@ -26,7 +26,7 @@ export const validate = (
     res.status(400).json({
       success: false,
       errors: errors.array().map((e) => ({
-        field: (e as any).path,
+        field: e.type === "field" ? e.path : "unknown",
         message: e.msg,
       })),
     });

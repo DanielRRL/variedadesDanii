@@ -39,7 +39,6 @@ enum PaymentMethod {
   DAVIPLATA
   BANCOLOMBIA
   CASH
-  EFECTIVO
   TRANSFERENCIA
 }
 
@@ -379,8 +378,9 @@ model EssenceMovement {
   reference String?
   createdAt DateTime        @default(now()) @map("created_at")
 
-  essence Essence @relation(fields: [essenceId], references: [id])
+  essence Essence @relation(fields: [essenceId], references: [id], onDelete: Cascade)
 
+  @@index([essenceId])
   @@map("essence_movements")
 }
 
@@ -393,8 +393,9 @@ model BottleMovement {
   reference String?
   createdAt DateTime             @default(now()) @map("created_at")
 
-  bottle Bottle @relation(fields: [bottleId], references: [id])
+  bottle Bottle @relation(fields: [bottleId], references: [id], onDelete: Cascade)
 
+  @@index([bottleId])
   @@map("bottle_movements")
 }
 
@@ -436,6 +437,9 @@ model Order {
   /// Factura electronica asociada a esta orden (1:1, opcional)
   invoice       ElectronicInvoice?
 
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
   @@map("orders")
 }
 
@@ -448,8 +452,9 @@ model OrderItem {
   subtotal  Float
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
+  @@index([orderId])
   @@map("order_items")
 }
 
@@ -485,7 +490,7 @@ model Payment {
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
 
-  order Order @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("payments")
 }
@@ -523,8 +528,9 @@ model ProductMovement {
   reference String?
   createdAt DateTime       @default(now()) @map("created_at")
 
-  product Product @relation(fields: [productId], references: [id])
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@index([productId])
   @@map("product_movements")
 }
 
@@ -594,8 +600,9 @@ model LoyaltyTransaction {
   createdAt   DateTime      @default(now()) @map("created_at")
 
   /// Cuenta de fidelizacion a la que pertenece este movimiento
-  account LoyaltyAccount @relation(fields: [accountId], references: [id])
+  account LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
+  @@index([accountId])
   @@map("loyalty_transactions")
 }
 
@@ -667,10 +674,10 @@ model OrderStatusHistory {
   createdAt   DateTime    @default(now()) @map("created_at")
 
   /// Pedido al que pertenece este historial de estado
-  order     Order @relation(fields: [orderId], references: [id])
-  /// Usuario que ejecuto el cambio de estado
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   changedBy User  @relation(fields: [changedById], references: [id])
 
+  @@index([orderId])
   @@map("order_status_history")
 }
 
@@ -748,7 +755,7 @@ model ElectronicInvoice {
   createdAt     DateTime      @default(now()) @map("created_at")
 
   /// Pedido al que pertenece esta factura electronica
-  order Order @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("electronic_invoices")
 }
@@ -796,8 +803,9 @@ model GramTransaction {
   referenceId String?        @map("reference_id")
   createdAt   DateTime       @default(now()) @map("created_at")
 
-  account     GramAccount @relation(fields: [accountId], references: [id])
+  account     GramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
+  @@index([accountId])
   @@map("gram_transactions")
 }
 
@@ -821,8 +829,10 @@ model GameToken {
   playedAt    DateTime?       @map("played_at")
   createdAt   DateTime        @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([status])
   @@map("game_tokens")
 }
 
@@ -850,8 +860,10 @@ model EssenceRedemption {
   deliveredAt   DateTime?                @map("delivered_at")
   createdAt     DateTime                 @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([status])
   @@map("essence_redemptions")
 }
 
@@ -874,6 +886,7 @@ model WeeklyChallenge {
 
   progresses UserChallengeProgress[]
 
+  @@index([active, weekStart])
   @@map("weekly_challenges")
 }
 

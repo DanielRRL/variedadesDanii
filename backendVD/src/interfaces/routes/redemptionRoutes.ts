@@ -16,6 +16,12 @@ import { authMiddleware } from "../middleware/authMiddleware";
 // roleMiddleware - Restringe acceso a roles especificos.
 import { roleMiddleware } from "../middleware/roleMiddleware";
 
+// Validadores de redemptions.
+import { deliverRedemptionValidator, cancelRedemptionValidator } from "../validators/redemptionValidator";
+
+// validate - Middleware que revisa errores de express-validator.
+import { validate } from "../validators/validate";
+
 /**
  * Crea y retorna el router de canjes para el cliente.
  * Se monta en /api/redemptions en app.ts.
@@ -56,10 +62,20 @@ export const createAdminRedemptionRoutes = (
   router.get("/", redemptionController.adminGetPendingDeliveries);
 
   // Marcar como entregado
-  router.patch("/:id/deliver", redemptionController.adminMarkDelivered);
+  router.patch(
+    "/:id/deliver",
+    deliverRedemptionValidator,
+    validate,
+    redemptionController.adminMarkDelivered
+  );
 
   // Cancelar canje
-  router.patch("/:id/cancel", redemptionController.adminCancelRedemption);
+  router.patch(
+    "/:id/cancel",
+    cancelRedemptionValidator,
+    validate,
+    redemptionController.adminCancelRedemption
+  );
 
   return router;
 };

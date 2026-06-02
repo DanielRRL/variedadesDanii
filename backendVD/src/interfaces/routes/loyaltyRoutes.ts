@@ -16,6 +16,16 @@ import { authMiddleware } from "../middleware/authMiddleware";
 // roleMiddleware - Restringe acceso a roles especificos (ADMIN).
 import { roleMiddleware } from "../middleware/roleMiddleware";
 
+// Validadores de fidelizacion y referidos.
+import {
+  redeemPointsValidator,
+  applyReferralValidator,
+  adminAdjustPointsValidator,
+} from "../validators/loyaltyValidator";
+
+// validate - Middleware que revisa errores de express-validator.
+import { validate } from "../validators/validate";
+
 /**
  * Crea y retorna el router de fidelizacion para las rutas del cliente.
  * Se monta en /api/loyalty en app.ts.
@@ -41,13 +51,23 @@ export const createLoyaltyRoutes = (
   router.get("/transactions", loyaltyController.getMyTransactions);
 
   // Canjear puntos como descuento en una orden
-  router.post("/redeem", loyaltyController.redeemPoints);
+  router.post(
+    "/redeem",
+    redeemPointsValidator,
+    validate,
+    loyaltyController.redeemPoints
+  );
 
   // Ver o generar el codigo de referido del usuario
   router.get("/referral-code", loyaltyController.getMyReferralCode);
 
   // Aplicar el codigo de referido de otro usuario
-  router.post("/apply-referral", loyaltyController.applyReferralCode);
+  router.post(
+    "/apply-referral",
+    applyReferralValidator,
+    validate,
+    loyaltyController.applyReferralCode
+  );
 
   return router;
 };
@@ -67,7 +87,12 @@ export const createAdminLoyaltyRoutes = (
   router.use(authMiddleware, roleMiddleware("ADMIN"));
 
   // Ajuste manual de puntos (credito o debito)
-  router.post("/adjust", loyaltyController.adminAdjustPoints);
+  router.post(
+    "/adjust",
+    adminAdjustPointsValidator,
+    validate,
+    loyaltyController.adminAdjustPoints
+  );
 
   return router;
 };

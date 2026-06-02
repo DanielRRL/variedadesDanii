@@ -19,6 +19,9 @@ import { roleMiddleware } from "../middleware/roleMiddleware";
 // dailySalesValidator - Valida query params de ventas diarias.
 import { dailySalesValidator } from "../validators/adminValidator";
 
+// createChallengeValidator - Valida creacion de retos semanales.
+import { createChallengeValidator } from "../validators/challengeValidator";
+
 // validate - Middleware que revisa errores de express-validator.
 import { validate } from "../validators/validate";
 
@@ -81,7 +84,12 @@ export const createAdminRoutes = (
   router.get("/gamification/stats", adminController.getGamificationStats);
 
   // Crear desafio semanal
-  router.post("/challenges", adminController.createWeeklyChallenge);
+  router.post(
+    "/challenges",
+    createChallengeValidator,
+    validate,
+    adminController.createWeeklyChallenge
+  );
 
   return router;
 };

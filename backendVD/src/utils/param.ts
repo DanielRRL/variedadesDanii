@@ -9,12 +9,21 @@
 // Se importa para tipar el parametro req de la funcion.
 import { Request } from "express";
 
+// AppError - Para lanzar 400 si el parametro no existe.
+import { AppError } from "./AppError";
+
 /**
  * Extrae un parametro de ruta como string.
+ * Express 5 tipa req.params como `string | string[]`.
+ * Si el parametro no existe, lanza 400 en vez de retornar undefined.
  * @param req - Objeto de peticion de Express.
  * @param name - Nombre del parametro de ruta (ej: "id", "essenceId").
  * @returns El valor del parametro como string.
  */
 export function param(req: Request, name: string): string {
-  return req.params[name] as string;
+  const value = req.params[name];
+  if (value === undefined) {
+    throw AppError.badRequest(`Missing required parameter: ${name}`);
+  }
+  return value as string;
 }

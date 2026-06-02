@@ -7,6 +7,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import {
   DollarSign,
   ShoppingCart,
@@ -40,6 +41,12 @@ import type { RevenueSummary, Order } from '../../types';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function tomorrowISO() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
 function daysAgo(n: number) {
@@ -151,11 +158,11 @@ export default function AdminRevenueReportPage() {
   const { from, to } = useMemo(() => {
     switch (period) {
       case 'today':
-        return { from: todayISO(), to: todayISO() };
+        return { from: todayISO(), to: tomorrowISO() };
       case 'week':
-        return { from: startOfWeek(), to: todayISO() };
+        return { from: startOfWeek(), to: tomorrowISO() };
       case 'month':
-        return { from: startOfMonth(), to: todayISO() };
+        return { from: startOfMonth(), to: tomorrowISO() };
       case 'custom':
         return { from: customFrom, to: customTo };
     }
@@ -165,23 +172,17 @@ export default function AdminRevenueReportPage() {
   const [salesPage, setSalesPage] = useState(1);
 
   // ── Queries ──
-  const { data: revenueRes, isLoading: loadingRevenue } = useQuery({
+  const { data: revenueRes, isLoading: loadingRevenue, isError: isRevenueError } = useQuery({
     queryKey: ['pos-revenue', from, to],
     queryFn: () => getRevenueSummary({ from, to }),
   });
 
   const revenue = (revenueRes?.data ?? null) as RevenueSummary | null;
 
-  const { data: salesRes, isLoading: loadingSales } = useQuery({
+  const { data: salesRes, isLoading: loadingSales, isError: isSalesError } = useQuery({
     queryKey: ['pos-sales-history', from, to, salesPage],
     queryFn: () => getPOSSales({ from, to, page: salesPage, limit: 20 }),
   });
-
-  const salesData = salesRes?.data as { data?: Order[]; orders?: Order[]; total?: number } | Order[] | undefined;
-  const salesList: Order[] = Array.isArray(salesData)
-    ? salesData
-    : (salesData?.data ?? salesData?.orders ?? []);
-  const salesTotal: number = Array.isArray(salesData) ? salesData.length : (salesData?.total ?? 0);
 
   // ── Chart data (from revenue summary — simplistic daily breakdown is not available,
   //    so we show channel-level bars) ──
@@ -201,9 +202,6 @@ export default function AdminRevenueReportPage() {
     ];
   }, [revenue]);
 
-  const totalOrders = (revenue?.orderCountEcommerce ?? 0) + (revenue?.orderCountInStore ?? 0);
-  const averageTicket = totalOrders > 0 ? (revenue?.totalGeneral ?? 0) / totalOrders : 0;
-
   // ── CSV export ──
   const handleExportCSV = useCallback(async () => {
     try {
@@ -219,6 +217,17 @@ export default function AdminRevenueReportPage() {
       // silently fail — user can retry
     }
   }, [from, to]);
+
+  if (isRevenueError || isSalesError) return <AdminQueryError />;
+
+  const salesData = salesRes?.data as { data?: Order[]; orders?: Order[]; total?: number } | Order[] | undefined;
+  const salesList: Order[] = Array.isArray(salesData)
+    ? salesData
+    : (salesData?.data ?? salesData?.orders ?? []);
+  const salesTotal: number = Array.isArray(salesData) ? salesData.length : (salesData?.total ?? 0);
+
+  const totalOrders = (revenue?.orderCountEcommerce ?? 0) + (revenue?.orderCountInStore ?? 0);
+  const averageTicket = totalOrders > 0 ? (revenue?.totalGeneral ?? 0) / totalOrders : 0;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render

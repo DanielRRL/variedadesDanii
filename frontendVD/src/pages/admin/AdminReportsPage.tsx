@@ -10,6 +10,8 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useToastStore } from '../../stores/toastStore';
+import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import {
   BarChart3,
   Download,
@@ -34,12 +36,12 @@ import {
   Legend,
 } from 'recharts';
 
-import {
-  getDailySales,
+import { getDailySales,
   getTopProducts,
   getSalesByProductType,
   downloadSalesCSV,
 } from '../../services/api';
+import { useToastStore } from '../../stores/toastStore';
 import { formatCOP } from '../../utils/format';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,12 +55,20 @@ const PIE_COLORS = ['#D81B60', '#F9A825', '#1E88E5', '#43A047', '#8E24AA', '#FF7
 
 function getDateRange(period: Period): { from: string; to: string } {
   const today = new Date();
-  const to = today.toISOString().slice(0, 10);
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   const from = new Date(today);
   if (period === 'week') from.setDate(from.getDate() - 7);
   if (period === 'month') from.setDate(from.getDate() - 30);
   if (period === 'quarter') from.setDate(from.getDate() - 90);
-  return { from: from.toISOString().slice(0, 10), to };
+  from.setHours(0, 0, 0, 0);
+
+  return {
+    from: from.toISOString(),
+    to: tomorrow.toISOString(),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,26 +78,29 @@ function getDateRange(period: Period): { from: string; to: string } {
 export default function AdminReportsPage() {
   const [period, setPeriod] = useState<Period>('week');
   const [downloading, setDownloading] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
 
   const dateRange = getDateRange(period);
 
-  const { data: salesRes, isLoading: salesLoading } = useQuery({
+  const { data: salesRes, isLoading: salesLoading, isError: isSalesError } = useQuery({
     queryKey: ['reports-daily-sales', period],
     queryFn: () => getDailySales({ ...dateRange, period }),
     staleTime: 2 * 60_000,
   });
 
-  const { data: topRes, isLoading: topLoading } = useQuery({
+  const { data: topRes, isLoading: topLoading, isError: isTopError } = useQuery({
     queryKey: ['reports-top-products'],
     queryFn: () => getTopProducts(10),
     staleTime: 5 * 60_000,
   });
 
-  const { data: typeRes, isLoading: typeLoading } = useQuery({
+  const { data: typeRes, isLoading: typeLoading, isError: isTypeError } = useQuery({
     queryKey: ['reports-sales-by-type', period],
     queryFn: () => getSalesByProductType(dateRange),
     staleTime: 5 * 60_000,
   });
+
+  if (isSalesError || isTopError || isTypeError) return <AdminQueryError />;
 
   const salesData = salesRes?.data;
   const labels: string[] = salesData?.labels ?? [];
@@ -108,7 +121,7 @@ export default function AdminReportsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert('Error al descargar el reporte.');
+      addToast('Error al descargar el reporte.', 'error');
     } finally {
       setDownloading(false);
     }

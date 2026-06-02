@@ -21,7 +21,7 @@ const envSchema = z.object({
   PORT: numericString(4000),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL es obligatoria"),
-  JWT_SECRET: z.string().min(1, "JWT_SECRET es obligatoria"),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters for security"),
   JWT_EXPIRES_IN: z.string().default("7d"),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
   FRONTEND_URL: z.string().default("http://localhost:5173"),
@@ -153,6 +153,9 @@ export const env = {
 
   business: {
     nit: v.BUSINESS_NIT,
+    name: v.BUSINESS_NIT ? "Variedades DANII" : "Variedades DANII",
+    address: "Armenia, Quindío, Colombia",
+    phone: "300 383 7442",
   },
 
   admin: {
