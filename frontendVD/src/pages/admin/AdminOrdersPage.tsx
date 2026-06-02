@@ -10,7 +10,7 @@ import { Search, Download, ChevronDown, ShoppingBag as ShoppingBagIcon } from "l
 
 import { getAdminOrders, updateOrderStatus, downloadSalesCSV } from "../../services/api";
 import { formatCOP } from "../../utils/format";
-import { STATUS_LABELS, VALID_TRANSITIONS } from "./adminShared";
+import { STATUS_LABELS, VALID_TRANSITIONS, TRANSITION_LABELS } from "./adminShared";
 import AdminTable from "../../components/admin/AdminTable";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
 import AdminStatusBadge from "../../components/admin/AdminStatusBadge";
@@ -90,7 +90,7 @@ function StatusDropdown({
                       : "text-slate-700"
                   }`}
                 >
-                  → {STATUS_LABELS[s] ?? s}
+                  {TRANSITION_LABELS[s] ?? STATUS_LABELS[s] ?? s}
                 </button>
               ))}
             </div>

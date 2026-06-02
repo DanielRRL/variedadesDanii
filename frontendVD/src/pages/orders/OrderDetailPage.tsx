@@ -7,12 +7,11 @@ import { getOrderById, getOrderHistory } from '../../services/api';
 import { STATUS_LABELS, STATUS_COLORS } from '../admin/adminShared';
 import type { Order, OrderStatusHistory } from '../../types';
 
-const ORDER_STEPS: Order['status'][] = ['PENDING', 'PAID', 'PREPARING', 'READY', 'DELIVERED'];
+const ORDER_STEPS: Order['status'][] = ['PENDING', 'PAID', 'READY', 'DELIVERED'];
 
 const STEP_LABELS: Record<string, string> = {
   PENDING:   'Pedido recibido',
   PAID:      'Pago confirmado',
-  PREPARING: 'En preparación',
   READY:     'Listo para entrega',
   DELIVERED: 'Entregado',
 };
@@ -205,7 +204,22 @@ export default function OrderDetailPage() {
                 <div>
                   <p className="text-sm font-semibold text-yellow-800">Esperando pago</p>
                   <p className="text-xs text-yellow-700 mt-0.5">
-                    Tu pedido está reservado. Completa el pago para que lo preparemos.
+                    Realiza la transferencia y envía el comprobante por WhatsApp para que confirmemos tu pedido.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Paid / Ready — Pago confirmado */}
+            {(order.status === 'PAID' || order.status === 'READY') && (
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
+                <CheckCircle size={18} className="text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-blue-800">Pago confirmado</p>
+                  <p className="text-xs text-blue-700 mt-0.5">
+                    {order.status === 'PAID'
+                      ? 'Solo falta la entrega o pasar a reclamar al local.'
+                      : 'Solo falta la entrega o pasar a reclamar al local.'}
                   </p>
                 </div>
               </div>

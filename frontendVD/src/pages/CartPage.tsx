@@ -22,9 +22,9 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Trash2, Truck, Store, Smartphone, Banknote,
+  Trash2, Truck, Store, Smartphone, Banknote, Landmark, ArrowLeftRight,
   Lock, MapPin, Minus, Plus, ShoppingBag, Gem,
-  Tag, Check, X,
+  Tag,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCartStore } from '../stores/cartStore';
@@ -154,8 +154,6 @@ export default function CartPage() {
   const setDeliveryType  = useCartStore((s) => s.setDeliveryType);
   const paymentMethod    = useCartStore((s) => s.paymentMethod);
   const setPaymentMethod = useCartStore((s) => s.setPaymentMethod);
-  const nequiPhone       = useCartStore((s) => s.nequiPhone);
-  const setNequiPhone    = useCartStore((s) => s.setNequiPhone);
   const referralCodeApplied   = useCartStore((s) => s.referralCodeApplied);
   const applyReferralCode     = useCartStore((s) => s.applyReferralCode);
   const clearReferralCode     = useCartStore((s) => s.clearReferralCode);
@@ -213,17 +211,6 @@ export default function CartPage() {
 
   const finalTotal = Math.max(0, subtotal - referralDiscount + deliveryFee);
 
-  const nequiValid = /^3\d{9}$/.test(nequiPhone);
-
-  const outOfStockItemNames = useMemo(() => {
-    if (!allProducts.length) return [];
-    const stockMap = new Map<string, number>();
-    for (const p of allProducts) stockMap.set(p.id, p.stockUnits);
-    return items
-      .filter(i => (stockMap.get(i.productId) ?? 0) <= 0)
-      .map(i => i.name);
-  }, [items, allProducts]);
-
   const outOfStockIds = useMemo(() => {
     if (!allProducts.length) return new Set<string>();
     const stockMap = new Map<string, number>();
@@ -234,12 +221,10 @@ export default function CartPage() {
   // Determine why the button is disabled
   const disabledReason = useMemo(() => {
     if (items.length === 0) return '';
-    if (outOfStockItemNames.length > 0) return `"${outOfStockItemNames[0]}" está agotado. Elimínalo para continuar.`;
     if (!paymentMethod) return 'Selecciona un método de pago';
-    if (paymentMethod === 'NEQUI' && !nequiValid) return 'Agrega tu número Nequi';
     if (deliveryType === 'delivery' && deliveryAddress.trim().length < 10) return 'Ingresa tu dirección de entrega';
     return '';
-  }, [items.length, paymentMethod, nequiValid, deliveryType, deliveryAddress, outOfStockItemNames]);
+  }, [items.length, paymentMethod, deliveryType, deliveryAddress]);
 
   const canSubmit = items.length > 0 && !disabledReason && !isSubmitting;
 
@@ -531,32 +516,22 @@ export default function CartPage() {
             </div>
           </button>
 
-          {/* Nequi phone input */}
-          <div className={clsx(
-            'cart-payment__phone',
-            paymentMethod === 'NEQUI' ? 'cart-payment__phone--visible' : 'cart-payment__phone--hidden',
-          )}>
-            <div className="cart-payment__phone-input">
-              <input
-                type="tel"
-                value={nequiPhone}
-                onChange={(e) => setNequiPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="3XX XXX XXXX"
-                inputMode="numeric"
-                maxLength={10}
-              />
-              {nequiPhone.length === 10 && (
-                nequiValid
-                  ? <Check size={16} className="cart-payment__phone-valid" />
-                  : <X size={16} className="cart-payment__phone-invalid" />
-              )}
-            </div>
-            {nequiPhone && !nequiValid && nequiPhone.length >= 3 && (
-              <p className="cart-payment__phone-hint">
-                Número colombiano: 10 dígitos, inicia con 3
-              </p>
+          {/* DAVIPLATA */}
+          <button
+            onClick={() => setPaymentMethod('DAVIPLATA')}
+            className={clsx(
+              'cart-payment__method',
+              paymentMethod === 'DAVIPLATA' && 'cart-payment__method--active',
             )}
-          </div>
+          >
+            <div className="cart-payment__method-inner">
+              <Landmark size={20} className="cart-payment__method-icon" />
+              <div>
+                <p className="cart-payment__method-label">Daviplata</p>
+                <p className="cart-payment__method-desc">Desde Daviplata</p>
+              </div>
+            </div>
+          </button>
 
           {/* BANCOLOMBIA */}
           <button
@@ -574,6 +549,31 @@ export default function CartPage() {
               </div>
             </div>
           </button>
+
+          {/* BRE-B (Llave) */}
+          <button
+            onClick={() => setPaymentMethod('BREB')}
+            className={clsx(
+              'cart-payment__method',
+              paymentMethod === 'BREB' && 'cart-payment__method--active',
+            )}
+          >
+            <div className="cart-payment__method-inner">
+              <ArrowLeftRight size={20} className="cart-payment__method-icon" />
+              <div>
+                <p className="cart-payment__method-label">Bre-B / Llave</p>
+                <p className="cart-payment__method-desc">Desde otro banco</p>
+              </div>
+            </div>
+          </button>
+
+          {paymentMethod && (
+            <p className="text-[11px] text-muted text-center mt-2">
+              Todas las transferencias al número:{' '}
+              <span className="font-semibold text-text-primary">323 294 3624</span>
+              {' · '}Variedades DANII
+            </p>
+          )}
         </div>
 
         {/* Error banner */}

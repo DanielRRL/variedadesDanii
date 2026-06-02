@@ -15,8 +15,8 @@
 
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
-  CheckCircle2, MessageCircle, Smartphone, Banknote, CreditCard,
-  Package, Truck, Store, Copy, Check,
+  CheckCircle2, MessageCircle, Smartphone, Banknote,
+  Package, Truck, Store, Copy, Check, Landmark, ArrowLeftRight,
 } from 'lucide-react';
 import { useState } from 'react';
 import { formatCOP } from '../utils/format';
@@ -27,24 +27,32 @@ import { AppBar } from '../components/layout/AppBar';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** WhatsApp business phone for Variedades DANII. */
-const WA_NUMBER = '573003837442';
+const WA_NUMBER = '573232943624';
+
+/** Payment destination for ALL methods — same Nequi number. */
+const PAYMENT_DESTINATION = '323 294 3624 · Variedades DANII';
 
 /** Payment details per method. */
 const PAYMENT_INFO: Record<string, { name: string; detail: string; icon: typeof Smartphone }> = {
   NEQUI: {
     name: 'Nequi',
-    detail: '300 383 7442 · Variedades DANII',
+    detail: PAYMENT_DESTINATION,
     icon: Smartphone,
+  },
+  DAVIPLATA: {
+    name: 'Daviplata',
+    detail: PAYMENT_DESTINATION,
+    icon: Landmark,
   },
   BANCOLOMBIA: {
     name: 'Bancolombia',
-    detail: 'Cuenta de ahorros · Variedades DANII',
+    detail: PAYMENT_DESTINATION,
     icon: Banknote,
   },
   BREB: {
-    name: 'Bre-B / Transferencia',
-    detail: 'Transferencia desde cualquier banco',
-    icon: CreditCard,
+    name: 'Bre-B / Llave',
+    detail: `Transferencia desde cualquier banco a ${PAYMENT_DESTINATION}`,
+    icon: ArrowLeftRight,
   },
 };
 

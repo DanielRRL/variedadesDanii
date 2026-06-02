@@ -21,7 +21,7 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]['key'];
 
-const ACTIVE_STATUSES = new Set(['PENDING', 'PAID', 'PREPARING', 'READY']);
+const ACTIVE_STATUSES = new Set(['PENDING', 'PAID', 'READY']);
 
 function filterOrders(orders: Order[], tab: TabKey): Order[] {
   if (tab === 'all') return orders;

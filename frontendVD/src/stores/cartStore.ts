@@ -33,7 +33,7 @@ interface CartState {
    * Payment method selected at checkout.
    * Matches Order['paymentMethod'] from types/index.ts.
    */
-  paymentMethod: 'NEQUI' | 'BANCOLOMBIA' | 'BREB' | 'CASH' | '';
+  paymentMethod: 'NEQUI' | 'DAVIPLATA' | 'BANCOLOMBIA' | 'BREB' | 'CASH' | '';
 
   /**
    * Phone number for Nequi payments.

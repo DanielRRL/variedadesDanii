@@ -5,6 +5,8 @@
  * 2. Verifica inventario segun categoria del producto:
  *    - PERFUME: esencia (ml) + frasco (unidades).
  *    - ACCESSORY / GENERAL: producto (unidades).
+ *    El stock insuficiente NO bloquea la creacion — solo genera advertencias
+ *    porque el pago es externo (Nequi/Bancolombia) y se verifica manualmente.
  * 3. Calcula subtotal y descuentos aplicables.
  * 4. Persiste la orden con items y descuentos.
  * 5. Registra movimientos de salida de inventario.
@@ -86,7 +88,7 @@ export class CreateOrderUseCase {
 
   /**
    * Ejecuta la creacion de la orden paso a paso.
-   * Si cualquier paso falla, lanza AppError y no se crea la orden.
+   * El stock insuficiente no bloquea — solo genera advertencias en logs.
    */
   async execute(input: CreateOrderInput): Promise<any> {
     // -- Paso 1: Validar productos y recopilar datos --
@@ -105,9 +107,11 @@ export class CreateOrderUseCase {
         throw AppError.badRequest(`Product "${product.name}" is not available`);
       }
 
-      // -- Paso 2: Validar inventario segun categoria --
+      // -- Paso 2: Verificar inventario sin bloquear la orden --
+      // El pago es externo (Nequi/Bancolombia) y se verifica manualmente.
+      // Stock insuficiente solo genera advertencias, no rechaza el pedido.
       if (product.category === "PERFUME") {
-        await this.validatePerfumeStock(product, item.quantity);
+        await this.checkPerfumeStock(product, item.quantity);
         const mlNeeded = product.mlQuantity! * item.quantity;
         totalMl += mlNeeded;
 
@@ -122,8 +126,8 @@ export class CreateOrderUseCase {
           mlQuantity: product.mlQuantity!,
         });
       } else {
-        // ACCESSORY o GENERAL: validar stock de producto
-        await this.validateProductStock(product, item.quantity);
+        // ACCESSORY o GENERAL: verificar stock sin bloquear
+        await this.checkProductStock(product, item.quantity);
 
         orderItems.push({
           productId: item.productId,
@@ -277,10 +281,10 @@ export class CreateOrderUseCase {
   // ---------------------------------------------------------------------------
 
   /**
-   * Valida stock de esencia (ml) y frascos (unidades) para un producto PERFUME.
-   * Lanza AppError si no hay stock suficiente.
+   * Verifica stock de esencia (ml) y frascos (unidades) para un PERFUME.
+   * NO bloquea la creacion de la orden — solo advierte en logs.
    */
-  private async validatePerfumeStock(
+  private async checkPerfumeStock(
     product: any,
     quantity: number
   ): Promise<void> {
@@ -295,8 +299,8 @@ export class CreateOrderUseCase {
       const stock = await this.inventoryService.getEssenceStock(
         product.essenceId
       );
-      throw AppError.badRequest(
-        `Insufficient essence stock for "${product.name}". Available: ${stock}ml, Needed: ${totalMlNeeded}ml`
+      console.warn(
+        `[CreateOrderUseCase] Stock bajo de esencia para "${product.name}". Disponible: ${stock}ml, Necesario: ${totalMlNeeded}ml`
       );
     }
 
@@ -306,17 +310,17 @@ export class CreateOrderUseCase {
         quantity
       );
     if (!bottleAvailable) {
-      throw AppError.badRequest(
-        `Insufficient bottle stock for "${product.name}"`
+      console.warn(
+        `[CreateOrderUseCase] Stock bajo de frascos para "${product.name}"`
       );
     }
   }
 
   /**
-   * Valida stock de unidades para un producto ACCESSORY o GENERAL.
-   * Lanza AppError si no hay stock suficiente.
+   * Verifica stock de unidades para un ACCESSORY o GENERAL.
+   * NO bloquea la creacion de la orden — solo advierte en logs.
    */
-  private async validateProductStock(
+  private async checkProductStock(
     product: any,
     quantity: number
   ): Promise<void> {
@@ -327,8 +331,8 @@ export class CreateOrderUseCase {
       );
     if (!available) {
       const stock = await this.inventoryService.getProductStock(product.id);
-      throw AppError.badRequest(
-        `Insufficient stock for "${product.name}". Available: ${stock}, Needed: ${quantity}`
+      console.warn(
+        `[CreateOrderUseCase] Stock bajo para "${product.name}". Disponible: ${stock}, Necesario: ${quantity}`
       );
     }
   }

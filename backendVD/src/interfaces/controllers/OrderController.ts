@@ -155,21 +155,19 @@ export class OrderController {
        * entregas sin pago o devoluciones de inventario incorrectas.
        *
        * Quien puede ejecutar transiciones: roles ADMIN y SELLER.
-       * - PENDING  -> PAID:       Pago confirmado por el operador o pasarela.
+       * - PENDING  -> PAID:       Admin confirma pago manualmente (Nequi/Bancolombia).
        * - PENDING  -> CANCELLED:  El cliente o admin cancela antes de pagar.
-       * - PAID     -> PREPARING:  Equipo inicia la preparacion del pedido.
-       * - PAID     -> CANCELLED:  Reembolso antes de iniciar preparacion.
-       * - PREPARING -> READY:     Pedido listo para ser recogido o despachado.
-       * - PREPARING -> CANCELLED: Cancelacion excepcional (ej: falta de stock).
+       * - PAID     -> READY:      Pedido listo para ser recogido o despachado.
+       * - PAID     -> CANCELLED:  Cancelacion antes de marcar como listo.
        * - READY    -> DELIVERED:  El pedido fue entregado exitosamente al cliente.
        * - DELIVERED, CANCELLED:   Estados terminales; no admiten nueva transicion.
-       * - SHIPPED: Estado legado sin transiciones activas (compatibilidad BD).
+       * - SHIPPED, PREPARING:     Estados legados sin transiciones activas.
        */
       const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
         [OrderStatus.PENDING]:    [OrderStatus.PAID, OrderStatus.CANCELLED],
-        [OrderStatus.PAID]:       [OrderStatus.PREPARING, OrderStatus.CANCELLED],
-        [OrderStatus.PREPARING]:  [OrderStatus.READY, OrderStatus.CANCELLED],
+        [OrderStatus.PAID]:       [OrderStatus.READY, OrderStatus.CANCELLED],
         [OrderStatus.READY]:      [OrderStatus.DELIVERED],
+        [OrderStatus.PREPARING]:  [],  // Estado legado; sin transiciones activas.
         [OrderStatus.SHIPPED]:    [],  // Estado legado; sin transiciones activas.
         [OrderStatus.DELIVERED]:  [],  // Estado terminal.
         [OrderStatus.CANCELLED]:  [],  // Estado terminal.

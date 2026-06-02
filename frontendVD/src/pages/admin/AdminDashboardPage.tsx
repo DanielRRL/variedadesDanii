@@ -53,7 +53,7 @@ import {
 } from "../../services/api";
 import { formatCOP, formatCOPSplit } from "../../utils/format";
 import { cn } from "../../utils/cn";
-import { STATUS_LABELS, VALID_TRANSITIONS } from "./adminShared";
+import { STATUS_LABELS, VALID_TRANSITIONS, TRANSITION_LABELS } from "./adminShared";
 import AdminKpiCard from "../../components/admin/AdminKpiCard";
 import AdminStatusBadge from "../../components/admin/AdminStatusBadge";
 import AdminConfirmDialog from "../../components/admin/AdminConfirmDialog";
@@ -163,7 +163,7 @@ function StatusDropdown({
                       : "text-slate-700",
                   )}
                 >
-                  {STATUS_LABELS[s] ?? s}
+                  {TRANSITION_LABELS[s] ?? STATUS_LABELS[s] ?? s}
                 </button>
               ))}
             </div>
@@ -229,13 +229,13 @@ function PeriodToggle({
   onChange: (p: Period) => void;
 }) {
   return (
-    <div className="flex border-b border-slate-200 w-full sm:w-auto">
+    <div className="flex border-b border-slate-200 w-full sm:w-auto gap-1">
       {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
         <button
           key={p}
           onClick={() => onChange(p)}
           className={cn(
-            "flex-1 sm:flex-none px-3 py-2 text-[11px] font-medium transition-colors border-b-2 -mb-[1px]",
+            "flex-1 sm:flex-none px-4 sm:px-5 py-2.5 text-[11px] sm:text-xs font-medium transition-colors border-b-[2.5px] -mb-[1px]",
             period === p
               ? "border-brand-pink text-brand-pink"
               : "border-transparent text-slate-400 hover:text-brand-pink/70",
@@ -345,7 +345,7 @@ export default function AdminDashboardPage() {
           <div className="admin-dashboard-blob admin-dashboard-blob--2" />
           <div className="admin-dashboard-blob admin-dashboard-blob--3" />
         </div>
-        <div className="relative z-[1] space-y-14 lg:space-y-20 max-w-7xl mx-auto">
+        <div className="relative z-[1] space-y-16 lg:space-y-24 max-w-7xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <AdminSkeleton.Card />
             <AdminSkeleton.Card />
@@ -371,7 +371,7 @@ export default function AdminDashboardPage() {
           <div className="admin-dashboard-blob admin-dashboard-blob--2" />
           <div className="admin-dashboard-blob admin-dashboard-blob--3" />
         </div>
-        <div className="relative z-[1] space-y-14 lg:space-y-20 max-w-7xl mx-auto">
+        <div className="relative z-[1] space-y-16 lg:space-y-24 max-w-7xl mx-auto">
           <AdminQueryError
             message={error?.message}
             onRetry={() =>
@@ -392,7 +392,7 @@ export default function AdminDashboardPage() {
         <div className="admin-dashboard-blob admin-dashboard-blob--3" />
       </div>
 
-      <div className="relative z-[1] space-y-14 lg:space-y-20 max-w-7xl mx-auto pb-6 sm:pb-10">
+      <div className="relative z-[1] space-y-16 lg:space-y-24 max-w-7xl mx-auto pb-10 sm:pb-16">
         {/* ── Alert cards ────────────────────────────────────────────────── */}
         <div className="flex flex-wrap gap-3">
           {lowStockError && (
@@ -522,8 +522,8 @@ export default function AdminDashboardPage() {
         {/* ── Sales chart + Top 5 essences ────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
           <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-8 lg:p-10 shadow-card stagger-item stagger-3 hover:shadow-md transition-shadow duration-300">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <PageSectionHeading className="mb-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 sm:gap-6 mb-8">
+              <PageSectionHeading>
                 Ventas por período
               </PageSectionHeading>
               <PeriodToggle period={period} onChange={setPeriod} />
@@ -743,7 +743,7 @@ export default function AdminDashboardPage() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-6 lg:px-8 py-28 sm:py-36 text-center align-middle"
+                      className="px-6 lg:px-8 py-32 sm:py-44 text-center align-middle"
                     >
                       <div className="flex flex-col items-center gap-4 mx-auto">
                         <div className="relative w-[72px] h-[72px] rounded-2xl bg-brand-pink/6 flex items-center justify-center shadow-[inset_0_1px_2px_rgba(216,27,96,0.08),0_4px_16px_rgba(216,27,96,0.08)]">

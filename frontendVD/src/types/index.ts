@@ -342,7 +342,7 @@ export interface Order {
   /** Total discount applied (loyalty + promotions + bottle returns). */
   discount: number;
   total: number;
-  paymentMethod: 'NEQUI' | 'BANCOLOMBIA' | 'BREB' | 'CASH';
+  paymentMethod: 'NEQUI' | 'DAVIPLATA' | 'BANCOLOMBIA' | 'BREB' | 'CASH';
   /** ONLINE = web order; REFILL = store refill; CASH_ON_DELIVERY = COD. */
   type: 'ONLINE' | 'REFILL' | 'CASH_ON_DELIVERY';
   items: OrderItem[];
