@@ -59,6 +59,7 @@ import AdminStatusBadge from "../../components/admin/AdminStatusBadge";
 import AdminConfirmDialog from "../../components/admin/AdminConfirmDialog";
 import { AdminSkeleton } from "../../components/admin/AdminSkeleton";
 import { AdminQueryError } from "../../components/admin/AdminQueryError";
+import "../../css/AdminDashboardPage.css";
 import type { AdminOrder } from "../../types";
 
 type Period = "today" | "week" | "month";
@@ -127,15 +128,15 @@ function StatusDropdown({
 
   return (
     <>
-      <div className="relative">
+      <div className="admin-dashboard__status-dropdown">
         <button
           disabled={mutation.isPending}
           onClick={() => setOpen((v) => !v)}
-          className="p-1.5 text-slate-300 hover:text-slate-600 rounded transition-colors disabled:opacity-50"
+          className="admin-dashboard__status-trigger"
           aria-label="Cambiar estado"
         >
           {mutation.isPending ? (
-            <span className="block w-3 h-3 border border-slate-300 border-t-transparent rounded-full animate-spin" />
+            <span className="admin-dashboard__status-spinner" />
           ) : (
             <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
               <circle cx="3" cy="7" r="1.5" />
@@ -146,8 +147,8 @@ function StatusDropdown({
         </button>
         {open && (
           <>
-            <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-            <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 min-w-[150px] overflow-hidden">
+            <div className="admin-dashboard__status-backdrop" onClick={() => setOpen(false)} />
+            <div className="admin-dashboard__status-menu">
               {next.map((s) => (
                 <button
                   key={s}
@@ -157,10 +158,8 @@ function StatusDropdown({
                       : executeTransition(s)
                   }
                   className={cn(
-                    "w-full text-left px-3 py-2 text-[13px] hover:bg-slate-50 transition-colors",
-                    s === "CANCELLED"
-                      ? "text-red-600 font-medium"
-                      : "text-slate-700",
+                    "admin-dashboard__status-option",
+                    s === "CANCELLED" && "admin-dashboard__status-option--danger",
                   )}
                 >
                   {TRANSITION_LABELS[s] ?? STATUS_LABELS[s] ?? s}
@@ -212,7 +211,7 @@ function PageSectionHeading({
   return (
     <h2
       className={cn(
-        "font-display text-base text-slate-800 tracking-tight mb-4",
+        "admin-dashboard__section-heading",
         className,
       )}
     >
@@ -229,16 +228,14 @@ function PeriodToggle({
   onChange: (p: Period) => void;
 }) {
   return (
-    <div className="flex border-b border-slate-200 w-full sm:w-auto gap-1">
+    <div className="admin-dashboard__period-toggle">
       {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
         <button
           key={p}
           onClick={() => onChange(p)}
           className={cn(
-            "flex-1 sm:flex-none px-4 sm:px-5 py-2.5 text-[11px] sm:text-xs font-medium transition-colors border-b-[2.5px] -mb-[1px]",
-            period === p
-              ? "border-brand-pink text-brand-pink"
-              : "border-transparent text-slate-400 hover:text-brand-pink/70",
+            "admin-dashboard__period-btn",
+            period === p && "admin-dashboard__period-btn--active",
           )}
         >
           {PERIOD_LABELS[p]}
@@ -339,20 +336,20 @@ export default function AdminDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="relative">
-        <div className="admin-dashboard-bg" aria-hidden="true">
-          <div className="admin-dashboard-blob admin-dashboard-blob--1" />
-          <div className="admin-dashboard-blob admin-dashboard-blob--2" />
-          <div className="admin-dashboard-blob admin-dashboard-blob--3" />
+      <div className="admin-dashboard">
+        <div className="admin-dashboard__bg" aria-hidden="true">
+          <div className="admin-dashboard__blob admin-dashboard__blob--1" />
+          <div className="admin-dashboard__blob admin-dashboard__blob--2" />
+          <div className="admin-dashboard__blob admin-dashboard__blob--3" />
         </div>
-        <div className="relative z-[1] space-y-16 lg:space-y-24 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="admin-dashboard__skeleton">
+          <div className="admin-dashboard__kpi-grid admin-dashboard__kpi-grid--commerce">
             <AdminSkeleton.Card />
             <AdminSkeleton.Card />
             <AdminSkeleton.Card />
             <AdminSkeleton.Card />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="admin-dashboard__gamif-grid">
             <AdminSkeleton.Card />
             <AdminSkeleton.Card />
             <AdminSkeleton.Card />
@@ -365,13 +362,13 @@ export default function AdminDashboardPage() {
 
   if (isError) {
     return (
-      <div className="relative">
-        <div className="admin-dashboard-bg" aria-hidden="true">
-          <div className="admin-dashboard-blob admin-dashboard-blob--1" />
-          <div className="admin-dashboard-blob admin-dashboard-blob--2" />
-          <div className="admin-dashboard-blob admin-dashboard-blob--3" />
+      <div className="admin-dashboard">
+        <div className="admin-dashboard__bg" aria-hidden="true">
+          <div className="admin-dashboard__blob admin-dashboard__blob--1" />
+          <div className="admin-dashboard__blob admin-dashboard__blob--2" />
+          <div className="admin-dashboard__blob admin-dashboard__blob--3" />
         </div>
-        <div className="relative z-[1] space-y-16 lg:space-y-24 max-w-7xl mx-auto">
+        <div className="admin-dashboard__content">
           <AdminQueryError
             message={error?.message}
             onRetry={() =>
@@ -384,29 +381,29 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="relative">
+    <div className="admin-dashboard">
       {/* ── Background decorative blobs ──────────────────────────────────── */}
-      <div className="admin-dashboard-bg" aria-hidden="true">
-        <div className="admin-dashboard-blob admin-dashboard-blob--1" />
-        <div className="admin-dashboard-blob admin-dashboard-blob--2" />
-        <div className="admin-dashboard-blob admin-dashboard-blob--3" />
+      <div className="admin-dashboard__bg" aria-hidden="true">
+        <div className="admin-dashboard__blob admin-dashboard__blob--1" />
+        <div className="admin-dashboard__blob admin-dashboard__blob--2" />
+        <div className="admin-dashboard__blob admin-dashboard__blob--3" />
       </div>
 
-      <div className="relative z-[1] space-y-16 lg:space-y-24 max-w-7xl mx-auto pb-10 sm:pb-16">
+      <div className="admin-dashboard__content">
         {/* ── Alert cards ────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap gap-3">
+        <div className="admin-dashboard__alerts">
           {lowStockError && (
-            <div className="flex items-center gap-2 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-lg px-4 py-3 w-full sm:w-auto min-h-[40px]">
-              <AlertTriangle size={14} className="text-red-500 shrink-0" />
-              <p className="text-[11px] sm:text-[12px] text-red-700">
+            <div className="admin-dashboard__alert admin-dashboard__alert--error">
+              <AlertTriangle size={14} className="admin-dashboard__alert-icon" />
+              <p className="admin-dashboard__alert-text">
                 Error al cargar alertas de stock.
               </p>
             </div>
           )}
           {!lowStockError && lowStockList.length > 0 && (
-            <div className="flex items-center gap-2 bg-amber-50/80 backdrop-blur-sm border border-amber-200/50 rounded-lg px-4 py-3 w-full sm:w-auto min-h-[40px]">
-              <AlertTriangle size={14} className="text-amber-500 shrink-0" />
-              <p className="text-[11px] sm:text-[12px] text-amber-700 truncate">
+            <div className="admin-dashboard__alert admin-dashboard__alert--warning">
+              <AlertTriangle size={14} className="admin-dashboard__alert-icon" />
+              <p className="admin-dashboard__alert-text">
                 <span className="font-semibold">{lowStockList.length}</span>{" "}
                 stock bajo:{" "}
                 {lowStockList
@@ -419,7 +416,7 @@ export default function AdminDashboardPage() {
               </p>
               <Link
                 to="/admin/inventario"
-                className="text-[10px] font-medium text-amber-600 underline whitespace-nowrap shrink-0 ml-auto sm:ml-1"
+                className="admin-dashboard__alert-link"
               >
                 Ver
               </Link>
@@ -427,17 +424,17 @@ export default function AdminDashboardPage() {
           )}
 
           {redemptionsError && (
-            <div className="flex items-center gap-2 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-lg px-4 py-3 w-full sm:w-auto min-h-[40px]">
-              <AlertTriangle size={14} className="text-red-500 shrink-0" />
-              <p className="text-[11px] sm:text-[12px] text-red-700">
+            <div className="admin-dashboard__alert admin-dashboard__alert--error">
+              <AlertTriangle size={14} className="admin-dashboard__alert-icon" />
+              <p className="admin-dashboard__alert-text">
                 Error al cargar canjes pendientes.
               </p>
             </div>
           )}
           {!redemptionsError && pendingRedemptions > 0 && (
-            <div className="flex items-center gap-2 bg-purple-50/80 backdrop-blur-sm border border-purple-200/50 rounded-lg px-4 py-3 w-full sm:w-auto min-h-[40px]">
-              <Gift size={14} className="text-purple-500 shrink-0" />
-              <p className="text-[11px] sm:text-[12px] text-purple-700">
+            <div className="admin-dashboard__alert admin-dashboard__alert--purple">
+              <Gift size={14} className="admin-dashboard__alert-icon" />
+              <p className="admin-dashboard__alert-text">
                 <span className="font-semibold">
                   {pendingRedemptions} canje
                   {pendingRedemptions > 1 ? "s" : ""} pendiente
@@ -446,7 +443,7 @@ export default function AdminDashboardPage() {
               </p>
               <Link
                 to="/admin/canjes"
-                className="text-[10px] font-medium text-purple-600 underline whitespace-nowrap shrink-0 ml-auto sm:ml-1"
+                className="admin-dashboard__alert-link"
               >
                 Gestionar
               </Link>
@@ -454,91 +451,102 @@ export default function AdminDashboardPage() {
           )}
         </div>
 
-        {/* ── Commerce KPIs ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 stagger-item stagger-1">
-          <AdminKpiCard
-            label="Ventas Hoy"
-            splitValue={formatCOPSplit(salesToday)}
-            progress={salesPct}
-            progressLabel={`${salesPct}% del objetivo`}
-          />
-          <AdminKpiCard
-            icon={ShoppingBag}
-            label="Pedidos Hoy"
-            value={String(ordersToday)}
-            trend={vsYesterday > 0 ? "up" : vsYesterday < 0 ? "down" : "flat"}
-            trendPct={Math.abs(vsYesterday)}
-            trendLabel="vs ayer"
-          />
-          <AdminKpiCard
-            icon={CreditCard}
-            label="Ticket Promedio"
-            splitValue={formatCOPSplit(avgTicket)}
-            subtitle="Pedidos de hoy"
-          />
-          <AdminKpiCard
-            icon={UserPlus}
-            label="Clientes Nuevos"
-            value={String(newClients)}
-            subtitle="Registrados hoy"
-          />
-        </div>
-
-        {/* ── Gamification ───────────────────────────────────────────────── */}
-        {gamifError ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <p className="text-[13px] text-red-700">
-              Error al cargar estadísticas de gamificación.
-            </p>
-          </div>
-        ) : (
-          <div className="bg-brand-gold/5 backdrop-blur-sm rounded-2xl border border-brand-gold/20 p-8 lg:p-10 stagger-item stagger-2">
-            <p className="font-display text-sm text-brand-gold/80 mb-4 tracking-tight">
-              Gamificación
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {/* ── Commerce + Gamification KPIs ──────────────────────────────── */}
+        <section className="admin-dashboard__kpi-section">
+          <div className="admin-dashboard__kpi-group">
+            <div className="admin-dashboard__kpi-group-header">
+              <span className="admin-dashboard__kpi-group-bar admin-dashboard__kpi-group-bar--commerce" />
+              <div>
+                <span className="admin-dashboard__kpi-group-label">Comercio</span>
+                <div className="admin-dashboard__kpi-group-subtitle">Indicadores clave</div>
+              </div>
+            </div>
+            <div className="admin-dashboard__kpi-grid admin-dashboard__kpi-grid--commerce">
               <AdminKpiCard
-                icon={Gem}
-                label="Gramos Emitidos"
-                value={`${gramsIssued}g`}
-                subtitle="Total acumulado"
+                label="Ventas Hoy"
+                splitValue={formatCOPSplit(salesToday)}
+                progress={salesPct}
+                progressLabel={`${salesPct}% del objetivo`}
               />
               <AdminKpiCard
-                icon={Gift}
-                label="Canjes Pendientes"
-                value={String(pendingRedemptions)}
-                subtitle="Esperando entrega"
+                icon={ShoppingBag}
+                label="Pedidos Hoy"
+                value={String(ordersToday)}
+                trend={vsYesterday > 0 ? "up" : vsYesterday < 0 ? "down" : "flat"}
+                trendPct={Math.abs(vsYesterday)}
+                trendLabel="vs ayer"
               />
               <AdminKpiCard
-                icon={Clock}
-                label="Fichas Activas"
-                value={String(activeTokens)}
-                subtitle="Sin jugar aún"
+                icon={CreditCard}
+                label="Ticket Promedio"
+                splitValue={formatCOPSplit(avgTicket)}
+                subtitle="Pedidos de hoy"
+              />
+              <AdminKpiCard
+                icon={UserPlus}
+                label="Clientes Nuevos"
+                value={String(newClients)}
+                subtitle="Registrados hoy"
               />
             </div>
           </div>
-        )}
+
+          <div className="admin-dashboard__kpi-group">
+            <div className="admin-dashboard__kpi-group-header">
+              <span className="admin-dashboard__kpi-group-bar admin-dashboard__kpi-group-bar--gamification" />
+              <span className="admin-dashboard__kpi-group-label">Gamificación</span>
+            </div>
+            {gamifError ? (
+              <div className="admin-dashboard__error-card">
+                <p>
+                  Error al cargar estadísticas de gamificación.
+                </p>
+              </div>
+            ) : (
+              <div className="admin-dashboard__gamif-grid">
+                <AdminKpiCard
+                  icon={Gem}
+                  label="Gramos Emitidos"
+                  value={`${gramsIssued}g`}
+                  subtitle="Total acumulado"
+                />
+                <AdminKpiCard
+                  icon={Gift}
+                  label="Canjes Pendientes"
+                  value={String(pendingRedemptions)}
+                  subtitle="Esperando entrega"
+                />
+                <AdminKpiCard
+                  icon={Clock}
+                  label="Fichas Activas"
+                  value={String(activeTokens)}
+                  subtitle="Sin jugar aún"
+                />
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* ── Sales chart + Top 5 essences ────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
-          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-8 lg:p-10 shadow-card stagger-item stagger-3 hover:shadow-md transition-shadow duration-300">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 sm:gap-6 mb-8">
-              <PageSectionHeading>
+        <div className="admin-dashboard__charts-row">
+          <div className="admin-dashboard__chart-card">
+            <div className="admin-dashboard__chart-header">
+              <PageSectionHeading className="admin-dashboard__section-heading--inline">
                 Ventas por período
               </PageSectionHeading>
               <PeriodToggle period={period} onChange={setPeriod} />
             </div>
 
             {salesError ? (
-              <div className="h-48 flex items-center justify-center text-[13px] text-red-500">
+              <div className="admin-dashboard__chart-error">
                 Error al cargar datos de ventas.
               </div>
             ) : chartData.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-[13px] text-slate-400">
+              <div className="admin-dashboard__chart-empty">
                 Sin datos para este período
               </div>
             ) : (
-              <div className="mt-2">
+              <div className="admin-dashboard__chart-top-title">
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart
                     data={chartData}
@@ -593,7 +601,7 @@ export default function AdminDashboardPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-100 p-8 lg:p-10 shadow-card stagger-item stagger-4 hover:shadow-md transition-shadow duration-300">
+          <div className="admin-dashboard__chart-card">
             <PageSectionHeading>Top 5 Esencias hoy</PageSectionHeading>
             {topEssenceData.length === 0 ? (
               <p className="text-[13px] text-slate-400 mt-4">
@@ -650,14 +658,14 @@ export default function AdminDashboardPage() {
 
         {/* ── Sales by product type donut ──────────────────────────────────── */}
         {salesTypeError ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <p className="text-[13px] text-red-700">
+          <div className="admin-dashboard__error-card">
+            <p>
               Error al cargar ventas por tipo de producto.
             </p>
           </div>
         ) : (
           salesByType.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-100 p-8 lg:p-10 shadow-card stagger-item stagger-5 hover:shadow-md transition-shadow duration-300">
+            <div className="admin-dashboard__chart-card">
               <PageSectionHeading>
                 Ventas por tipo de producto
               </PageSectionHeading>
@@ -702,22 +710,22 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ── Recent orders ────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-card stagger-item stagger-6">
-          <div className="px-6 lg:px-8 py-5 border-b border-slate-100 flex items-center justify-between">
-            <PageSectionHeading className="mb-0">
+        <div className="admin-dashboard__orders">
+          <div className="admin-dashboard__orders-header">
+            <PageSectionHeading className="admin-dashboard__section-heading--inline">
               Pedidos Recientes
             </PageSectionHeading>
             <Link
               to="/admin/pedidos"
-              className="text-[11px] text-slate-400 hover:text-slate-900 font-medium transition-colors"
+              className="admin-dashboard__orders-link"
             >
               Ver todos →
             </Link>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+          <div className="admin-dashboard__orders-scroll">
+            <table className="admin-dashboard__orders-table">
               <thead>
-                <tr className="border-b border-slate-200">
+                <tr>
                   {[
                     { label: "PEDIDO #", hide: false as const },
                     { label: "CLIENTE", hide: "md" as const },
@@ -729,8 +737,8 @@ export default function AdminDashboardPage() {
                     <th
                       key={col.label}
                       className={cn(
-                        "px-6 lg:px-8 py-4 text-left font-medium text-slate-400 uppercase text-[10px] tracking-[0.15em] whitespace-nowrap",
-                        col.hide === "md" ? "hidden md:table-cell" : "",
+                        "admin-dashboard__orders-th",
+                        col.hide === "md" && "admin-dashboard__orders-th--hide-mobile",
                       )}
                     >
                       {col.label}
@@ -738,34 +746,27 @@ export default function AdminDashboardPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody>
                 {recentOrders.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 lg:px-8 py-32 sm:py-44 text-center align-middle"
-                    >
-                      <div className="flex flex-col items-center gap-4 mx-auto">
-                        <div className="relative w-[72px] h-[72px] rounded-2xl bg-brand-pink/6 flex items-center justify-center shadow-[inset_0_1px_2px_rgba(216,27,96,0.08),0_4px_16px_rgba(216,27,96,0.08)]">
-                          <div className="absolute inset-[-6px] rounded-[1.125rem] border-2 border-brand-pink/8 animate-pulse-ring pointer-events-none" />
-                          <ShoppingBag size={28} className="text-brand-pink/40" strokeWidth={1.5} />
-                        </div>
-                        <div>
-                          <p className="font-display text-base text-slate-800">
-                            Sin pedidos aún
-                          </p>
-                          <p className="text-[13px] text-slate-400 mt-1">
-                            Los pedidos del día aparecerán aquí.
-                          </p>
-                        </div>
-                        <Link
-                          to="/admin/pedidos"
-                          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-brand-pink to-brand-pink-dark text-white text-[13px] font-semibold shadow-[0_4px_16px_rgba(216,27,96,0.25)] hover:-translate-y-[2px] hover:shadow-[0_8px_24px_rgba(216,27,96,0.35)] transition-all duration-300"
-                        >
-                          <Eye size={14} />
-                          Ver pedidos anteriores
-                        </Link>
+                    <td colSpan={6} className="admin-dashboard__orders-empty">
+                      <div className="admin-dashboard__orders-empty-icon">
+                        <div className="admin-dashboard__orders-empty-icon-inner" />
+                        <ShoppingBag size={28} className="text-brand-pink/40" strokeWidth={1.5} />
                       </div>
+                      <p className="admin-dashboard__orders-empty-title">
+                        Sin pedidos aún
+                      </p>
+                      <p className="admin-dashboard__orders-empty-text">
+                        Los pedidos del día aparecerán aquí.
+                      </p>
+                      <Link
+                        to="/admin/pedidos"
+                        className="admin-dashboard__orders-empty-cta"
+                      >
+                        <Eye size={14} />
+                        Ver pedidos anteriores
+                      </Link>
                     </td>
                   </tr>
                 ) : (
@@ -787,56 +788,54 @@ export default function AdminDashboardPage() {
                     return (
                       <tr
                         key={order.id}
-                        className="hover:bg-slate-50/50 transition-colors"
+                        className="admin-dashboard__orders-row"
                       >
-                        <td className="px-6 lg:px-8 py-5 align-middle">
-                          <span className="font-mono text-slate-900 font-medium text-[11px]">
+                        <td className="admin-dashboard__orders-td">
+                          <span className="admin-dashboard__orders-number">
                             {order.orderNumber}
                           </span>
                         </td>
-                        <td className="px-6 lg:px-8 py-5 align-middle hidden md:table-cell">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-sm bg-slate-900 flex items-center justify-center shrink-0">
-                              <span className="text-white font-medium text-[10px]">
-                                {initials}
-                              </span>
+                        <td className="admin-dashboard__orders-td admin-dashboard__orders-td--hide-mobile">
+                          <div className="admin-dashboard__orders-client">
+                            <div className="admin-dashboard__orders-client-avatar">
+                              <span>{initials}</span>
                             </div>
-                            <span className="font-medium text-slate-700 truncate max-w-[120px] text-[13px]">
+                            <span className="admin-dashboard__orders-client-name">
                               {order.client?.name ?? "N/A"}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 lg:px-8 py-5 align-middle hidden md:table-cell">
-                          <div className="flex flex-wrap gap-1.5">
+                        <td className="admin-dashboard__orders-td admin-dashboard__orders-td--hide-mobile">
+                          <div className="admin-dashboard__orders-items">
                             {essenceItems.slice(0, 3).map((name, i) => (
                               <span
                                 key={i}
-                                className="bg-slate-100 px-2.5 py-1 rounded-full text-[11px] text-slate-600 whitespace-nowrap truncate max-w-[120px]"
+                                className="admin-dashboard__orders-item-tag"
                               >
                                 {name}
                               </span>
                             ))}
                             {essenceItems.length > 3 && (
-                              <span className="text-[10px] text-slate-400 self-center">
+                              <span className="admin-dashboard__orders-more">
                                 +{essenceItems.length - 3}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 lg:px-8 py-5 align-middle font-medium text-slate-800">
+                        <td className="admin-dashboard__orders-td admin-dashboard__orders-total">
                           {formatCOP(order.total)}
                         </td>
-                        <td className="px-6 lg:px-8 py-5 align-middle">
+                        <td className="admin-dashboard__orders-td">
                           <AdminStatusBadge
                             label={STATUS_LABELS[order.status] ?? order.status}
                             color={statusColor(order.status)}
                           />
                         </td>
-                        <td className="px-6 lg:px-8 py-5 align-middle">
-                          <div className="flex items-center gap-1">
+                        <td className="admin-dashboard__orders-td">
+                          <div className="admin-dashboard__orders-actions">
                             <Link
                               to={`/admin/pedidos/${order.id}`}
-                              className="hidden sm:inline-flex p-1.5 text-slate-300 hover:text-slate-600 rounded transition-colors"
+                              className="admin-dashboard__view-btn"
                               aria-label={`Ver pedido ${order.orderNumber}`}
                             >
                               <Eye size={14} />

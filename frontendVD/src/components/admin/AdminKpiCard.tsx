@@ -1,14 +1,11 @@
 /**
  * AdminKpiCard — Clean editorial KPI card.
- *
- * White card with Playfair Display numbers, tiny uppercase labels,
- * optional progress bar, and trend micro-sparkline.
- * No accent borders — pure, minimal, corporate.
  */
 
 import { useMemo } from "react";
 import { cn } from "../../utils/cn";
 import { TrendingDown, TrendingUp, Minus } from "lucide-react";
+import "../../css/AdminKpiCard.css";
 
 export interface AdminKpiCardProps {
   label: string;
@@ -25,9 +22,9 @@ export interface AdminKpiCardProps {
 }
 
 const TREND_CONFIG = {
-  up:   { icon: TrendingUp, color: "text-emerald-600 bg-emerald-50" },
-  down: { icon: TrendingDown, color: "text-red-600 bg-red-50" },
-  flat: { icon: Minus, color: "text-slate-500 bg-slate-100" },
+  up:   { icon: TrendingUp, color: "admin-kpi-card__trend-badge--up" },
+  down: { icon: TrendingDown, color: "admin-kpi-card__trend-badge--down" },
+  flat: { icon: Minus, color: "admin-kpi-card__trend-badge--flat" },
 } as const;
 
 export default function AdminKpiCard({
@@ -61,7 +58,7 @@ export default function AdminKpiCard({
     });
     const strokeColor = trend === "up" ? "#16A34A" : trend === "down" ? "#DC2626" : "#94A3B8";
     return (
-      <svg width={w} height={h} className="shrink-0" aria-hidden>
+      <svg width={w} height={h} className="admin-kpi-card__sparkline" aria-hidden>
         <polyline
           points={coords.join(" ")}
           fill="none"
@@ -75,38 +72,16 @@ export default function AdminKpiCard({
   }, [trend]);
 
   return (
-    <div
-      className={cn(
-        "bg-white border border-slate-100",
-        "rounded-2xl",
-        "p-6 lg:p-8",
-        "shadow-card transition-shadow duration-300",
-        "flex flex-col items-center text-center justify-between min-h-[140px]",
-        "hover:shadow-md",
-        className,
-      )}
-    >
+    <div className={cn("admin-kpi-card", className)}>
       <div>
-        <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400 font-medium mb-3">
-          {label}
-        </p>
-
-        <p
-          className={cn(
-            "font-display font-light tracking-tight text-slate-900 leading-none",
-            "text-4xl",
-          )}
-        >
+        <p className="admin-kpi-card__label">{label}</p>
+        <p className="admin-kpi-card__value">
           {splitValue ? (
             <>
-              <sup className="text-[38%] align-super font-normal text-slate-400 mr-0.5">
-                {splitValue.symbol}
-              </sup>
+              <sup className="admin-kpi-card__sup">{splitValue.symbol}</sup>
               {splitValue.pesos}
               {splitValue.cents && (
-                <span className="text-slate-300 text-[55%] font-light">
-                  {splitValue.cents}
-                </span>
+                <span className="admin-kpi-card__cents">{splitValue.cents}</span>
               )}
             </>
           ) : (
@@ -116,31 +91,24 @@ export default function AdminKpiCard({
       </div>
 
       {(subtitle ?? trend !== undefined) && (
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="admin-kpi-card__meta">
           {subtitle && (
-            <p className="text-[11px] sm:text-[12px] text-slate-400 truncate">
-              {subtitle}
-            </p>
+            <p className="admin-kpi-card__subtitle">{subtitle}</p>
           )}
           {trend !== undefined && (
-            <div className="flex items-center gap-1">
+            <div className="admin-kpi-card__trend-wrap">
               {sparkline}
               {(() => {
                 const T = TREND_CONFIG[trend];
                 return (
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium",
-                      T.color,
-                    )}
-                  >
+                  <span className={cn("admin-kpi-card__trend-badge", T.color)}>
                     <T.icon size={10} />
                     {trendPct !== undefined ? `${trendPct}%` : null}
                   </span>
                 );
               })()}
               {trendLabel && (
-                <span className="text-[10px] text-slate-400">{trendLabel}</span>
+                <span className="admin-kpi-card__trend-label">{trendLabel}</span>
               )}
             </div>
           )}
@@ -148,15 +116,15 @@ export default function AdminKpiCard({
       )}
 
       {progress !== undefined && (
-        <div className="mt-4">
-          <div className="rounded-full bg-slate-100 overflow-hidden h-1.5">
+        <div className="admin-kpi-card__progress">
+          <div className="admin-kpi-card__progress-track">
             <div
-              className="h-full bg-gradient-to-r from-brand-pink to-brand-pink-dark rounded-full transition-all duration-700 ease-out"
+              className="admin-kpi-card__progress-fill"
               style={{ width: `${Math.min(100, progress)}%` }}
             />
           </div>
           {progressLabel && (
-            <p className="text-[10px] text-slate-400 mt-1">{progressLabel}</p>
+            <p className="admin-kpi-card__progress-label">{progressLabel}</p>
           )}
         </div>
       )}

@@ -1,0 +1,128 @@
+/* ── AdminChartCard — Premium glass card with optional chart ─────────────── */
+
+.admin-chart-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: var(--shadow-glass, 0 8px 32px rgba(216, 27, 96, 0.06));
+  transition: box-shadow 0.3s ease;
+}
+
+.admin-chart-card:hover {
+  box-shadow: var(--shadow-glass-hover, 0 12px 40px rgba(216, 27, 96, 0.1));
+}
+
+.admin-chart-card--kpi { padding: 1.25rem; }
+.admin-chart-card--sparkline { padding: 1.25rem; }
+.admin-chart-card--chart { padding: 1.5rem; }
+
+/* Accent gradient backgrounds */
+.admin-chart-card--pink  { background: linear-gradient(to bottom right, rgba(236, 72, 153, 0.1), rgba(244, 114, 182, 0.05)); }
+.admin-chart-card--blue  { background: linear-gradient(to bottom right, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.05)); }
+.admin-chart-card--gold  { background: linear-gradient(to bottom right, rgba(251, 191, 36, 0.1), rgba(250, 204, 21, 0.05)); }
+.admin-chart-card--green { background: linear-gradient(to bottom right, rgba(16, 185, 129, 0.1), rgba(34, 197, 94, 0.05)); }
+.admin-chart-card--purple { background: linear-gradient(to bottom right, rgba(139, 92, 246, 0.1), rgba(168, 85, 247, 0.05)); }
+
+/* Icon wrapper */
+.admin-chart-card__icon {
+  padding: 0.625rem;
+  border-radius: 0.75rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-chart-card__icon--pink  { background: #fce7f3; color: #db2777; box-shadow: 0 0 0 1px rgba(219, 39, 119, 0.2); }
+.admin-chart-card__icon--blue  { background: #dbeafe; color: #2563eb; box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2); }
+.admin-chart-card__icon--gold  { background: #fef3c7; color: #d97706; box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.2); }
+.admin-chart-card__icon--green { background: #d1fae5; color: #059669; box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.2); }
+.admin-chart-card__icon--purple { background: #ede9fe; color: #7c3aed; box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.2); }
+
+/* KPI layout */
+.admin-chart-card__kpi-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-chart-card__kpi-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-chart-card__label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.admin-chart-card__value {
+  font-size: 1.5rem;
+  font-family: var(--font-heading, 'Poppins', sans-serif);
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-chart-card__trend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.375rem;
+}
+
+.admin-chart-card__trend-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+}
+
+.admin-chart-card__trend-badge--up { color: #047857; background: #ecfdf5; }
+.admin-chart-card__trend-badge--down { color: #b91c1c; background: #fef2f2; }
+
+.admin-chart-card__trend-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.admin-chart-card__subtitle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+.admin-chart-card__chart-area {
+  margin-top: 0.75rem;
+  width: 100%;
+  min-height: 50px;
+}
+
+.admin-chart-card__chart-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-chart-card__chart-body .admin-chart-card__chart-area {
+  min-height: 200px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-chart-card { transition: none; }
+}
+
+@media (max-width: 639px) {
+  .admin-chart-card--kpi { padding: 1rem; }
+  .admin-chart-card--chart { padding: 1rem; }
+}

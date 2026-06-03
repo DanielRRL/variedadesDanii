@@ -3,496 +3,319 @@
  *
  * Tabs:
  *  1. Estadísticas — 4 stat cards + top 10 players
- *  2. Desafíos Semanales — current challenge + create new
- *  3. Ajuste de Gramos — user search + delta stepper + apply
+ *  2. Desafíos Semanales — current challenge + create form
+ *  3. Ajuste de Gramos — search user + manual adjustment
  */
 
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useToastStore } from '../../stores/toastStore';
+import { BarChart3, Gem, Gift, Gamepad2, Clock, Trophy, Scale, Search, X, Plus, Minus, Loader2 } from 'lucide-react';
+import clsx from 'clsx';
 import { AdminQueryError } from '../../components/admin/AdminQueryError';
-import {
-  BarChart3,
-  Trophy,
-  Scale,
-  Gem,
-  Clock,
-  Gift,
-  Gamepad2,
-  Plus,
-  Search,
-  Loader2,
-  X,
-  Minus,
-} from 'lucide-react';
+import { useToastStore } from '../../stores/toastStore';
+import { getGamificationStats, searchUsers, adminAdjustGrams, adminCreateChallenge } from '../../services/api';
+import type { WeeklyChallenge, User } from '../../types';
+import '../../css/AdminGamificationPage.css';
 
-import {
-  getGamificationStats,
-  adminCreateChallenge,
-  adminAdjustGrams,
-  searchUsers,
-} from '../../services/api';
-import type { User, WeeklyChallenge } from '../../types';
+// ─── StatCard ───────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tab type
-// ─────────────────────────────────────────────────────────────────────────────
-
-type Tab = 'stats' | 'challenges' | 'adjust';
-
-const TABS: { key: Tab; label: string; Icon: typeof BarChart3 }[] = [
-  { key: 'stats',      label: 'Estadísticas',        Icon: BarChart3 },
-  { key: 'challenges', label: 'Desafíos Semanales',  Icon: Trophy },
-  { key: 'adjust',     label: 'Ajuste de Gramos',    Icon: Scale },
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Stat card
-// ─────────────────────────────────────────────────────────────────────────────
-
-function StatCard({ icon: Icon, label, value, sub }: {
-  icon: typeof Gem;
-  label: string;
-  value: string;
-  sub?: string;
+function StatCard({ icon: Icon, label, value, sub, iconVariant }: {
+  icon: React.ElementType; label: string; value: string | number; sub?: string; iconVariant: 'pink' | 'gold' | 'green' | 'blue';
 }) {
   return (
-    <div className="bg-white rounded-xl border border-border shadow-sm p-4">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-9 h-9 rounded-lg bg-brand-pink/10 flex items-center justify-center shrink-0">
-          <Icon size={17} className="text-brand-pink" />
+    <div className="admin-gamification__stat-card">
+      <div className="admin-gamification__stat-top">
+        <div className={clsx('admin-gamification__stat-icon-wrap', `admin-gamification__stat-icon-wrap--${iconVariant}`)}>
+          <Icon size={16} />
         </div>
-        <span className="text-xs font-semibold text-muted">{label}</span>
+        <div className="admin-gamification__stat-info">
+          <p className="admin-gamification__stat-label">{label}</p>
+          <p className="admin-gamification__stat-value">{value}</p>
+        </div>
       </div>
-      <p className="text-xl font-bold text-text-primary">{value}</p>
-      {sub && <p className="text-[10px] text-muted mt-0.5">{sub}</p>}
+      {sub && <p className="admin-gamification__stat-sub">{sub}</p>}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Statistics tab
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── StatsTab ────────────────────────────────────────────────────────────────
 
-function StatsTab({ stats }: { stats: Record<string, unknown> }) {
-  const totalGrams   = Number(stats.totalGramsIssued ?? 0);
-  const totalRedeemed = Number(stats.totalGramsRedeemed ?? 0);
-  const activeTokens = Number(stats.activeTokens ?? 0);
-  const totalGames   = Number(stats.totalGamesPlayed ?? 0);
-
-  const topPlayers: { name: string; grams: number }[] =
-    (stats.topPlayers as { name: string; grams: number }[] | undefined) ?? [];
-
+function StatsTab({ stats, topPlayers }: { stats: Record<string, number>; topPlayers: { name: string; grams: number }[] }) {
   return (
-    <div className="space-y-5">
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Gem}      label="Gramos Emitidos"    value={`${totalGrams}g`} />
-        <StatCard icon={Gift}     label="Gramos Canjeados"   value={`${totalRedeemed}g`} />
-        <StatCard icon={Clock}    label="Fichas Activas"     value={String(activeTokens)} />
-        <StatCard icon={Gamepad2} label="Juegos Realizados"  value={String(totalGames)} />
+    <>
+      <div className="admin-gamification__stats-grid">
+        <StatCard icon={Gem} label="Gramos Emitidos" value={`${Number(stats.totalGramsIssued ?? 0)}g`} sub="Total acumulado" iconVariant="pink" />
+        <StatCard icon={Gift} label="Gramos Canjeados" value={`${Number(stats.totalGramsRedeemed ?? 0)}g`} sub="En canjes entregados" iconVariant="gold" />
+        <StatCard icon={Clock} label="Fichas Activas" value={Number(stats.activeTokens ?? 0)} sub="Sin jugar aún" iconVariant="green" />
+        <StatCard icon={Gamepad2} label="Juegos Realizados" value={Number(stats.completedGames ?? 0)} sub="Total histórico" iconVariant="blue" />
       </div>
 
-      {/* Top 10 players */}
-      <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-border">
-          <h3 className="font-heading font-semibold text-text-primary text-sm">Top 10 Jugadores</h3>
+      <div className="admin-gamification__players-card">
+        <div className="admin-gamification__players-header">
+          <h3 className="admin-gamification__players-title">Top 10 Jugadores</h3>
         </div>
         {topPlayers.length === 0 ? (
-          <p className="px-5 py-6 text-muted text-sm text-center">Sin datos de jugadores aún.</p>
+          <p className="admin-gamification__players-empty">Sin datos de jugadores aún.</p>
         ) : (
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-gray-50">
-                <th className="px-4 py-3 text-left font-semibold text-muted uppercase">#</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted uppercase">JUGADOR</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted uppercase">GRAMOS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {topPlayers.slice(0, 10).map((p, i) => (
-                <tr key={i} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="w-6 h-6 rounded-full bg-brand-pink/10 flex items-center justify-center">
-                      <span className="text-brand-pink font-bold text-[10px]">{i + 1}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 font-medium text-text-primary">{p.name}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-text-primary">{p.grams}g</td>
+          <table className="admin-gamification__players-table">
+            <thead><tr>{['#','JUGADOR','GRAMOS'].map(h => <th key={h} className="admin-gamification__players-th">{h}</th>)}</tr></thead>
+            <tbody className="admin-gamification__players-tbody">
+              {topPlayers.map((p, i) => (
+                <tr key={i}>
+                  <td className="admin-gamification__players-td"><span className="admin-gamification__players-td-rank">{i + 1}</span></td>
+                  <td className="admin-gamification__players-td"><span className="admin-gamification__players-td-name">{p.name}</span></td>
+                  <td className="admin-gamification__players-td"><span className="admin-gamification__players-td-grams">{p.grams}g</span></td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Challenges tab
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── ChallengesTab ───────────────────────────────────────────────────────────
 
-function ChallengesTab({ currentChallenge }: { currentChallenge?: WeeklyChallenge }) {
-  const queryClient = useQueryClient();
-  const addToast = useToastStore((s) => s.addToast);
+function ChallengesTab({ currentChallenge, onInvalidate }: { currentChallenge: WeeklyChallenge | undefined; onInvalidate: () => void }) {
+  const addToast = useToastStore(s => s.addToast);
   const [createOpen, setCreateOpen] = useState(false);
-  const [loading, setLoading]       = useState(false);
-
-  const [desc, setDesc]       = useState('');
-  const [reward, setReward]   = useState('');
-  const [required, setRequired] = useState('');
+  const [desc, setDesc] = useState('');
+  const [reward, setReward] = useState('');
+  const [purchases, setPurchases] = useState('');
   const [weekStart, setWeekStart] = useState('');
-  const [weekEnd, setWeekEnd]     = useState('');
+  const [weekEnd, setWeekEnd] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const handleCreate = async (e: FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    const r = parseInt(reward), p = parseInt(purchases);
+    if (!r || !p || !desc.trim() || !weekStart || !weekEnd) return;
+    setBusy(true);
     try {
-      await adminCreateChallenge({
-        description: desc,
-        gramReward: Number(reward),
-        requiredPurchases: Number(required),
-        weekStart,
-        weekEnd,
-      });
-      queryClient.invalidateQueries({ queryKey: ['admin-gamification-stats'] });
-      setCreateOpen(false);
-      setDesc('');
-      setReward('');
-      setRequired('');
-      setWeekStart('');
-      setWeekEnd('');
-    } catch {
-      addToast('Error al crear desafío.', 'error');
-    } finally {
-      setLoading(false);
-    }
+      await adminCreateChallenge({ description: desc, gramReward: r, requiredPurchases: p, weekStart, weekEnd });
+      onInvalidate();
+      setCreateOpen(false); setDesc(''); setReward(''); setPurchases(''); setWeekStart(''); setWeekEnd('');
+    } catch { addToast('Error al crear desafío.', 'error'); }
+    finally { setBusy(false); }
   };
 
   return (
-    <div className="space-y-5">
-      {/* Current challenge */}
-      <div className="bg-white rounded-xl border border-border shadow-sm p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-heading font-semibold text-text-primary text-sm">Desafío Actual</h3>
-          <button
-            onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-pink text-white text-xs font-semibold hover:bg-brand-pink/90 transition-colors"
-          >
-            <Plus size={13} />
-            Nuevo desafío
-          </button>
+    <>
+      <div className="admin-gamification__challenge-card">
+        <div className="admin-gamification__challenge-header">
+          <h3 className="admin-gamification__challenge-title">Desafío Actual</h3>
+          {!createOpen && (
+            <button onClick={() => setCreateOpen(true)} className="admin-gamification__challenge-create-btn">
+              <Trophy size={14} /> Nuevo desafío
+            </button>
+          )}
         </div>
-
         {currentChallenge ? (
-          <div className="bg-brand-pink/5 rounded-xl p-4 space-y-2">
-            <p className="text-sm font-semibold text-text-primary">{currentChallenge.description}</p>
-            <div className="flex flex-wrap gap-3 text-xs text-muted">
-              <span>Recompensa: <span className="font-semibold text-brand-pink">{currentChallenge.gramReward}g</span></span>
-              <span>Compras requeridas: <span className="font-semibold">{currentChallenge.requiredPurchases}</span></span>
-              <span>
-                {new Date(currentChallenge.weekStart).toLocaleDateString('es-CO')} –{' '}
-                {new Date(currentChallenge.weekEnd).toLocaleDateString('es-CO')}
-              </span>
+          <>
+            <p className="admin-gamification__challenge-desc">{currentChallenge.description}</p>
+            <div className="admin-gamification__challenge-meta">
+              <span>Premio: <strong>{currentChallenge.gramReward}g</strong></span>
+              <span>Compras requeridas: <strong>{currentChallenge.requiredPurchases}</strong></span>
             </div>
-            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-              currentChallenge.active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-muted'
-            }`}>
+            <p className="admin-gamification__challenge-dates">
+              {new Date(currentChallenge.weekStart).toLocaleDateString('es-CO')} — {new Date(currentChallenge.weekEnd).toLocaleDateString('es-CO')}
+            </p>
+            <span className={clsx('admin-gamification__challenge-badge', currentChallenge.active ? 'admin-gamification__challenge-badge--active' : 'admin-gamification__challenge-badge--inactive')}>
               {currentChallenge.active ? 'Activo' : 'Inactivo'}
             </span>
-          </div>
+          </>
         ) : (
-          <p className="text-muted text-sm">No hay desafío activo esta semana.</p>
+          <p className="admin-gamification__challenge-empty">No hay desafío activo esta semana.</p>
         )}
       </div>
 
-      {/* Create challenge form (inline expandable) */}
       {createOpen && (
-        <div className="bg-white rounded-xl border border-border shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading font-semibold text-text-primary text-sm">Crear Desafío</h3>
-            <button onClick={() => setCreateOpen(false)} className="p-1 text-muted hover:text-text-primary">
-              <X size={16} />
-            </button>
+        <div className="admin-gamification__form-card">
+          <div className="admin-gamification__form-header">
+            <h3 className="admin-gamification__form-title">Crear Desafío</h3>
+            <button onClick={() => setCreateOpen(false)} className="admin-gamification__form-close"><X size={16} /></button>
           </div>
-          <form onSubmit={handleCreate} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1">Descripción</label>
-              <input
-                required
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                placeholder="Ej: Compra 3 productos esta semana"
-                className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-              />
+          <form onSubmit={handleCreate} className="admin-gamification__form-body">
+            <div className="admin-gamification__form-field">
+              <label className="admin-gamification__form-label">Descripción</label>
+              <input required value={desc} onChange={e => setDesc(e.target.value)} className="admin-gamification__form-input" placeholder="Ej: Compra 3 productos esta semana" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-text-primary mb-1">Recompensa (gramos)</label>
-                <input
-                  required
-                  type="number"
-                  min={1}
-                  value={reward}
-                  onChange={(e) => setReward(e.target.value)}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-                />
+            <div className="admin-gamification__form-row">
+              <div className="admin-gamification__form-field">
+                <label className="admin-gamification__form-label">Premio (gramos)</label>
+                <input required type="number" min={1} value={reward} onChange={e => setReward(e.target.value)} className="admin-gamification__form-input" />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-text-primary mb-1">Compras requeridas</label>
-                <input
-                  required
-                  type="number"
-                  min={1}
-                  value={required}
-                  onChange={(e) => setRequired(e.target.value)}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-                />
+              <div className="admin-gamification__form-field">
+                <label className="admin-gamification__form-label">Compras requeridas</label>
+                <input required type="number" min={1} value={purchases} onChange={e => setPurchases(e.target.value)} className="admin-gamification__form-input" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-text-primary mb-1">Inicio semana</label>
-                <input
-                  required
-                  type="date"
-                  value={weekStart}
-                  onChange={(e) => setWeekStart(e.target.value)}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-                />
+            <div className="admin-gamification__form-row">
+              <div className="admin-gamification__form-field">
+                <label className="admin-gamification__form-label">Inicio de semana</label>
+                <input type="date" required value={weekStart} onChange={e => setWeekStart(e.target.value)} className="admin-gamification__form-input" />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-text-primary mb-1">Fin semana</label>
-                <input
-                  required
-                  type="date"
-                  value={weekEnd}
-                  onChange={(e) => setWeekEnd(e.target.value)}
-                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-                />
+              <div className="admin-gamification__form-field">
+                <label className="admin-gamification__form-label">Fin de semana</label>
+                <input type="date" required value={weekEnd} onChange={e => setWeekEnd(e.target.value)} className="admin-gamification__form-input" />
               </div>
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-brand-pink text-white font-semibold text-sm hover:bg-brand-pink/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
-              {loading && <Loader2 size={14} className="animate-spin" />}
-              Crear desafío
+            <button type="submit" disabled={busy} className="admin-gamification__form-submit">
+              {busy && <span className="admin-gamification__adjust-spinner" />} Crear desafío
             </button>
           </form>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Gram Adjustment tab
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── AdjustTab ───────────────────────────────────────────────────────────────
 
-function AdjustTab() {
-  const queryClient = useQueryClient();
-  const addToast = useToastStore((s) => s.addToast);
+function AdjustTab({ onInvalidate }: { onInvalidate: () => void }) {
+  const addToast = useToastStore(s => s.addToast);
   const [userSearch, setUserSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [delta, setDelta]   = useState(1);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [delta, setDelta] = useState(0);
   const [reason, setReason] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const { data: usersRes, isFetching, isError } = useQuery({
+  const { data: usersRes, isError, isFetching } = useQuery({
     queryKey: ['admin-search-users', userSearch],
     queryFn: () => searchUsers({ search: userSearch }),
-    enabled: userSearch.length >= 2,
-    staleTime: 10_000,
+    enabled: userSearch.length >= 2, staleTime: 10_000,
   });
-
-  const users: User[] = usersRes?.data?.users ?? usersRes?.data ?? [];
 
   if (isError) return <AdminQueryError />;
 
-  const handleAdjust = async (e: FormEvent) => {
+  const users: User[] = usersRes?.data?.users ?? usersRes?.data ?? [];
+
+  const handleAdjust = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser) return;
-    setLoading(true);
+    if (!selectedUser || delta === 0) return;
+    setBusy(true);
     try {
-      await adminAdjustGrams({ userId: selectedUser.id, delta, reason });
-      queryClient.invalidateQueries({ queryKey: ['admin-gamification-stats'] });
+      await adminAdjustGrams({ userId: selectedUser.id, delta, reason: reason || 'Ajuste manual de gramos' });
       addToast(`Ajuste de ${delta > 0 ? '+' : ''}${delta}g aplicado a ${selectedUser.name}.`, 'success');
-      setSelectedUser(null);
-      setDelta(1);
-      setReason('');
-    } catch {
-      addToast('Error al ajustar gramos.', 'error');
-    } finally {
-      setLoading(false);
-    }
+      onInvalidate(); setSelectedUser(null); setUserSearch(''); setDelta(0); setReason('');
+    } catch { addToast('Error al ajustar gramos.', 'error'); }
+    finally { setBusy(false); }
   };
 
   return (
-    <div className="max-w-xl space-y-5">
-      {/* User search */}
-      <div className="bg-white rounded-xl border border-border shadow-sm p-5 space-y-4">
-        <h3 className="font-heading font-semibold text-text-primary text-sm">Buscar cliente</h3>
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-          <input
-            value={userSearch}
-            onChange={(e) => { setUserSearch(e.target.value); setSelectedUser(null); }}
-            placeholder="Nombre, email o teléfono…"
-            className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-          />
-          {isFetching && (
-            <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted animate-spin" />
-          )}
-        </div>
-
-        {/* Search results dropdown */}
-        {!selectedUser && users.length > 0 && (
-          <div className="border border-border rounded-lg max-h-48 overflow-y-auto divide-y divide-border">
-            {users.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => { setSelectedUser(u); setUserSearch(u.name); }}
-                className="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors"
-              >
-                <p className="text-sm font-medium text-text-primary">{u.name}</p>
-                <p className="text-[10px] text-muted">{u.email} · {u.phone}</p>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Selected user badge */}
-        {selectedUser && (
-          <div className="flex items-center gap-3 bg-brand-pink/5 rounded-lg px-4 py-3">
-            <div className="w-8 h-8 rounded-full bg-brand-pink flex items-center justify-center shrink-0">
-              <span className="text-white text-xs font-bold">
-                {selectedUser.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
-              </span>
+    <div className="admin-gamification__search-card">
+      <div className="admin-gamification__search-wrap">
+        <Search size={15} className="admin-gamification__search-icon" />
+        <input
+          value={selectedUser ? `${selectedUser.name} (${selectedUser.email})` : userSearch}
+          onChange={e => { setSelectedUser(null); setUserSearch(e.target.value); setShowDropdown(true); }}
+          onFocus={() => setShowDropdown(true)}
+          placeholder="Buscar cliente…" className="admin-gamification__search-input"
+        />
+        {isFetching && <Loader2 size={14} className="admin-gamification__search-spinner" />}
+        {showDropdown && users.length > 0 && !selectedUser && (
+          <>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setShowDropdown(false)} />
+            <div className="admin-gamification__search-dropdown">
+              {users.slice(0, 8).map(u => (
+                <button key={u.id} type="button" onClick={() => { setSelectedUser(u); setShowDropdown(false); }}
+                  className="admin-gamification__search-item">
+                  <div>
+                    <p className="admin-gamification__search-item-name">{u.name}</p>
+                    <p className="admin-gamification__search-item-email">{u.email}</p>
+                  </div>
+                </button>
+              ))}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-text-primary truncate">{selectedUser.name}</p>
-              <p className="text-[10px] text-muted">{selectedUser.email}</p>
-            </div>
-            <button
-              onClick={() => { setSelectedUser(null); setUserSearch(''); }}
-              className="p-1 text-muted hover:text-text-primary"
-            >
-              <X size={14} />
-            </button>
-          </div>
+          </>
         )}
       </div>
 
-      {/* Delta stepper + reason + apply */}
       {selectedUser && (
-        <form onSubmit={handleAdjust} className="bg-white rounded-xl border border-border shadow-sm p-5 space-y-4">
-          <h3 className="font-heading font-semibold text-text-primary text-sm">Ajustar gramos</h3>
-
-          {/* Delta stepper */}
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setDelta((d) => d - 1)}
-              className="w-9 h-9 rounded-lg border border-border flex items-center justify-center hover:bg-gray-50 transition-colors"
-            >
-              <Minus size={14} />
-            </button>
-            <div className="text-center">
-              <span className={`text-2xl font-bold ${delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-text-primary'}`}>
-                {delta > 0 ? '+' : ''}{delta}g
-              </span>
+        <>
+          <div className="admin-gamification__selected-badge">
+            <div className="admin-gamification__selected-avatar">
+              <span className="admin-gamification__selected-avatar-text">{selectedUser.name.split(' ').slice(0,2).map(w => w[0]).join('')}</span>
             </div>
-            <button
-              type="button"
-              onClick={() => setDelta((d) => d + 1)}
-              className="w-9 h-9 rounded-lg border border-border flex items-center justify-center hover:bg-gray-50 transition-colors"
-            >
-              <Plus size={14} />
+            <div className="admin-gamification__selected-info">
+              <p className="admin-gamification__selected-name">{selectedUser.name}</p>
+              <p className="admin-gamification__selected-email">{selectedUser.email}</p>
+            </div>
+            <button onClick={() => { setSelectedUser(null); setDelta(0); }} className="admin-gamification__selected-clear"><X size={14} /></button>
+          </div>
+
+          <form onSubmit={handleAdjust} className="admin-gamification__adjust-form">
+            <div className="admin-gamification__form-field">
+              <label className="admin-gamification__form-label">Gramos a ajustar</label>
+              <div className="admin-gamification__adjust-stepper">
+                <button type="button" onClick={() => setDelta(d => d - 1)} disabled={delta <= -99} className="admin-gamification__adjust-stepper-btn"><Minus size={14} /></button>
+                <span className="admin-gamification__adjust-stepper-value">{delta > 0 ? '+' : ''}{delta}g</span>
+                <button type="button" onClick={() => setDelta(d => d + 1)} disabled={delta >= 99} className="admin-gamification__adjust-stepper-btn"><Plus size={14} /></button>
+              </div>
+            </div>
+            <div className="admin-gamification__form-field">
+              <label className="admin-gamification__form-label">Motivo</label>
+              <input value={reason} onChange={e => setReason(e.target.value)} className="admin-gamification__adjust-reason" placeholder="Motivo del ajuste…" />
+            </div>
+            <button type="submit" disabled={busy || delta === 0} className="admin-gamification__adjust-submit">
+              {busy && <span className="admin-gamification__adjust-spinner" />} Aplicar Ajuste
             </button>
-          </div>
-
-          {/* Reason */}
-          <div>
-            <label className="block text-xs font-semibold text-text-primary mb-1">Motivo</label>
-            <input
-              required
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Ej: Ajuste por error, premio especial…"
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || delta === 0}
-            className="w-full py-2.5 rounded-xl bg-brand-pink text-white font-semibold text-sm hover:bg-brand-pink/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-          >
-            {loading && <Loader2 size={14} className="animate-spin" />}
-            Aplicar ajuste
-          </button>
-        </form>
+          </form>
+        </>
       )}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main page
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Main Page ───────────────────────────────────────────────────────────────
+
+const TABS: { key: 'stats' | 'challenges' | 'adjust'; label: string; Icon: React.ElementType }[] = [
+  { key: 'stats', label: 'Estadísticas', Icon: BarChart3 },
+  { key: 'challenges', label: 'Desafíos Semanales', Icon: Trophy },
+  { key: 'adjust', label: 'Ajuste de Gramos', Icon: Scale },
+];
 
 export default function AdminGamificationPage() {
-  const [tab, setTab] = useState<Tab>('stats');
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState<'stats' | 'challenges' | 'adjust'>('stats');
 
-  const { data: res, isLoading, isError } = useQuery({
+  const { data: statsRes, isLoading, isError } = useQuery({
     queryKey: ['admin-gamification-stats'],
-    queryFn: getGamificationStats,
-    staleTime: 60_000,
+    queryFn: getGamificationStats, staleTime: 60_000,
   });
-
-  const stats: Record<string, unknown> = res?.data ?? {};
-  const currentChallenge = stats.currentChallenge as WeeklyChallenge | undefined;
 
   if (isError) return <AdminQueryError />;
 
+  const stats = statsRes?.data ?? {};
+  const topPlayers: { name: string; grams: number }[] = stats.topPlayers ?? [];
+  const currentChallenge: WeeklyChallenge | undefined = stats.currentChallenge ?? stats.activeChallenge ?? undefined;
+
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-brand-pink border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <div className="admin-gamification__loading"><div className="admin-gamification__spinner" /></div>;
   }
 
-  return (
-    <div className="space-y-5 max-w-7xl mx-auto">
-      {/* Header */}
-      <h1 className="font-heading font-bold text-xl text-text-primary">Gamificación</h1>
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['admin-gamification-stats'] });
 
-      {/* Tab bar */}
-      <div className="flex bg-gray-100 rounded-lg p-0.5 gap-0.5 w-fit">
+  return (
+    <div className="admin-gamification">
+      <div className="admin-gamification__header">
+        <h1 className="admin-gamification__title">Gamificación</h1>
+      </div>
+
+      <div className="admin-gamification__tabs">
         {TABS.map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold transition-all ${
-              tab === key
-                ? 'bg-white text-brand-pink shadow-sm'
-                : 'text-muted hover:text-text-primary'
-            }`}
-          >
-            <Icon size={14} />
-            {label}
+          <button key={key} onClick={() => setTab(key)}
+            className={clsx('admin-gamification__tab', tab === key && 'admin-gamification__tab--active')}>
+            <Icon size={15} /> {label}
           </button>
         ))}
       </div>
 
-      {/* Tab content */}
-      {tab === 'stats'      && <StatsTab stats={stats} />}
-      {tab === 'challenges' && <ChallengesTab currentChallenge={currentChallenge} />}
-      {tab === 'adjust'     && <AdjustTab />}
+      {tab === 'stats' && <StatsTab stats={stats} topPlayers={topPlayers} />}
+      {tab === 'challenges' && <ChallengesTab currentChallenge={currentChallenge} onInvalidate={invalidate} />}
+      {tab === 'adjust' && <AdjustTab onInvalidate={invalidate} />}
     </div>
   );
 }

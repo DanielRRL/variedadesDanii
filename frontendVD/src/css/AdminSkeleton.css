@@ -1,0 +1,67 @@
+/* ── AdminSkeleton — Loading skeleton primitives ────────────────────────── */
+
+.admin-skeleton-pulse {
+  display: block;
+  border-radius: 0.25rem;
+  background: linear-gradient(
+    90deg,
+    #e2e8f0 0%,
+    #f1f5f9 50%,
+    #e2e8f0 100%
+  );
+  background-size: 200% 100%;
+  animation: admin-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes admin-skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Card skeleton */
+.admin-skeleton-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-skeleton-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Chart skeleton */
+.admin-skeleton-chart {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  padding: 1.5rem;
+}
+
+.admin-skeleton-chart__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+/* Table row skeleton */
+.admin-skeleton-row td {
+  padding: 0.75rem 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-skeleton-pulse { animation: none; }
+}
+
+@media (max-width: 639px) {
+  .admin-skeleton-card { padding: 1rem; }
+  .admin-skeleton-chart { padding: 1rem; }
+}

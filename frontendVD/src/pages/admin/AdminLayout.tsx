@@ -2,9 +2,9 @@
  * AdminLayout.tsx — Persistent sidebar + top bar for all /admin/* routes.
  *
  * Sidebar groups 15 nav items into 5 collapsible sections on a dark
- * background (slate-800). The top bar shows a time-aware greeting and
- * notification bell. Navigation collapses to icon-only on desktop toggle
- * and slides in as an overlay on mobile.
+ * background. The top bar shows a time-aware greeting and notification bell.
+ * Navigation collapses to icon-only on desktop toggle and slides in as an
+ * overlay on mobile.
  */
 
 import { useState, useMemo } from "react";
@@ -35,9 +35,11 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { clsx } from "clsx";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/authStore";
 import { adminGetPendingRedemptions } from "../../services/api";
+import "../../css/AdminLayout.css";
 
 // ─── Navigation sections with grouped items ──────────────────────────────
 
@@ -163,64 +165,57 @@ export default function AdminLayout() {
 
   const firstName = user?.name?.split(" ")[0] ?? "Admin";
 
-  const sidebarWidth = collapsed ? "w-[68px]" : "w-60";
-  const collapseIcon = collapsed ? (
-    <Menu size={16} />
-  ) : (
-    <ChevronDown size={14} className="rotate-90" />
-  );
-
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="admin-layout">
       {/* ── Skip to content link (accessibility) ─────────────────────── */}
-      <a
-        href="#admin-main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:bg-brand-pink focus:text-white focus:rounded-lg focus:text-sm focus:font-semibold"
-      >
+      <a href="#admin-main-content" className="admin-layout__skip-link">
         Saltar al contenido principal
       </a>
 
       {/* ── Mobile backdrop ──────────────────────────────────────────── */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          className="admin-layout__backdrop"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
       <aside
-        className={`shrink-0 ${sidebarWidth} bg-sidebar-bg/95 backdrop-blur-xl border-r border-white/10 flex flex-col h-screen transition-[width,margin] duration-200 ${
-          sidebarOpen ? "ml-0" : "-ml-60 lg:ml-0"
-        } ${collapsed ? "lg:w-[68px]" : ""}`}
+        className={clsx(
+          "admin-sidebar",
+          collapsed && "admin-sidebar--collapsed",
+          sidebarOpen && "admin-sidebar--mobile-open",
+        )}
       >
         {/* Brand header */}
-        <div className="px-4 py-4 border-b border-white/[0.08] shrink-0 flex items-center justify-between">
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="font-heading font-bold text-sm leading-tight">
-                <span className="bg-gradient-to-r from-brand-pink to-brand-gold bg-clip-text text-transparent font-bold">
-                  Variedades DANII
-                </span>
-              </p>
-              <p className="text-[10px] text-sidebar-text/60 uppercase tracking-[0.15em] mt-0.5">
-                Panel Admin
-              </p>
-            </div>
-          )}
-          <div className="flex items-center gap-1">
+        <div className="admin-sidebar__brand">
+          <div
+            className="admin-sidebar__brand-logo"
+            onClick={() => { if (collapsed) setCollapsed(false); }}
+            style={collapsed ? { cursor: 'pointer' } : undefined}
+          >
+            <div className="admin-sidebar__brand-logo-icon">VD</div>
+            {!collapsed && (
+              <div className="admin-sidebar__brand-logo-text">
+                <span>Admin</span>
+                <div className="admin-sidebar__brand-subtitle">Panel Administrativo</div>
+              </div>
+            )}
+          </div>
+          <div className="admin-sidebar__brand-btns">
             {/* Desktop collapse toggle */}
             <button
               onClick={() => setCollapsed((v) => !v)}
-              className="hidden lg:flex p-1.5 rounded-lg text-sidebar-text/50 hover:text-sidebar-text hover:bg-sidebar-hover transition-colors"
-              aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+              className="admin-sidebar__brand-btn admin-sidebar__brand-btn--desktop"
+              aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
             >
-              {collapseIcon}
+              {collapsed ? <Menu size={16} /> : <ChevronDown size={14} className="rotate-90" />}
             </button>
             {/* Mobile close */}
             <button
               onClick={() => setSidebarOpen(false)}
-              className="p-1.5 rounded-lg text-sidebar-text/50 hover:text-sidebar-text hover:bg-sidebar-hover transition-colors lg:hidden"
+              className="admin-sidebar__brand-btn admin-sidebar__brand-btn--mobile"
               aria-label="Cerrar menú"
             >
               <X size={16} />
@@ -229,33 +224,34 @@ export default function AdminLayout() {
         </div>
 
         {/* Navigation */}
-        <nav
-          className="flex-1 overflow-y-auto py-3 px-2"
-          aria-label="Navegación de administración"
-        >
+        <nav className="admin-sidebar__nav" aria-label="Navegación de administración">
           {NAV_SECTIONS.map((section) => {
             const isOpen = openSections[section.label] ?? true;
             return (
-              <div key={section.label} className="mb-1">
+              <div key={section.label} className="admin-sidebar__section">
                 {/* Section header — hidden when collapsed */}
                 {!collapsed && (
                   <button
                     onClick={() => toggleSection(section.label)}
-                    className="w-full flex items-center gap-2 px-3 pt-3 pb-1.5 text-[10px] font-semibold text-sidebar-text/40 uppercase tracking-[0.12em] hover:text-sidebar-text/60 transition-colors cursor-pointer"
+                    className="admin-sidebar__section-header"
                   >
-                    <span className="flex-1 text-left">{section.label}</span>
+                    <span className="admin-sidebar__section-label">{section.label}</span>
                     <ChevronDown
                       size={12}
-                      className={`transition-transform duration-150 ${isOpen ? "" : "-rotate-90"}`}
+                      className={clsx(
+                        "admin-sidebar__section-chevron",
+                        !isOpen && "admin-sidebar__section-chevron--closed",
+                      )}
                     />
                   </button>
                 )}
 
                 {/* Section items */}
                 <div
-                  className={`overflow-hidden transition-all duration-200 ${
-                    isOpen || collapsed ? "max-h-96" : "max-h-0"
-                  }`}
+                  className={clsx(
+                    "admin-sidebar__section-items",
+                    isOpen || collapsed ? "admin-sidebar__section-items--open" : "admin-sidebar__section-items--closed",
+                  )}
                 >
                   {section.items.map(({ icon: Icon, label, path, exact, badge }) => (
                     <NavLink
@@ -266,25 +262,19 @@ export default function AdminLayout() {
                         if (window.innerWidth < 1024) setSidebarOpen(false);
                       }}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
-                          collapsed ? "justify-center px-2" : ""
-                        } ${
-                          isActive
-                            ? "bg-brand-pink/10 text-brand-pink border-l-[3px] border-brand-pink -ml-[8px] pl-[11px]"
-                            : "text-sidebar-text hover:bg-sidebar-hover hover:text-white border-l-[3px] border-transparent"
-                        }`
+                        clsx(
+                          "admin-sidebar__nav-item",
+                          isActive && "admin-sidebar__nav-item--active",
+                        )
                       }
                       title={collapsed ? label : undefined}
                     >
-                      <Icon
-                        size={18}
-                        className="shrink-0"
-                      />
+                      <Icon size={18} className="admin-sidebar__nav-icon" />
                       {!collapsed && (
                         <>
-                          <span className="flex-1 truncate">{label}</span>
+                          <span className="admin-sidebar__nav-label">{label}</span>
                           {badge && pendingCount > 0 && (
-                            <span className="min-w-[20px] h-5 flex items-center justify-center rounded-full bg-brand-pink text-white text-[10px] font-bold px-1.5 leading-none">
+                            <span className="admin-sidebar__nav-badge">
                               {pendingCount > 99 ? "99+" : pendingCount}
                             </span>
                           )}
@@ -299,38 +289,26 @@ export default function AdminLayout() {
         </nav>
 
         {/* Sidebar footer */}
-        <div className="px-3 py-3 border-t border-white/[0.08] shrink-0 space-y-2">
+        <div className="admin-sidebar__footer">
           {/* Back to store */}
           <button
             onClick={() => navigate("/")}
-            className={`flex items-center gap-2.5 px-2 py-2 rounded-lg text-sidebar-text/50 hover:text-sidebar-text hover:bg-sidebar-hover transition-colors w-full text-xs ${
-              collapsed ? "justify-center" : ""
-            }`}
+            className="admin-sidebar__footer-store-btn"
           >
-            <Home size={16} className="shrink-0" />
-            {!collapsed && <span>Volver a la tienda</span>}
+            <Home size={16} className="admin-sidebar__footer-store-icon" />
+            {!collapsed && <span className="admin-sidebar__footer-store-label">Volver a la tienda</span>}
           </button>
 
           {/* User info */}
-          <div
-            className={`flex items-center gap-2.5 px-2 py-1.5 ${
-              collapsed ? "justify-center" : ""
-            }`}
-          >
-            <div className="relative w-8 h-8 rounded-full bg-brand-pink flex items-center justify-center shrink-0 ring-2 ring-offset-1 ring-offset-sidebar-bg ring-brand-pink/30">
-              <span className="text-white text-xs font-bold leading-none">
-                {initials}
-              </span>
-              <span className="absolute bottom-0 right-0 size-1 rounded-full bg-green-500 ring-2 ring-sidebar-bg" />
+          <div className="admin-sidebar__footer-user">
+            <div className="admin-sidebar__footer-avatar">
+              <span className="admin-sidebar__footer-avatar-text">{initials}</span>
+              <span className="admin-sidebar__footer-avatar-dot" />
             </div>
             {!collapsed && (
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-sidebar-text truncate leading-tight">
-                  {user?.name ?? "Admin"}
-                </p>
-                <p className="text-[10px] text-sidebar-text/50">
-                  Administrador
-                </p>
+              <div className="admin-sidebar__footer-info">
+                <p className="admin-sidebar__footer-name">{user?.name ?? "Admin"}</p>
+                <p className="admin-sidebar__footer-role">Administrador</p>
               </div>
             )}
           </div>
@@ -338,61 +316,42 @@ export default function AdminLayout() {
       </aside>
 
       {/* ── Main content ──────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+      <div className="admin-layout__main">
         {/* Sticky top bar */}
-        <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md h-14 flex items-center justify-between px-4 sm:px-6 shrink-0 relative admin-topbar">
-          <div className="flex items-center gap-3 min-w-0 z-10">
+        <header className="admin-topbar">
+          <div className="admin-topbar__left">
             {/* Hamburger — mobile only */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors lg:hidden shrink-0"
+              className="admin-topbar__hamburger"
               aria-label="Abrir menú"
             >
               <Menu size={18} />
             </button>
           </div>
 
-          {/* ── Greeting — centered, editorial, animated on each nav ── */}
-          <div
-            className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none whitespace-nowrap z-0"
-            key={location.pathname}
-          >
+          {/* ── Greeting — centered, animated on each nav ── */}
+          <div className="admin-topbar__greeting" key={location.pathname}>
             {GreetingIcon && (
-              <span
-                className="animate-fadeIn shrink-0"
-                style={{ animationDelay: "0.1s" }}
-              >
-                <GreetingIcon size={15} className="text-brand-pink" />
+              <span className="admin-topbar__greeting-icon" style={{ animationDelay: "0.1s" }}>
+                <GreetingIcon size={15} />
               </span>
             )}
-            <span
-              className="animate-slideUp text-sm font-medium"
-              style={{ animationDelay: "0.15s" }}
-            >
-              <span className="text-slate-600">{greeting.text}</span>
-              <span className="hidden sm:inline text-slate-400">, </span>
-              <span
-                className="hidden sm:inline font-semibold"
-                style={{
-                  background: "linear-gradient(90deg, #D81B60 0%, #880E4F 100%)",
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                {firstName}
-              </span>
+            <span className="admin-topbar__greeting-text" style={{ animationDelay: "0.15s" }}>
+              <span>{greeting.text}</span>
+              <span className="admin-topbar__greeting-comma">, </span>
+              <span className="admin-topbar__greeting-name">{firstName}</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 z-10">
+          <div className="admin-topbar__right">
             <button
-              className="relative p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="admin-topbar__notif-btn"
               aria-label="Notificaciones"
             >
               <Bell size={18} />
               {pendingCount > 0 && (
-                <span className="absolute top-1 right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-brand-pink text-white text-[9px] font-bold px-1 leading-none">
+                <span className="admin-topbar__notif-badge">
                   {pendingCount > 9 ? "9+" : pendingCount}
                 </span>
               )}
@@ -401,16 +360,16 @@ export default function AdminLayout() {
         </header>
 
         {/* Page content */}
-        <main id="admin-main-content" className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+        <main id="admin-main-content" className="admin-layout__content">
           {pathname !== "/admin" && pathSegments.length > 0 && (
-            <nav className="flex items-center gap-1.5 text-[13px] text-slate-400 mb-4">
-              <Link to="/admin" className="hover:text-brand-pink transition-colors">Dashboard</Link>
+            <nav className="admin-layout__breadcrumbs">
+              <Link to="/admin" className="admin-layout__breadcrumb-link">Dashboard</Link>
               {pathSegments.map((segment, i) => (
                 <span key={segment} className="flex items-center gap-1.5">
                   <ChevronRight size={13} />
                   <Link
                     to={buildPath(i)}
-                    className={`${i === pathSegments.length - 1 ? "text-slate-700 font-medium" : "hover:text-brand-pink transition-colors"}`}
+                    className={i === pathSegments.length - 1 ? "admin-layout__breadcrumb-current" : "admin-layout__breadcrumb-link"}
                   >
                     {formatSegment(segment)}
                   </Link>

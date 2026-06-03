@@ -1,12 +1,14 @@
 /**
  * AdminOrdersPage — Full order management list for admins.
  *
- * Updated to use shared components: AdminTable, AdminPageHeader, AdminStatusBadge.
+ * Uses shared components: AdminTable, AdminPageHeader, AdminStatusBadge,
+ * AdminEmptyState, AdminConfirmDialog, AdminQueryError.
  */
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, Download, ChevronDown, ShoppingBag as ShoppingBagIcon } from "lucide-react";
+import { clsx } from "clsx";
 
 import { getAdminOrders, updateOrderStatus, downloadSalesCSV } from "../../services/api";
 import { formatCOP } from "../../utils/format";
@@ -20,6 +22,7 @@ import type { BadgeColor } from "../../components/admin/AdminStatusBadge";
 import type { AdminOrder } from "../../types";
 import { useToastStore } from "../../stores/toastStore";
 import { AdminQueryError } from "../../components/admin/AdminQueryError";
+import "../../css/AdminOrdersPage.css";
 
 // ─── Status transition dropdown ────────────────────────────────────────────
 
@@ -38,7 +41,7 @@ function StatusDropdown({
   const addToast = useToastStore((s) => s.addToast);
   const next = VALID_TRANSITIONS[current] ?? [];
   if (next.length === 0)
-    return <span className="text-[11px] text-slate-400 italic">—</span>;
+    return <span className="admin-orders__status-empty">—</span>;
 
   const handleSelect = (status: string) => {
     if (status === "CANCELLED") {
@@ -63,14 +66,14 @@ function StatusDropdown({
 
   return (
     <>
-      <div className="relative inline-block">
+      <div className="admin-orders__status">
         <button
           disabled={loading}
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+          className="admin-orders__status-trigger"
         >
           {loading ? (
-            <span className="w-3 h-3 border border-t-transparent border-brand-pink rounded-full animate-spin" />
+            <span className="admin-orders__status-spinner" />
           ) : (
             <ChevronDown size={11} />
           )}
@@ -78,17 +81,16 @@ function StatusDropdown({
         </button>
         {open && (
           <>
-            <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-            <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 min-w-[160px] overflow-hidden">
+            <div className="admin-orders__status-backdrop" onClick={() => setOpen(false)} />
+            <div className="admin-orders__status-menu">
               {next.map((s) => (
                 <button
                   key={s}
                   onClick={() => handleSelect(s)}
-                  className={`w-full text-left px-3 py-2 text-[13px] hover:bg-slate-50 transition-colors ${
-                    s === "CANCELLED"
-                      ? "text-red-600 font-medium"
-                      : "text-slate-700"
-                  }`}
+                  className={clsx(
+                    "admin-orders__status-option",
+                    s === "CANCELLED" && "admin-orders__status-option--danger",
+                  )}
                 >
                   {TRANSITION_LABELS[s] ?? STATUS_LABELS[s] ?? s}
                 </button>
@@ -200,7 +202,7 @@ export default function AdminOrdersPage() {
   // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto">
+    <div className="admin-orders__main">
       <AdminPageHeader
         title="Pedidos"
         description="Gestiona y actualiza el estado de los pedidos"
@@ -213,28 +215,30 @@ export default function AdminOrdersPage() {
       />
 
       {/* Filters bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap gap-3 items-end">
+      <div className="admin-orders__filters">
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-          />
-          <input
-            type="text"
-            placeholder="Buscar por pedido # o cliente…"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full pl-8 pr-3 py-2 text-[13px] border border-slate-200 rounded-lg outline-none focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20 bg-slate-50"
-          />
+        <div className="admin-orders__filter-group admin-orders__filter-group--search">
+          <div className="admin-orders__filter-search">
+            <Search
+              size={14}
+              className="admin-orders__filter-search-icon"
+            />
+            <input
+              type="text"
+              placeholder="Buscar por pedido # o cliente…"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="admin-orders__filter-input admin-orders__filter-input--search"
+            />
+          </div>
         </div>
 
         {/* Status filter */}
-        <div>
-          <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
+        <div className="admin-orders__filter-group">
+          <label className="admin-orders__filter-label">
             Estado
           </label>
           <select
@@ -243,7 +247,7 @@ export default function AdminOrdersPage() {
               setStatus(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 text-[13px] border border-slate-200 rounded-lg outline-none focus:border-brand-pink bg-slate-50"
+            className="admin-orders__filter-select"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -254,8 +258,8 @@ export default function AdminOrdersPage() {
         </div>
 
         {/* Date range */}
-        <div>
-          <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
+        <div className="admin-orders__filter-group">
+          <label className="admin-orders__filter-label">
             Desde
           </label>
           <input
@@ -265,11 +269,11 @@ export default function AdminOrdersPage() {
               setFrom(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 text-[13px] border border-slate-200 rounded-lg outline-none focus:border-brand-pink bg-slate-50"
+            className="admin-orders__filter-input"
           />
         </div>
-        <div>
-          <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
+        <div className="admin-orders__filter-group">
+          <label className="admin-orders__filter-label">
             Hasta
           </label>
           <input
@@ -279,13 +283,13 @@ export default function AdminOrdersPage() {
               setTo(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 text-[13px] border border-slate-200 rounded-lg outline-none focus:border-brand-pink bg-slate-50"
+            className="admin-orders__filter-input"
           />
         </div>
 
         {/* Page size */}
-        <div>
-          <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
+        <div className="admin-orders__filter-group">
+          <label className="admin-orders__filter-label">
             Mostrar
           </label>
           <select
@@ -294,7 +298,7 @@ export default function AdminOrdersPage() {
               setLimit(Number(e.target.value));
               setPage(1);
             }}
-            className="px-3 py-2 text-[13px] border border-slate-200 rounded-lg outline-none focus:border-brand-pink bg-slate-50"
+            className="admin-orders__filter-select"
           >
             {PAGE_SIZES.map((n) => (
               <option key={n} value={n}>
@@ -347,40 +351,40 @@ export default function AdminOrdersPage() {
 
           return (
             <>
-              <td className="px-4 py-3">
-                <span className="font-mono text-brand-blue font-semibold text-[11px]">
+              <td className="admin-orders__td-order">
+                <span>
                   {order.orderNumber}
                 </span>
               </td>
-              <td className="px-4 py-3 text-slate-500 whitespace-nowrap text-[12px]">
+              <td className="admin-orders__td-date">
                 {date}
               </td>
-              <td className="px-4 py-3">
-                <p className="font-medium text-slate-700 truncate max-w-[140px] text-[13px]">
+              <td className="admin-orders__td-client">
+                <p className="admin-orders__td-client-name">
                   {order.client?.name ?? "N/A"}
                 </p>
-                <p className="text-slate-400 truncate max-w-[140px] text-[11px]">
+                <p className="admin-orders__td-client-email">
                   {order.client?.email ?? ""}
                 </p>
               </td>
-              <td className="px-4 py-3 max-w-[200px] hidden md:table-cell">
-                <span className="text-slate-500 truncate block text-[12px]">
+              <td className="admin-orders__td-items">
+                <span>
                   {essenceList}
                 </span>
               </td>
-              <td className="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
+              <td className="admin-orders__td-total">
                 {formatCOP(order.total)}
               </td>
-              <td className="px-4 py-3 text-slate-500 uppercase text-[11px] hidden md:table-cell">
+              <td className="admin-orders__td-payment">
                 {order.paymentMethod ?? "—"}
               </td>
-              <td className="px-4 py-3">
+              <td className="admin-orders__td-status">
                 <AdminStatusBadge
                   label={STATUS_LABELS[order.status] ?? order.status}
                   color={badgeColor(order.status)}
                 />
               </td>
-              <td className="px-4 py-3">
+              <td className="admin-orders__td-actions">
                 <StatusDropdown
                   orderId={order.id}
                   current={order.status}

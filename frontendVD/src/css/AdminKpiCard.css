@@ -1,0 +1,145 @@
+/* ── AdminKpiCard — Clean editorial KPI card ─────────────────────────────── */
+
+.admin-kpi-card {
+  background: white;
+  border: 1px solid #f1f5f9;
+  border-radius: 1rem;
+  padding: 1.5rem 1rem;
+  box-shadow: var(--shadow-card, 0 2px 8px rgba(0, 0, 0, 0.08));
+  transition: box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: space-between;
+  min-height: 140px;
+}
+
+@media (min-width: 1024px) {
+  .admin-kpi-card { padding: 2rem; }
+}
+
+.admin-kpi-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.admin-kpi-card__label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.admin-kpi-card__value {
+  font-family: var(--font-display, 'Playfair Display', serif);
+  font-weight: 300;
+  color: #0f172a;
+  line-height: 1;
+  font-size: 2.25rem;
+}
+
+.admin-kpi-card__sup {
+  font-size: 38%;
+  vertical-align: super;
+  font-weight: 400;
+  color: #94a3b8;
+  margin-right: 0.125rem;
+}
+
+.admin-kpi-card__cents {
+  color: #cbd5e1;
+  font-size: 55%;
+  font-weight: 300;
+}
+
+.admin-kpi-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.admin-kpi-card__subtitle {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .admin-kpi-card__subtitle { font-size: 0.75rem; }
+}
+
+.admin-kpi-card__trend-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.admin-kpi-card__trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+
+.admin-kpi-card__trend-badge--up {
+  color: #059669;
+  background: #ecfdf5;
+}
+
+.admin-kpi-card__trend-badge--down {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.admin-kpi-card__trend-badge--flat {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.admin-kpi-card__trend-label {
+  font-size: 0.625rem;
+  color: #94a3b8;
+}
+
+.admin-kpi-card__sparkline {
+  flex-shrink: 0;
+}
+
+.admin-kpi-card__progress {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.admin-kpi-card__progress-track {
+  border-radius: 9999px;
+  background: #f1f5f9;
+  overflow: hidden;
+  height: 0.375rem;
+}
+
+.admin-kpi-card__progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-brand-pink, #D81B60), #880E4F);
+  transition: width 0.7s ease-out;
+}
+
+.admin-kpi-card__progress-label {
+  font-size: 0.625rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-kpi-card { transition: none; }
+  .admin-kpi-card__progress-fill { transition: none; }
+}

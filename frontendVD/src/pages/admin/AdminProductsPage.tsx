@@ -1,12 +1,5 @@
 /**
  * AdminProductsPage — Full CRUD for products.
- *
- * Sections:
- *  1. Header with "Nuevo Producto" button
- *  2. Filter bar: product type + active/inactive toggle
- *  3. Products data table
- *  4. CreateProductModal / EditProductModal (shared form)
- *  5. AddStockModal
  */
 
 import { useState, type FormEvent } from 'react';
@@ -24,6 +17,7 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
+import clsx from 'clsx';
 
 import {
   adminGetProducts,
@@ -33,17 +27,13 @@ import {
   adminAddProductStock,
   adminDeleteProduct,
   getEssences,
-  getHouses,
 } from '../../services/api';
 import { formatCOP } from '../../utils/format';
 import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
 import { useToastStore } from '../../stores/toastStore';
 import { AdminQueryError } from '../../components/admin/AdminQueryError';
-import type { Product, Essence, House } from '../../types';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
+import type { Product, Essence } from '../../types';
+import '../../css/AdminProductsPage.css';
 
 const PRODUCT_TYPES: Record<string, string> = {
   ALL:             'Todos',
@@ -55,9 +45,7 @@ const PRODUCT_TYPES: Record<string, string> = {
   ACCESSORY:       'Accesorios',
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared modal backdrop
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Modal ──────────────────────────────────────────────────────────────────
 
 function Modal({ open, onClose, title, children }: {
   open: boolean;
@@ -67,24 +55,22 @@ function Modal({ open, onClose, title, children }: {
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="font-heading font-semibold text-text-primary">{title}</h2>
-          <button onClick={onClose} className="p-1 text-muted hover:text-text-primary rounded-lg hover:bg-gray-100 transition-colors">
+    <div className="admin-products__modal-overlay">
+      <div className="admin-products__modal-backdrop" onClick={onClose} />
+      <div className="admin-products__modal-body">
+        <div className="admin-products__modal-header">
+          <h2 className="admin-products__modal-title">{title}</h2>
+          <button onClick={onClose} className="admin-products__modal-close">
             <X size={18} />
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="admin-products__modal-content">{children}</div>
       </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Product form (create / edit)
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Product Form ───────────────────────────────────────────────────────────
 
 type ProductFormData = {
   name: string;
@@ -98,104 +84,53 @@ type ProductFormData = {
 };
 
 const EMPTY_FORM: ProductFormData = {
-  name: '',
-  description: '',
-  productType: 'LOTION',
-  price: '',
-  stockUnits: '',
-  generatesGram: true,
-  essenceId: '',
-  mlQuantity: '',
+  name: '', description: '', productType: 'LOTION',
+  price: '', stockUnits: '', generatesGram: true,
+  essenceId: '', mlQuantity: '',
 };
 
 function ProductForm({
-  initial,
-  onSubmit,
-  loading,
-  submitLabel,
-  essences,
-  houses,
+  initial, onSubmit, loading, submitLabel, essences,
 }: {
   initial: ProductFormData;
   onSubmit: (d: ProductFormData) => void;
   loading: boolean;
   submitLabel: string;
   essences: Essence[];
-  houses: House[];
 }) {
   const [form, setForm] = useState<ProductFormData>(initial);
   const set = (k: keyof ProductFormData, v: string | boolean) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    onSubmit(form);
-  };
-
-  // Find selected essence to show house info
   const selectedEssence = essences.find((e) => e.id === form.essenceId);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Name */}
-      <div>
-        <label className="block text-xs font-semibold text-text-primary mb-1">Nombre</label>
-        <input
-          required
-          value={form.name}
-          onChange={(e) => set('name', e.target.value)}
-          className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-        />
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="admin-products__form">
+      <div className="admin-products__form-group">
+        <label className="admin-products__form-label">Nombre</label>
+        <input required value={form.name} onChange={(e) => set('name', e.target.value)} className="admin-products__form-input" />
       </div>
-
-      {/* Description */}
-      <div>
-        <label className="block text-xs font-semibold text-text-primary mb-1">Descripción</label>
-        <textarea
-          rows={2}
-          value={form.description}
-          onChange={(e) => set('description', e.target.value)}
-          className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 resize-none"
-        />
+      <div className="admin-products__form-group">
+        <label className="admin-products__form-label">Descripción</label>
+        <textarea rows={2} value={form.description} onChange={(e) => set('description', e.target.value)} className="admin-products__form-textarea" />
       </div>
-
-      {/* Type + Price row */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-semibold text-text-primary mb-1">Tipo</label>
-          <select
-            value={form.productType}
-            onChange={(e) => set('productType', e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-          >
-            {Object.entries(PRODUCT_TYPES)
-              .filter(([k]) => k !== 'ALL')
-              .map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
+      <div className="admin-products__form-row">
+        <div className="admin-products__form-group">
+          <label className="admin-products__form-label">Tipo</label>
+          <select value={form.productType} onChange={(e) => set('productType', e.target.value)} className="admin-products__form-select">
+            {Object.entries(PRODUCT_TYPES).filter(([k]) => k !== 'ALL').map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
           </select>
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-text-primary mb-1">Precio (COP)</label>
-          <input
-            required
-            type="number"
-            min={0}
-            value={form.price}
-            onChange={(e) => set('price', e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-          />
+        <div className="admin-products__form-group">
+          <label className="admin-products__form-label">Precio (COP)</label>
+          <input required type="number" min={0} value={form.price} onChange={(e) => set('price', e.target.value)} className="admin-products__form-input" />
         </div>
       </div>
-
-      {/* Essence selector */}
-      <div>
-        <label className="block text-xs font-semibold text-text-primary mb-1">Esencia asociada</label>
-        <select
-          value={form.essenceId}
-          onChange={(e) => set('essenceId', e.target.value)}
-          className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-        >
+      <div className="admin-products__form-group">
+        <label className="admin-products__form-label">Esencia asociada</label>
+        <select value={form.essenceId} onChange={(e) => set('essenceId', e.target.value)} className="admin-products__form-select">
           <option value="">Sin esencia</option>
           {essences.map((e) => (
             <option key={e.id} value={e.id}>
@@ -204,84 +139,41 @@ function ProductForm({
           ))}
         </select>
         {selectedEssence?.house && (
-          <p className="text-[10px] text-brand-blue mt-1">
-            Casa: {selectedEssence.house.name} (@{selectedEssence.house.handle})
-          </p>
+          <p className="admin-products__form-hint">Casa: {selectedEssence.house.name} (@{selectedEssence.house.handle})</p>
         )}
       </div>
-
-      {/* ml Quantity (when essence is linked) */}
       {form.essenceId && (
-        <div>
-          <label className="block text-xs font-semibold text-text-primary mb-1">Cantidad ml del producto</label>
-          <input
-            type="number"
-            min={0}
-            step={0.1}
-            value={form.mlQuantity}
-            onChange={(e) => set('mlQuantity', e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-            placeholder="Ej: 30 ml"
-          />
-          <p className="text-[10px] text-muted mt-0.5">
-            Se descontarán estos ml de la esencia por cada unidad vendida.
-          </p>
+        <div className="admin-products__form-group">
+          <label className="admin-products__form-label">Cantidad ml del producto</label>
+          <input type="number" min={0} step={0.1} value={form.mlQuantity} onChange={(e) => set('mlQuantity', e.target.value)} className="admin-products__form-input" placeholder="Ej: 30 ml" />
+          <p className="admin-products__form-detail">Se descontarán estos ml de la esencia por cada unidad vendida.</p>
         </div>
       )}
-
-      {/* Stock + Gram toggle row */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-semibold text-text-primary mb-1">Stock (unidades)</label>
-          <input
-            required
-            type="number"
-            min={0}
-            value={form.stockUnits}
-            onChange={(e) => set('stockUnits', e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-          />
+      <div className="admin-products__form-row">
+        <div className="admin-products__form-group">
+          <label className="admin-products__form-label">Stock (unidades)</label>
+          <input required type="number" min={0} value={form.stockUnits} onChange={(e) => set('stockUnits', e.target.value)} className="admin-products__form-input" />
         </div>
         <div className="flex items-end pb-1">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.generatesGram}
-              onChange={(e) => set('generatesGram', e.target.checked)}
-              className="w-4 h-4 rounded border-border text-brand-pink focus:ring-brand-pink"
-            />
-            <span className="text-xs font-medium text-text-primary">Genera 1g</span>
+          <label className="admin-products__form-checkbox">
+            <input type="checkbox" checked={form.generatesGram} onChange={(e) => set('generatesGram', e.target.checked)} />
+            <span>Genera 1g</span>
           </label>
         </div>
       </div>
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-2.5 rounded-xl bg-brand-pink text-white font-semibold text-sm hover:bg-brand-pink/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-      >
-        {loading && <Loader2 size={14} className="animate-spin" />}
+      <button type="submit" disabled={loading} className="admin-products__form-submit">
+        {loading && <Loader2 size={14} className="admin-products__spinner" />}
         {submitLabel}
       </button>
     </form>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Add Stock Modal
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Add Stock Modal ────────────────────────────────────────────────────────
 
-function AddStockModal({
-  product,
-  open,
-  onClose,
-}: {
-  product: Product | null;
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [qty, setQty]       = useState('');
-  const [notes, setNotes]   = useState('');
+function AddStockModal({ product, open, onClose }: { product: Product | null; open: boolean; onClose: () => void }) {
+  const [qty, setQty] = useState('');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
@@ -293,44 +185,25 @@ function AddStockModal({
     try {
       await adminAddProductStock(product.id, Number(qty), notes || undefined);
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      setQty('');
-      setNotes('');
-      onClose();
+      setQty(''); setNotes(''); onClose();
     } catch {
       addToast('Error al agregar stock.', 'error');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
     <Modal open={open} onClose={onClose} title={`Agregar stock — ${product?.name ?? ''}`}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-semibold text-text-primary mb-1">Cantidad</label>
-          <input
-            required
-            type="number"
-            min={1}
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-          />
+      <form onSubmit={handleSubmit} className="admin-products__form">
+        <div className="admin-products__form-group">
+          <label className="admin-products__form-label">Cantidad</label>
+          <input required type="number" min={1} value={qty} onChange={(e) => setQty(e.target.value)} className="admin-products__form-input" />
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-text-primary mb-1">Notas (opcional)</label>
-          <input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-          />
+        <div className="admin-products__form-group">
+          <label className="admin-products__form-label">Notas (opcional)</label>
+          <input value={notes} onChange={(e) => setNotes(e.target.value)} className="admin-products__form-input" />
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2.5 rounded-xl bg-brand-pink text-white font-semibold text-sm hover:bg-brand-pink/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-        >
-          {loading && <Loader2 size={14} className="animate-spin" />}
+        <button type="submit" disabled={loading} className="admin-products__form-submit">
+          {loading && <Loader2 size={14} className="admin-products__spinner" />}
           Agregar stock
         </button>
       </form>
@@ -338,9 +211,7 @@ function AddStockModal({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main page
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function AdminProductsPage() {
   const queryClient = useQueryClient();
@@ -348,188 +219,132 @@ export default function AdminProductsPage() {
 
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [search, setSearch]   = useState('');
-  const [page, setPage]       = useState(1);
-
-  // Modals
-  const [createOpen, setCreateOpen]   = useState(false);
-  const [editTarget, setEditTarget]   = useState<Product | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Product | null>(null);
   const [stockTarget, setStockTarget] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
-  const [deleteError, setDeleteError]   = useState('');
-  const [deleting, setDeleting]         = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [toggleTarget, setToggleTarget] = useState<Product | null>(null);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   const { data: res, isLoading, isError } = useQuery({
     queryKey: ['admin-products', typeFilter, activeFilter, page],
-    queryFn: () =>
-      adminGetProducts({
-        page,
-        type: typeFilter === 'ALL' ? undefined : typeFilter,
-        active: activeFilter === 'all' ? undefined : activeFilter === 'active',
-      }),
+    queryFn: () => adminGetProducts({ page, type: typeFilter === 'ALL' ? undefined : typeFilter, active: activeFilter === 'all' ? undefined : activeFilter === 'active' }),
     staleTime: 30_000,
   });
 
-  // Essences & houses for product form
   const { data: essencesRes } = useQuery({ queryKey: ['essences'], queryFn: getEssences, staleTime: 60_000 });
-  const { data: housesRes }   = useQuery({ queryKey: ['houses'],   queryFn: getHouses,   staleTime: 60_000 });
   const essencesList: Essence[] = essencesRes?.data ?? [];
-  const housesList: House[]     = housesRes?.data ?? [];
 
   const products: Product[] = res?.data?.products ?? res?.data ?? [];
-  const totalPages: number  = res?.data?.totalPages ?? 1;
+  const totalPages: number = res?.data?.totalPages ?? 1;
 
-  // Filter client-side by name search
   const filtered = search
     ? products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
     : products;
 
-  // ── Create ──
   const handleCreate = async (form: ProductFormData) => {
     setSaving(true);
     try {
       await adminCreateProduct({
-        name: form.name,
-        description: form.description || undefined,
-        productType: form.productType,
-        price: Number(form.price),
-        stockUnits: Number(form.stockUnits),
-        generatesGram: form.generatesGram,
+        name: form.name, description: form.description || undefined,
+        productType: form.productType, price: Number(form.price),
+        stockUnits: Number(form.stockUnits), generatesGram: form.generatesGram,
         essenceId: form.essenceId || undefined,
         mlQuantity: form.mlQuantity ? Number(form.mlQuantity) : undefined,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setCreateOpen(false);
-    } catch {
-      addToast('Error al crear producto.', 'error');
-    } finally {
-      setSaving(false);
-    }
+    } catch { addToast('Error al crear producto.', 'error'); }
+    finally { setSaving(false); }
   };
 
-  // ── Edit ──
   const handleEdit = async (form: ProductFormData) => {
     if (!editTarget) return;
     setSaving(true);
     try {
       await adminUpdateProduct(editTarget.id, {
-        name: form.name,
-        description: form.description || undefined,
-        productType: form.productType as Product['productType'],
-        price: Number(form.price),
-        stockUnits: Number(form.stockUnits),
-        generatesGram: form.generatesGram,
+        name: form.name, description: form.description || undefined,
+        productType: form.productType as Product['productType'], price: Number(form.price),
+        stockUnits: Number(form.stockUnits), generatesGram: form.generatesGram,
         essenceId: form.essenceId || undefined,
         mlQuantity: form.mlQuantity ? Number(form.mlQuantity) : undefined,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setEditTarget(null);
-    } catch {
-      addToast('Error al actualizar producto.', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ── Toggle active ──
-  const handleToggleClick = (p: Product) => {
-    setToggleTarget(p);
+    } catch { addToast('Error al actualizar producto.', 'error'); }
+    finally { setSaving(false); }
   };
 
   const handleToggleConfirm = async () => {
     if (!toggleTarget) return;
     const p = toggleTarget;
     setToggleTarget(null);
-    try {
-      await adminToggleProduct(p.id);
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-    } catch {
-      addToast('Error al cambiar estado.', 'error');
-    }
+    try { await adminToggleProduct(p.id); queryClient.invalidateQueries({ queryKey: ['admin-products'] }); }
+    catch { addToast('Error al cambiar estado.', 'error'); }
   };
 
-  // ── Delete ──
   const handleDelete = async () => {
     if (!deleteTarget || !deletePassword) return;
-    setDeleting(true);
-    setDeleteError('');
+    setDeleting(true); setDeleteError('');
     try {
       await adminDeleteProduct(deleteTarget.id, deletePassword);
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      setDeleteTarget(null);
-      setDeletePassword('');
+      setDeleteTarget(null); setDeletePassword('');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setDeleteError(msg ?? 'Error al eliminar producto.');
-    } finally {
-      setDeleting(false);
-    }
+    } finally { setDeleting(false); }
   };
 
   if (isError) return <AdminQueryError />;
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-brand-pink border-t-transparent rounded-full animate-spin" />
+      <div className="admin-products__loading">
+        <div className="admin-products__spinner" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto">
+    <div className="admin-products">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="font-heading font-bold text-xl text-text-primary">Productos</h1>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-pink text-white text-sm font-semibold hover:bg-brand-pink/90 transition-colors"
-        >
-          <Plus size={16} />
-          Nuevo Producto
+      <div className="admin-products__header">
+        <h1 className="admin-products__title">Productos</h1>
+        <button onClick={() => setCreateOpen(true)} className="admin-products__create-btn">
+          <Plus size={16} /> Nuevo Producto
         </button>
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-52 max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+      <div className="admin-products__filters">
+        <div className="admin-products__search">
+          <Search size={15} className="admin-products__search-icon" />
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nombre…"
-            className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
+            value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre…" className="admin-products__search-input"
           />
         </div>
-
-        {/* Type filter */}
         <select
           value={typeFilter}
           onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-          className="border border-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
+          className="admin-products__select"
         >
-          {Object.entries(PRODUCT_TYPES).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
+          {Object.entries(PRODUCT_TYPES).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
         </select>
-
-        {/* Active filter */}
-        <div className="flex bg-gray-100 rounded-lg p-0.5 gap-0.5">
+        <div className="admin-products__toggle-group">
           {(['all', 'active', 'inactive'] as const).map((f) => (
             <button
               key={f}
               onClick={() => { setActiveFilter(f); setPage(1); }}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                activeFilter === f
-                  ? 'bg-white text-brand-pink shadow-sm'
-                  : 'text-muted hover:text-text-primary'
-              }`}
+              className={clsx('admin-products__toggle-btn', activeFilter === f && 'admin-products__toggle-btn--active')}
             >
               {{ all: 'Todos', active: 'Activos', inactive: 'Inactivos' }[f]}
             </button>
@@ -538,112 +353,66 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Products table */}
-      <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+      <div className="admin-products__table-card">
+        <div className="admin-products__table-scroll">
+          <table className="admin-products__table">
             <thead>
-              <tr className="border-b border-border bg-gray-50">
+              <tr>
                 {['PRODUCTO', 'TIPO', 'PRECIO', 'STOCK', 'ESENCIA', 'GRAMO', 'ESTADO', 'ACCIONES'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-muted uppercase tracking-wider">
-                    {h}
-                  </th>
+                  <th key={h} className="admin-products__th">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="admin-products__tbody">
               {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-muted">
-                    No se encontraron productos.
-                  </td>
-                </tr>
+                <tr><td colSpan={8} className="admin-products__empty">No se encontraron productos.</td></tr>
               ) : (
                 filtered.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
+                  <tr key={p.id}>
+                    <td className="admin-products__td">
+                      <div className="admin-products__td-info">
                         {p.photoUrl ? (
-                          <img src={p.photoUrl} alt={p.name} className="w-9 h-9 rounded-lg object-cover border border-border" />
+                          <img src={p.photoUrl} alt={p.name} className="admin-products__thumb" />
                         ) : (
-                          <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
-                            <span className="text-muted text-[10px] font-bold">{p.name.charAt(0)}</span>
-                          </div>
+                          <div className="admin-products__thumb-placeholder"><span>{p.name.charAt(0)}</span></div>
                         )}
-                        <div className="min-w-0">
-                          <p className="font-medium text-text-primary truncate max-w-48">{p.name}</p>
-                          {p.description && (
-                            <p className="text-muted truncate max-w-48 text-[10px]">{p.description}</p>
-                          )}
+                        <div className="admin-products__td-info-text">
+                          <p className="admin-products__td-name">{p.name}</p>
+                          {p.description && <p className="admin-products__td-desc">{p.description}</p>}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-text-primary font-medium text-[10px]">
-                        {PRODUCT_TYPES[p.productType] ?? p.productType}
-                      </span>
+                    <td className="admin-products__td">
+                      <span className="admin-products__td-type-badge">{PRODUCT_TYPES[p.productType] ?? p.productType}</span>
                     </td>
-                    <td className="px-4 py-3 font-semibold text-text-primary">{formatCOP(p.price)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`font-semibold ${p.stockUnits <= 5 ? 'text-red-500' : 'text-text-primary'}`}>
-                        {p.stockUnits}
-                      </span>
+                    <td className="admin-products__td admin-products__td-price">{formatCOP(p.price)}</td>
+                    <td className="admin-products__td">
+                      <span className={clsx('admin-products__td-stock', p.stockUnits <= 5 && 'admin-products__td-stock--low')}>{p.stockUnits}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="admin-products__td">
                       {p.essence ? (
-                        <div className="text-[10px] leading-tight">
-                          <p className="font-medium text-text-primary truncate max-w-32">{p.essence.name}</p>
-                          {p.mlQuantity && <p className="text-muted">{p.mlQuantity} ml</p>}
+                        <div className="admin-products__td-info-text">
+                          <p className="admin-products__td-name" style={{ maxWidth: '8rem' }}>{p.essence.name}</p>
+                          {p.mlQuantity && <p className="admin-products__form-detail">{p.mlQuantity} ml</p>}
                         </div>
-                      ) : (
-                        <span className="text-muted text-[10px]">—</span>
-                      )}
+                      ) : <span className="admin-products__td-empty">—</span>}
                     </td>
-                    <td className="px-4 py-3">
-                      {p.generatesGram ? (
-                        <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-semibold text-[10px]">+1g</span>
-                      ) : (
-                        <span className="text-muted text-[10px]">—</span>
-                      )}
+                    <td className="admin-products__td">
+                      {p.generatesGram ? <span className="admin-products__td-gram-badge">+1g</span> : <span className="admin-products__td-empty">—</span>}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
-                        p.active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-500'
-                      }`}>
+                    <td className="admin-products__td">
+                      <span className={clsx('admin-products__td-status', p.active ? 'admin-products__td-status--active' : 'admin-products__td-status--inactive')}>
                         {p.active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() =>
-                            setEditTarget(p)
-                          }
-                          className="p-1.5 text-muted hover:text-brand-blue rounded-lg hover:bg-blue-50 transition-colors"
-                          title="Editar"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() => setStockTarget(p)}
-                          className="p-1.5 text-muted hover:text-green-600 rounded-lg hover:bg-green-50 transition-colors"
-                          title="Agregar stock"
-                        >
-                          <PackagePlus size={13} />
-                        </button>
-                        <button
-                          onClick={() => handleToggleClick(p)}
-                          className="p-1.5 text-muted hover:text-brand-pink rounded-lg hover:bg-brand-pink/10 transition-colors"
-                          title={p.active ? 'Desactivar' : 'Activar'}
-                        >
+                    <td className="admin-products__td">
+                      <div className="admin-products__td-actions">
+                        <button onClick={() => setEditTarget(p)} className="admin-products__action-btn admin-products__action-btn--blue" title="Editar"><Pencil size={13} /></button>
+                        <button onClick={() => setStockTarget(p)} className="admin-products__action-btn admin-products__action-btn--green" title="Agregar stock"><PackagePlus size={13} /></button>
+                        <button onClick={() => setToggleTarget(p)} className="admin-products__action-btn admin-products__action-btn--pink" title={p.active ? 'Desactivar' : 'Activar'}>
                           {p.active ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
                         </button>
-                        <button
-                          onClick={() => { setDeleteTarget(p); setDeletePassword(''); setDeleteError(''); }}
-                          className="p-1.5 text-muted hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <button onClick={() => { setDeleteTarget(p); setDeletePassword(''); setDeleteError(''); }} className="admin-products__action-btn admin-products__action-btn--red" title="Eliminar"><Trash2 size={13} /></button>
                       </div>
                     </td>
                   </tr>
@@ -653,115 +422,62 @@ export default function AdminProductsPage() {
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 py-3 border-t border-border">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="px-3 py-1 rounded-lg text-xs font-semibold border border-border disabled:opacity-40 hover:bg-gray-50 transition-colors"
-            >
-              Anterior
-            </button>
-            <span className="text-xs text-muted">
-              Página {page} de {totalPages}
-            </span>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="px-3 py-1 rounded-lg text-xs font-semibold border border-border disabled:opacity-40 hover:bg-gray-50 transition-colors"
-            >
-              Siguiente
-            </button>
+          <div className="admin-products__pagination">
+            <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="admin-products__page-btn">Anterior</button>
+            <span className="admin-products__page-info">Página {page} de {totalPages}</span>
+            <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="admin-products__page-btn">Siguiente</button>
           </div>
         )}
       </div>
 
-      {/* Create modal */}
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo Producto">
-        <ProductForm initial={EMPTY_FORM} onSubmit={handleCreate} loading={saving} submitLabel="Crear producto" essences={essencesList} houses={housesList} />
+        <ProductForm initial={EMPTY_FORM} onSubmit={handleCreate} loading={saving} submitLabel="Crear producto" essences={essencesList} />
       </Modal>
 
-      {/* Edit modal */}
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar Producto">
         {editTarget && (
           <ProductForm
             initial={{
-              name: editTarget.name,
-              description: editTarget.description ?? '',
-              productType: editTarget.productType,
-              price: String(editTarget.price),
-              stockUnits: String(editTarget.stockUnits),
-              generatesGram: editTarget.generatesGram,
-              essenceId: editTarget.essenceId ?? '',
-              mlQuantity: editTarget.mlQuantity ? String(editTarget.mlQuantity) : '',
+              name: editTarget.name, description: editTarget.description ?? '',
+              productType: editTarget.productType, price: String(editTarget.price),
+              stockUnits: String(editTarget.stockUnits), generatesGram: editTarget.generatesGram,
+              essenceId: editTarget.essenceId ?? '', mlQuantity: editTarget.mlQuantity ? String(editTarget.mlQuantity) : '',
             }}
-            onSubmit={handleEdit}
-            loading={saving}
-            submitLabel="Guardar cambios"
-            essences={essencesList}
-            houses={housesList}
+            onSubmit={handleEdit} loading={saving} submitLabel="Guardar cambios" essences={essencesList}
           />
         )}
       </Modal>
 
-      {/* Add stock modal */}
-      <AddStockModal
-        product={stockTarget}
-        open={!!stockTarget}
-        onClose={() => setStockTarget(null)}
-      />
+      <AddStockModal product={stockTarget} open={!!stockTarget} onClose={() => setStockTarget(null)} />
 
-      {/* Delete confirmation modal */}
       <Modal open={!!deleteTarget} onClose={() => { setDeleteTarget(null); setDeletePassword(''); setDeleteError(''); setShowDeletePassword(false); }} title="Eliminar Producto">
         {deleteTarget && (
-          <div className="space-y-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-sm text-red-800 font-medium">
-                ¿Estás seguro de eliminar "{deleteTarget.name}"?
-              </p>
-              <p className="text-xs text-red-600 mt-1">
-                Esta acción es irreversible. Se eliminará el producto y todos sus movimientos asociados.
-              </p>
+          <div className="admin-products__form">
+            <div className="admin-products__delete-warning">
+              <p className="admin-products__delete-warning-title">¿Estás seguro de eliminar "{deleteTarget.name}"?</p>
+              <p className="admin-products__delete-warning-text">Esta acción es irreversible. Se eliminará el producto y todos sus movimientos asociados.</p>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1">
-                Contraseña del administrador
-              </label>
-              <div className="relative">
+            <div className="admin-products__form-group">
+              <label className="admin-products__form-label">Contraseña del administrador</label>
+              <div className="admin-products__delete-password-wrap">
                 <input
                   type={showDeletePassword ? 'text' : 'password'}
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
                   placeholder="Ingresa tu contraseña para confirmar"
-                  className="w-full border border-border rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-red-400/40"
+                  className="admin-products__delete-password-input"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowDeletePassword(!showDeletePassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  tabIndex={-1}
-                >
+                <button type="button" onClick={() => setShowDeletePassword(!showDeletePassword)} className="admin-products__delete-password-toggle" tabIndex={-1}>
                   {showDeletePassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
-            {deleteError && (
-              <p className="text-red-600 text-xs">{deleteError}</p>
-            )}
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => { setDeleteTarget(null); setDeletePassword(''); setDeleteError(''); setShowDeletePassword(false); }}
-                className="px-4 py-2 rounded-xl border border-border text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={!deletePassword || deleting}
-                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center gap-2"
-              >
-                {deleting && <Loader2 size={14} className="animate-spin" />}
+            {deleteError && <p className="admin-products__delete-error">{deleteError}</p>}
+            <div className="admin-products__delete-actions">
+              <button onClick={() => { setDeleteTarget(null); setDeletePassword(''); setDeleteError(''); setShowDeletePassword(false); }} className="admin-products__delete-cancel">Cancelar</button>
+              <button onClick={handleDelete} disabled={!deletePassword || deleting} className="admin-products__delete-confirm">
+                {deleting && <Loader2 size={14} className="admin-products__spinner" style={{ width: '1rem', height: '1rem', borderWidth: '2px' }} />}
                 Eliminar permanentemente
               </button>
             </div>
@@ -770,13 +486,10 @@ export default function AdminProductsPage() {
       </Modal>
 
       <AdminConfirmDialog
-        open={!!toggleTarget}
-        onClose={() => setToggleTarget(null)}
-        onConfirm={handleToggleConfirm}
+        open={!!toggleTarget} onClose={() => setToggleTarget(null)} onConfirm={handleToggleConfirm}
         title={toggleTarget?.active ? "Desactivar producto" : "Activar producto"}
         message={`¿${toggleTarget?.active ? "Desactivar" : "Activar"} "${toggleTarget?.name ?? ""}"?`}
-        confirmLabel={toggleTarget?.active ? "Desactivar" : "Activar"}
-        variant="warning"
+        confirmLabel={toggleTarget?.active ? "Desactivar" : "Activar"} variant="warning"
       />
     </div>
   );

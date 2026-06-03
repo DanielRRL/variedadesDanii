@@ -1,0 +1,91 @@
+/* ── AdminEmptyState — Empty/error state placeholder ────────────────────── */
+
+.admin-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+
+.admin-empty-state__icon-wrap {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.admin-empty-state__icon-wrap--default { background: #f1f5f9; color: #94a3b8; }
+.admin-empty-state__icon-wrap--error { background: #fef2f2; color: #f87171; }
+
+.admin-empty-state__title {
+  font-family: var(--font-heading, 'Poppins', sans-serif);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.admin-empty-state__title--default { color: #334155; }
+.admin-empty-state__title--error { color: #dc2626; }
+
+.admin-empty-state__desc {
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+  max-width: 24rem;
+}
+
+.admin-empty-state__desc--default { color: #64748b; }
+.admin-empty-state__desc--error { color: #f87171; }
+
+.admin-empty-state__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.admin-empty-state__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-brand-pink, #D81B60);
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.admin-empty-state__cta:hover {
+  background: rgba(216, 27, 96, 0.9);
+}
+
+.admin-empty-state__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  background: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.admin-empty-state__retry:hover {
+  background: #fef2f2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-empty-state__cta { transition: none; }
+  .admin-empty-state__retry { transition: none; }
+}

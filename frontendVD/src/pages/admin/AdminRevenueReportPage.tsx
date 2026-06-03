@@ -9,133 +9,60 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import {
-  DollarSign,
-  ShoppingCart,
-  Store,
-  TrendingUp,
-  Calendar,
-  Download,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
+  DollarSign, ShoppingCart, Store, TrendingUp, Calendar,
+  Download, Loader2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
-
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import clsx from 'clsx';
 import { getRevenueSummary, getPOSSales, downloadSalesCSV } from '../../services/api';
 import { formatCOP } from '../../utils/format';
-import { STATUS_LABELS, STATUS_COLORS } from './adminShared';
+import { STATUS_LABELS } from './adminShared';
 import type { RevenueSummary, Order } from '../../types';
+import '../../css/AdminRevenueReportPage.css';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function tomorrowISO() {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
-function daysAgo(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
-
-function startOfWeek() {
-  const d = new Date();
-  const day = d.getDay();
-  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  return d.toISOString().slice(0, 10);
-}
-
-function startOfMonth() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-}
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function tomorrowISO() { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); }
+function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
+function startOfWeek() { const d = new Date(); const day = d.getDay(); d.setDate(d.getDate() - (day === 0 ? 6 : day - 1)); return d.toISOString().slice(0, 10); }
+function startOfMonth() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; }
 
 type Period = 'today' | 'week' | 'month' | 'custom';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MetricCard
-// ─────────────────────────────────────────────────────────────────────────────
-
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  color,
-}: {
-  icon: typeof DollarSign;
-  label: string;
-  value: string;
-  color: string;
-}) {
+function MetricCard({ icon: Icon, label, value, color }: { icon: typeof DollarSign; label: string; value: string; color: string }) {
   return (
-    <div className="bg-white rounded-xl border border-border p-4 flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
+    <div className="admin-revenue__metric-card">
+      <div className={clsx('admin-revenue__metric-icon', `admin-revenue__metric-icon--${color}`)}>
         <Icon size={20} />
       </div>
-      <div>
-        <p className="text-xs text-muted">{label}</p>
-        <p className="text-lg font-bold text-text-primary">{value}</p>
+      <div className="admin-revenue__metric-info">
+        <p className="admin-revenue__metric-label">{label}</p>
+        <p className="admin-revenue__metric-value">{value}</p>
       </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TopProductsTable
-// ─────────────────────────────────────────────────────────────────────────────
-
-function TopProductsTable({
-  title,
-  products,
-}: {
-  title: string;
-  products: { name: string; quantity: number; revenue: number }[];
-}) {
+function TopProductsTable({ title, products }: { title: string; products: { name: string; quantity: number; revenue: number }[] }) {
   return (
-    <div className="bg-white rounded-xl border border-border overflow-hidden">
-      <div className="px-4 py-3 border-b border-border">
-        <h3 className="font-heading text-sm font-semibold text-text-primary">{title}</h3>
-      </div>
+    <div className="admin-revenue__top-card">
+      <div className="admin-revenue__top-header">{title}</div>
       {products.length === 0 ? (
-        <p className="text-center text-muted text-sm py-6">Sin datos</p>
+        <p className="admin-revenue__top-empty">Sin datos</p>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 text-xs text-muted">
-              <th className="text-left px-4 py-2">#</th>
-              <th className="text-left px-4 py-2">Producto</th>
-              <th className="text-right px-4 py-2">Uds.</th>
-              <th className="text-right px-4 py-2">Ingresos</th>
-            </tr>
-          </thead>
+        <table className="admin-revenue__top-table">
+          <thead><tr>
+            <th className="admin-revenue__top-th">#</th>
+            <th className="admin-revenue__top-th">Producto</th>
+            <th className="admin-revenue__top-th" style={{ textAlign: 'right' }}>Uds.</th>
+            <th className="admin-revenue__top-th" style={{ textAlign: 'right' }}>Ingresos</th>
+          </tr></thead>
           <tbody>
             {products.slice(0, 5).map((p, i) => (
-              <tr key={p.name} className="border-t border-border">
-                <td className="px-4 py-2 font-medium text-muted">{i + 1}</td>
-                <td className="px-4 py-2 text-text-primary font-medium truncate max-w-[180px]">
-                  {p.name}
-                </td>
-                <td className="px-4 py-2 text-right text-muted">{p.quantity}</td>
-                <td className="px-4 py-2 text-right font-semibold text-brand-gold">
-                  {formatCOP(p.revenue)}
-                </td>
+              <tr key={p.name} className="admin-revenue__top-tr">
+                <td className="admin-revenue__top-td"><span className="admin-revenue__top-td-rank">{i + 1}</span></td>
+                <td className="admin-revenue__top-td"><span className="admin-revenue__top-td-name">{p.name}</span></td>
+                <td className="admin-revenue__top-td" style={{ textAlign: 'right' }}><span className="admin-revenue__top-td-qty">{p.quantity}</span></td>
+                <td className="admin-revenue__top-td" style={{ textAlign: 'right' }}><span className="admin-revenue__top-td-revenue">{formatCOP(p.revenue)}</span></td>
               </tr>
             ))}
           </tbody>
@@ -145,38 +72,24 @@ function TopProductsTable({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AdminRevenueReportPage
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function AdminRevenueReportPage() {
-  // ── Period filters ──
   const [period, setPeriod] = useState<Period>('month');
   const [customFrom, setCustomFrom] = useState(daysAgo(30));
   const [customTo, setCustomTo] = useState(todayISO());
+  const [salesPage, setSalesPage] = useState(1);
 
   const { from, to } = useMemo(() => {
     switch (period) {
-      case 'today':
-        return { from: todayISO(), to: tomorrowISO() };
-      case 'week':
-        return { from: startOfWeek(), to: tomorrowISO() };
-      case 'month':
-        return { from: startOfMonth(), to: tomorrowISO() };
-      case 'custom':
-        return { from: customFrom, to: customTo };
+      case 'today': return { from: todayISO(), to: tomorrowISO() };
+      case 'week': return { from: startOfWeek(), to: tomorrowISO() };
+      case 'month': return { from: startOfMonth(), to: tomorrowISO() };
+      case 'custom': return { from: customFrom, to: customTo };
     }
   }, [period, customFrom, customTo]);
 
-  // ── Sales history pagination ──
-  const [salesPage, setSalesPage] = useState(1);
-
-  // ── Queries ──
   const { data: revenueRes, isLoading: loadingRevenue, isError: isRevenueError } = useQuery({
-    queryKey: ['pos-revenue', from, to],
-    queryFn: () => getRevenueSummary({ from, to }),
+    queryKey: ['pos-revenue', from, to], queryFn: () => getRevenueSummary({ from, to }),
   });
-
   const revenue = (revenueRes?.data ?? null) as RevenueSummary | null;
 
   const { data: salesRes, isLoading: loadingSales, isError: isSalesError } = useQuery({
@@ -184,253 +97,118 @@ export default function AdminRevenueReportPage() {
     queryFn: () => getPOSSales({ from, to, page: salesPage, limit: 20 }),
   });
 
-  // ── Chart data (from revenue summary — simplistic daily breakdown is not available,
-  //    so we show channel-level bars) ──
   const chartData = useMemo(() => {
     if (!revenue) return [];
     return [
-      {
-        name: 'E-commerce',
-        ecommerce: revenue.totalEcommerce,
-        pos: 0,
-      },
-      {
-        name: 'Punto de Venta',
-        ecommerce: 0,
-        pos: revenue.totalInStore,
-      },
+      { name: 'E-commerce', ecommerce: revenue.totalEcommerce, pos: 0 },
+      { name: 'Punto de Venta', ecommerce: 0, pos: revenue.totalInStore },
     ];
   }, [revenue]);
 
-  // ── CSV export ──
   const handleExportCSV = useCallback(async () => {
     try {
       const res = await downloadSalesCSV({ from, to });
       const blob = new Blob([res.data as BlobPart], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ventas_${from}_${to}.csv`;
-      a.click();
+      const a = document.createElement('a'); a.href = url; a.download = `ventas_${from}_${to}.csv`; a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      // silently fail — user can retry
-    }
+    } catch { /* silently fail */ }
   }, [from, to]);
 
   if (isRevenueError || isSalesError) return <AdminQueryError />;
 
   const salesData = salesRes?.data as { data?: Order[]; orders?: Order[]; total?: number } | Order[] | undefined;
-  const salesList: Order[] = Array.isArray(salesData)
-    ? salesData
-    : (salesData?.data ?? salesData?.orders ?? []);
+  const salesList: Order[] = Array.isArray(salesData) ? salesData : (salesData?.data ?? salesData?.orders ?? []);
   const salesTotal: number = Array.isArray(salesData) ? salesData.length : (salesData?.total ?? 0);
-
   const totalOrders = (revenue?.orderCountEcommerce ?? 0) + (revenue?.orderCountInStore ?? 0);
   const averageTicket = totalOrders > 0 ? (revenue?.totalGeneral ?? 0) / totalOrders : 0;
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Render
-  // ─────────────────────────────────────────────────────────────────────────
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="font-heading text-lg font-bold text-text-primary">Reporte de Ganancias</h1>
-        <button
-          onClick={handleExportCSV}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-border rounded-xl text-sm font-medium text-text-primary hover:bg-gray-50 transition-colors"
-        >
+    <div className="admin-revenue">
+      <div className="admin-revenue__header">
+        <h1 className="admin-revenue__title">Reporte de Ganancias</h1>
+        <button onClick={handleExportCSV} className="admin-revenue__export-btn">
           <Download size={14} /> Exportar CSV
         </button>
       </div>
 
-      {/* Period selector */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <div className="flex gap-1.5 flex-wrap">
-          {(
-            [
-              { key: 'today', label: 'Hoy' },
-              { key: 'week', label: 'Esta semana' },
-              { key: 'month', label: 'Este mes' },
-              { key: 'custom', label: 'Personalizado' },
-            ] as const
-          ).map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setPeriod(p.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                period === p.key
-                  ? 'bg-brand-pink text-white'
-                  : 'bg-white border border-border text-muted hover:border-brand-pink/40'
-              }`}
-            >
-              {p.label}
-            </button>
+      <div className="admin-revenue__period">
+        <div className="admin-revenue__period-row">
+          {([{ key: 'today', label: 'Hoy' }, { key: 'week', label: 'Esta semana' }, { key: 'month', label: 'Este mes' }, { key: 'custom', label: 'Personalizado' }] as const).map(p => (
+            <button key={p.key} onClick={() => setPeriod(p.key)}
+              className={clsx('admin-revenue__period-btn', period === p.key && 'admin-revenue__period-btn--active')}>{p.label}</button>
           ))}
         </div>
-
         {period === 'custom' && (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <Calendar size={14} className="text-muted" />
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="border border-border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-              />
-            </div>
-            <span className="text-xs text-muted">—</span>
-            <input
-              type="date"
-              value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)}
-              className="border border-border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-pink/40"
-            />
+          <div className="admin-revenue__period-dates">
+            <Calendar size={14} style={{ color: '#94a3b8' }} />
+            <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="admin-revenue__period-date" />
+            <span className="admin-revenue__period-sep">—</span>
+            <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="admin-revenue__period-date" />
           </div>
         )}
       </div>
 
-      {/* Loading */}
       {loadingRevenue ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="animate-spin text-brand-pink" size={28} />
-        </div>
+        <div className="admin-revenue__loading"><Loader2 className="admin-revenue__spinner" size={28} /></div>
       ) : (
         <>
-          {/* Metric cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <MetricCard
-              icon={DollarSign}
-              label="Total General"
-              value={formatCOP(revenue?.totalGeneral ?? 0)}
-              color="bg-green-100 text-green-700"
-            />
-            <MetricCard
-              icon={ShoppingCart}
-              label="E-commerce"
-              value={formatCOP(revenue?.totalEcommerce ?? 0)}
-              color="bg-blue-100 text-blue-700"
-            />
-            <MetricCard
-              icon={Store}
-              label="Punto de Venta"
-              value={formatCOP(revenue?.totalInStore ?? 0)}
-              color="bg-pink-100 text-brand-pink"
-            />
-            <MetricCard
-              icon={TrendingUp}
-              label="Promedio / venta"
-              value={formatCOP(averageTicket)}
-              color="bg-amber-100 text-amber-700"
-            />
+          <div className="admin-revenue__metrics-grid">
+            <MetricCard icon={DollarSign} label="Total General" value={formatCOP(revenue?.totalGeneral ?? 0)} color="green" />
+            <MetricCard icon={ShoppingCart} label="E-commerce" value={formatCOP(revenue?.totalEcommerce ?? 0)} color="blue" />
+            <MetricCard icon={Store} label="Punto de Venta" value={formatCOP(revenue?.totalInStore ?? 0)} color="pink" />
+            <MetricCard icon={TrendingUp} label="Promedio / venta" value={formatCOP(averageTicket)} color="amber" />
           </div>
 
-          {/* Bar chart */}
-          <div className="bg-white rounded-xl border border-border p-4">
-            <h3 className="font-heading text-sm font-semibold text-text-primary mb-4">
-              Ingresos por canal
-            </h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => formatCOP(Number(v))} />
-                <Tooltip formatter={(v) => formatCOP(Number(v))} />
-                <Legend />
-                <Bar dataKey="ecommerce" name="E-commerce" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="pos" name="Punto de Venta" fill="#D81B60" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="admin-revenue__chart-card">
+            <h3 className="admin-revenue__chart-title">Ingresos por canal</h3>
+            <div className="admin-revenue__chart-area">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" /><XAxis dataKey="name" tick={{ fontSize: 12 }} /><YAxis tick={{ fontSize: 12 }} tickFormatter={v => formatCOP(Number(v))} /><Tooltip formatter={v => formatCOP(Number(v))} /><Legend /><Bar dataKey="ecommerce" name="E-commerce" fill="#3b82f6" radius={[4, 4, 0, 0]} /><Bar dataKey="pos" name="Punto de Venta" fill="#D81B60" radius={[4, 4, 0, 0]} /></BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Top products */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TopProductsTable
-              title="Top E-commerce"
-              products={revenue?.topProductsEcommerce ?? []}
-            />
-            <TopProductsTable
-              title="Top Punto de Venta"
-              products={revenue?.topProductsInStore ?? []}
-            />
+          <div className="admin-revenue__top-grid">
+            <TopProductsTable title="Top E-commerce" products={revenue?.topProductsEcommerce ?? []} />
+            <TopProductsTable title="Top Punto de Venta" products={revenue?.topProductsInStore ?? []} />
           </div>
         </>
       )}
 
-      {/* Sales history table */}
-      <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <h3 className="font-heading text-sm font-semibold text-text-primary">
-            Historial de ventas
-          </h3>
-          <span className="text-xs text-muted">{salesTotal} registros</span>
+      <div className="admin-revenue__sales-card">
+        <div className="admin-revenue__sales-header">
+          <h3 className="admin-revenue__sales-title">Historial de ventas</h3>
+          <span className="admin-revenue__sales-count">{salesTotal} registros</span>
         </div>
 
         {loadingSales ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="animate-spin text-brand-pink" size={22} />
-          </div>
+          <div className="admin-revenue__loading"><Loader2 className="admin-revenue__spinner" size={22} /></div>
         ) : salesList.length === 0 ? (
-          <p className="text-center text-muted text-sm py-8">Sin ventas en este período</p>
+          <p className="admin-revenue__empty">Sin ventas en este período</p>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-xs text-muted">
-                    <th className="text-left px-4 py-2">Fecha/Hora</th>
-                    <th className="text-left px-4 py-2"># Factura</th>
-                    <th className="text-left px-4 py-2">Canal</th>
-                    <th className="text-left px-4 py-2">Productos</th>
-                    <th className="text-right px-4 py-2">Total</th>
-                    <th className="text-center px-4 py-2">Estado</th>
-                  </tr>
-                </thead>
+            <div className="admin-revenue__sales-scroll">
+              <table className="admin-revenue__sales-table">
+                <thead><tr>
+                  <th className="admin-revenue__sales-th">Fecha/Hora</th><th className="admin-revenue__sales-th"># Factura</th>
+                  <th className="admin-revenue__sales-th">Canal</th><th className="admin-revenue__sales-th">Productos</th>
+                  <th className="admin-revenue__sales-th" style={{ textAlign: 'right' }}>Total</th><th className="admin-revenue__sales-th" style={{ textAlign: 'center' }}>Estado</th>
+                </tr></thead>
                 <tbody>
-                  {salesList.map((order) => {
+                  {salesList.map(order => {
                     const isInStore = (order as Order & { saleChannel?: string }).saleChannel === 'IN_STORE';
                     return (
-                      <tr key={order.id} className="border-t border-border hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-2.5 whitespace-nowrap text-muted">
-                          {new Date(order.createdAt).toLocaleString('es-CO', {
-                            day: '2-digit',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                      <tr key={order.id} className="admin-revenue__sales-tr">
+                        <td className="admin-revenue__sales-td"><span className="admin-revenue__sales-td-date">{new Date(order.createdAt).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></td>
+                        <td className="admin-revenue__sales-td"><span className="admin-revenue__sales-td-order">{order.orderNumber}</span></td>
+                        <td className="admin-revenue__sales-td">
+                          <span className={clsx('admin-revenue__channel-badge', isInStore ? 'admin-revenue__channel-badge--local' : 'admin-revenue__channel-badge--online')}>{isInStore ? 'LOCAL' : 'ONLINE'}</span>
                         </td>
-                        <td className="px-4 py-2.5 font-mono text-xs text-text-primary">
-                          {order.orderNumber}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
-                              isInStore
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-blue-100 text-blue-700'
-                            }`}
-                          >
-                            {isInStore ? 'LOCAL' : 'ONLINE'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-muted max-w-[200px] truncate">
-                          {order.items?.map((i) => i.product?.name).filter(Boolean).join(', ') ||
-                            `${order.items?.length ?? 0} productos`}
-                        </td>
-                        <td className="px-4 py-2.5 text-right font-semibold text-brand-gold">
-                          {formatCOP(order.total)}
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <span
-                            className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                              STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            {STATUS_LABELS[order.status] ?? order.status}
-                          </span>
+                        <td className="admin-revenue__sales-td"><span className="admin-revenue__sales-td-products">{order.items?.map(i => i.product?.name).filter(Boolean).join(', ') || `${order.items?.length ?? 0} productos`}</span></td>
+                        <td className="admin-revenue__sales-td" style={{ textAlign: 'right' }}><span className="admin-revenue__sales-td-total">{formatCOP(order.total)}</span></td>
+                        <td className="admin-revenue__sales-td" style={{ textAlign: 'center' }}>
+                          <span className={clsx('admin-revenue__status', `admin-revenue__status--${(STATUS_LABELS[order.status] || order.status).toLowerCase()}`)}>{STATUS_LABELS[order.status] ?? order.status}</span>
                         </td>
                       </tr>
                     );
@@ -438,27 +216,11 @@ export default function AdminRevenueReportPage() {
                 </tbody>
               </table>
             </div>
-
-            {/* Pagination */}
             {salesTotal > 20 && (
-              <div className="flex items-center justify-center gap-3 px-4 py-3 border-t border-border">
-                <button
-                  disabled={salesPage <= 1}
-                  onClick={() => setSalesPage((p) => Math.max(1, p - 1))}
-                  className="p-1.5 rounded-lg border border-border hover:bg-gray-100 transition-colors disabled:opacity-40"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                <span className="text-xs text-muted">
-                  Página {salesPage} de {Math.ceil(salesTotal / 20)}
-                </span>
-                <button
-                  disabled={salesPage >= Math.ceil(salesTotal / 20)}
-                  onClick={() => setSalesPage((p) => p + 1)}
-                  className="p-1.5 rounded-lg border border-border hover:bg-gray-100 transition-colors disabled:opacity-40"
-                >
-                  <ChevronRight size={14} />
-                </button>
+              <div className="admin-revenue__pagination">
+                <button disabled={salesPage <= 1} onClick={() => setSalesPage(p => Math.max(1, p - 1))} className="admin-revenue__page-btn"><ChevronLeft size={14} /></button>
+                <span className="admin-revenue__page-info">Página {salesPage} de {Math.ceil(salesTotal / 20)}</span>
+                <button disabled={salesPage >= Math.ceil(salesTotal / 20)} onClick={() => setSalesPage(p => p + 1)} className="admin-revenue__page-btn"><ChevronRight size={14} /></button>
               </div>
             )}
           </>

@@ -1,0 +1,82 @@
+/* ── AdminClientsPage — Client management with history modal ─────────────── */
+
+.admin-clients { display: flex; flex-direction: column; gap: 1.25rem; max-width: 80rem; margin-inline: auto; }
+
+/* Search */
+.admin-clients__search { position: relative; max-width: 24rem; }
+.admin-clients__search-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+.admin-clients__search-input { width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.25rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; font-size: 0.8125rem; outline: none; }
+.admin-clients__search-input:focus { border-color: var(--color-brand-pink, #D81B60); box-shadow: 0 0 0 3px rgba(216,27,96,0.15); }
+
+/* Table cell overrides */
+.admin-clients__td-name { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; }
+.admin-clients__td-avatar { width: 2rem; height: 2rem; border-radius: 50%; background: rgba(216,27,96,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.admin-clients__td-avatar-text { color: var(--color-brand-pink, #D81B60); font-weight: 700; font-size: 0.625rem; }
+.admin-clients__td-info { min-width: 0; }
+.admin-clients__td-info-name { font-weight: 500; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; font-size: 0.8125rem; }
+.admin-clients__td-info-verified { font-size: 0.6875rem; color: #94a3b8; }
+.admin-clients__td-info-verified--ok { color: #059669; }
+.admin-clients__td-email { padding: 0.75rem 1rem; color: #64748b; font-size: 0.8125rem; display: none; }
+.admin-clients__td-phone { padding: 0.75rem 1rem; color: #64748b; font-size: 0.8125rem; display: none; }
+@media (min-width: 768px) { .admin-clients__td-email, .admin-clients__td-phone { display: table-cell; } }
+.admin-clients__td-loyalty { padding: 0.75rem 1rem; font-size: 0.6875rem; }
+.admin-clients__td-loyalty-pts { font-weight: 600; color: var(--color-brand-pink, #D81B60); }
+.admin-clients__td-loyalty-sep { margin-inline: 0.25rem; color: #cbd5e1; }
+.admin-clients__td-loyalty-level { font-weight: 600; }
+.admin-clients__td-loyalty-level--vip { color: #F9A825; }
+.admin-clients__td-loyalty-level--preferred { color: var(--color-brand-pink, #D81B60); }
+.admin-clients__td-loyalty-level--basic { color: #64748b; }
+.admin-clients__td-loyalty-empty { font-size: 0.6875rem; color: #94a3b8; }
+.admin-clients__td-actions { display: flex; align-items: center; gap: 0.25rem; padding: 0.75rem 1rem; }
+.admin-clients__action-btn { padding: 0.375rem; color: #94a3b8; border-radius: 0.5rem; background: none; border: none; cursor: pointer; transition: color 0.15s, background 0.15s; }
+.admin-clients__action-btn:hover { background: #f1f5f9; }
+.admin-clients__action-btn--verify:hover { color: #059669; background: #ecfdf5; }
+.admin-clients__action-btn--history:hover { color: var(--color-brand-blue, #1565C0); background: #eff6ff; }
+.admin-clients__action-spinner { display: block; width: 0.875rem; height: 0.875rem; border: 2px solid #10b981; border-top-color: transparent; border-radius: 50%; animation: clients-spin 0.6s linear infinite; }
+@keyframes clients-spin { to { transform: rotate(360deg); } }
+
+/* Modal tabs */
+.admin-clients__modal-tabs { display: flex; background: #f1f5f9; border-radius: 0.5rem; padding: 0.125rem; width: fit-content; margin-bottom: 1rem; }
+.admin-clients__modal-tab { display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; border: none; cursor: pointer; background: none; color: #64748b; transition: all 0.15s; }
+.admin-clients__modal-tab:hover { color: #334155; }
+.admin-clients__modal-tab--active { background: white; color: var(--color-brand-pink, #D81B60); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+/* Modal loader */
+.admin-clients__modal-loader { display: flex; align-items: center; justify-content: center; padding: 2.5rem 0; }
+.admin-clients__modal-spinner { width: 1.5rem; height: 1.5rem; border: 3px solid var(--color-brand-pink, #D81B60); border-top-color: transparent; border-radius: 50%; animation: clients-spin 0.6s linear infinite; }
+
+/* Modal tables */
+.admin-clients__modal-table { width: 100%; font-size: 0.8125rem; border-collapse: collapse; }
+.admin-clients__modal-th { padding: 0.625rem 0.75rem; text-align: left; font-weight: 600; color: #64748b; text-transform: uppercase; font-size: 0.6875rem; white-space: nowrap; background: #f8fafc; }
+.admin-clients__modal-td { padding: 0.625rem 0.75rem; vertical-align: middle; }
+.admin-clients__modal-td-order { font-family: var(--font-mono, 'Fira Code', monospace); font-weight: 600; color: var(--color-brand-blue, #1565C0); font-size: 0.6875rem; }
+.admin-clients__modal-td-date { color: #64748b; font-size: 0.75rem; }
+.admin-clients__modal-td-total { font-weight: 600; color: #1e293b; }
+.admin-clients__modal-td-name { font-weight: 500; color: #334155; }
+.admin-clients__modal-td-grams { font-weight: 600; color: #1e293b; }
+.admin-clients__modal-tbody tr + tr { border-top: 1px solid #f1f5f9; }
+.admin-clients__modal-tbody tr:hover { background: #f8fafc; }
+
+/* Modal gram items */
+.admin-clients__modal-gram-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.admin-clients__modal-gram-item { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border-radius: 0.5rem; padding: 0.75rem 1rem; }
+.admin-clients__modal-gram-info { flex: 1; min-width: 0; }
+.admin-clients__modal-gram-desc { font-size: 0.8125rem; font-weight: 500; color: #334155; }
+.admin-clients__modal-gram-date { font-size: 0.6875rem; color: #94a3b8; }
+.admin-clients__modal-gram-delta { font-size: 0.875rem; font-weight: 700; flex-shrink: 0; }
+.admin-clients__modal-gram-delta--positive { color: #059669; }
+.admin-clients__modal-gram-delta--negative { color: #ef4444; }
+
+/* Modal empty */
+.admin-clients__modal-empty { font-size: 0.8125rem; color: #94a3b8; text-align: center; padding: 1.5rem 0; }
+
+@media (prefers-reduced-motion: reduce) { .admin-clients__action-spinner, .admin-clients__modal-spinner { animation: none; } }
+
+@media (max-width: 767px) {
+  .admin-clients__td-name { padding: 0.5rem 0.5rem; }
+  .admin-clients__td-actions { padding: 0.5rem 0.25rem; }
+  .admin-clients__td-info-name { max-width: 120px; font-size: 0.8125rem; }
+  .admin-clients__td-avatar { width: 1.75rem; height: 1.75rem; }
+  .admin-clients__td-avatar-text { font-size: 0.5625rem; }
+  .admin-clients__search { max-width: 100%; }
+}

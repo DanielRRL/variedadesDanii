@@ -1,0 +1,66 @@
+/* ── AdminStatusBadge — Consistent status pill ──────────────────────────── */
+
+.admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.2s, background 0.2s;
+}
+
+.admin-status-badge--default { background: #f1f5f9; color: #334155; }
+.admin-status-badge--info    { background: #dbeafe; color: #1d4ed8; }
+.admin-status-badge--success { background: #d1fae5; color: #047857; }
+.admin-status-badge--warning { background: #fef3c7; color: #92400e; }
+.admin-status-badge--danger  { background: #fee2e2; color: #dc2626; }
+.admin-status-badge--neutral { background: #f1f5f9; color: #64748b; }
+
+.admin-status-badge__icon {
+  flex-shrink: 0;
+}
+
+.admin-status-badge__pulse {
+  position: relative;
+  display: flex;
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.admin-status-badge__pulse-ring {
+  position: absolute;
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  opacity: 0.75;
+  animation: admin-status-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.admin-status-badge__pulse-ring--amber { background: #f59e0b; }
+.admin-status-badge__pulse-ring--blue { background: #3b82f6; }
+.admin-status-badge__pulse-ring--pink { background: var(--color-brand-pink, #D81B60); }
+
+.admin-status-badge__pulse-dot {
+  position: relative;
+  display: inline-flex;
+  border-radius: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.admin-status-badge__pulse-dot--amber { background: #f59e0b; }
+.admin-status-badge__pulse-dot--blue { background: #3b82f6; }
+.admin-status-badge__pulse-dot--pink { background: var(--color-brand-pink, #D81B60); }
+
+@keyframes admin-status-ping {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-status-badge { transition: none; }
+  .admin-status-badge__pulse-ring { animation: none; }
+}
