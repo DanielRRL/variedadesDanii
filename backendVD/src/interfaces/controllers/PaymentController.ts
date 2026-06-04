@@ -2,10 +2,6 @@
  * Controlador de pagos.
  * Expone endpoints de consulta de pagos por orden.
  *
- * IMPORTANTE: No se expone webhook de pago aqui.
- * El unico webhook valido es /api/webhooks/wompi manejado por
- * PaymentWebhookController con validacion HMAC-SHA256 obligatoria.
- *
  * Seguridad: todo endpoint verifica que el usuario autenticado sea
  * el dueno del recurso o un ADMIN.
  */

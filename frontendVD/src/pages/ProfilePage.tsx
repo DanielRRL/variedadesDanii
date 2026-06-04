@@ -8,7 +8,6 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronRight,
-  Scale,
   Share2,
   Copy,
   Check,
@@ -18,26 +17,24 @@ import {
   LogOut,
   Package,
   Gamepad2,
-  Bell,
   X,
   Loader2,
   Shield,
   Crown,
   Star,
-  Gift,
+  Heart,
 } from "lucide-react";
 import { clsx } from "clsx";
 
 import { useAuthStore } from "../stores/authStore";
 import {
-  getMyGramAccount,
   getMyGameTokens,
   getMyReferralCode,
+  getMyFavorites,
   resendVerification,
   updateMyProfile,
 } from "../services/api";
-import type { GramAccount, GameToken } from "../types";
-import { GRAMS_PER_OZ, gramProgress } from "../utils/priceCalculator";
+import type { GameToken } from "../types";
 import { AppBar } from "../components/layout/AppBar";
 import { BottomTabBar } from "../components/layout/BottomTabBar";
 import "../css/ProfilePage.css";
@@ -229,12 +226,6 @@ export default function ProfilePage() {
   const [resendDone, setResendDone] = useState(false);
   const [resendError, setResendError] = useState("");
 
-  const { data: gramRes } = useQuery({
-    queryKey: ["gramAccount"],
-    queryFn: getMyGramAccount,
-    staleTime: 2 * 60_000,
-  });
-
   const { data: tokensRes } = useQuery({
     queryKey: ["gameTokens", "profile"],
     queryFn: getMyGameTokens,
@@ -247,15 +238,18 @@ export default function ProfilePage() {
     staleTime: 10 * 60_000,
   });
 
-  const gram = (gramRes?.data?.account ?? gramRes?.data) as GramAccount | undefined;
+  const { data: favRes } = useQuery({
+    queryKey: ["favorites"],
+    queryFn: getMyFavorites,
+    staleTime: 30_000,
+  });
+
   const referral = referralRes?.data;
   const allTokens: GameToken[] = tokensRes?.data?.pendingTokens ?? tokensRes?.data ?? [];
   const pendingTokens = allTokens.filter((t) => t.status === "PENDING");
 
-  const currentGrams = gram?.currentGrams ?? 0;
-  const totalEarned = gram?.totalEarned ?? 0;
-  const totalRedeemed = gram?.totalRedeemed ?? 0;
-  const pct = gramProgress(currentGrams);
+  const favList: unknown[] = favRes?.data?.data ?? favRes?.data ?? [];
+  const favCount = favList.length;
 
   const initials = user?.name
     ? user.name.split(" ").slice(0, 2).map((w: string) => w[0]?.toUpperCase() ?? "").join("")
@@ -341,58 +335,6 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* Gram stats */}
-          <div className="profile-hero__gram-stats">
-            <div className="profile-hero__gram-stat">
-              <p className="profile-hero__gram-stat-value">{totalEarned}g</p>
-              <p className="profile-hero__gram-stat-label">Ganado</p>
-            </div>
-            <div className="profile-hero__gram-stat">
-              <p className={clsx(
-                "profile-hero__gram-stat-value",
-                currentGrams >= GRAMS_PER_OZ && "profile-hero__gram-stat-value--pulse",
-              )}>{totalRedeemed}g</p>
-              <p className="profile-hero__gram-stat-label">Canjeado</p>
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="profile-hero__progress">
-            <div className="profile-hero__progress-labels">
-              <span>0g</span>
-              <span>{currentGrams}/{GRAMS_PER_OZ}g = 1 oz gratis</span>
-            </div>
-            <div className="profile-hero__progress-track">
-              <div
-                className="profile-hero__progress-fill"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <p className="profile-hero__progress-text">
-              {currentGrams >= GRAMS_PER_OZ
-                ? "¡Puedes canjear 1 oz de esencia gratis!"
-                : `Te faltan ${GRAMS_PER_OZ - currentGrams}g para canjear`}
-            </p>
-          </div>
-
-          {/* CTA */}
-          {gram?.canRedeem && currentGrams >= GRAMS_PER_OZ ? (
-            <button
-              onClick={() => navigate("/mis-gramos")}
-              className="profile-hero__cta profile-hero__cta--redeem"
-            >
-              <Gift size={17} />
-              Canjear mi oz gratis
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate("/mis-gramos")}
-              className="profile-hero__cta profile-hero__cta--secondary"
-            >
-              <Scale size={15} />
-              Ver historial de gramos
-            </button>
-          )}
         </section>
 
         {/* ── Verification banner ──────────────────────────────────────── */}
@@ -467,12 +409,15 @@ export default function ProfilePage() {
           )}
         </Section>
 
-        {/* ── Section: Notificaciones ──────────────────────────────────── */}
-        <Section title="Notificaciones">
+        {/* ── Section: Me Gusta ──────────────────────────────────────── */}
+        <Section title="Me Gusta">
           <Row
-            icon={Bell}
-            label="Notificaciones"
-            onClick={() => navigate("/perfil/notificaciones")}
+            icon={Heart}
+            label="Favoritos"
+            variant="accent"
+            subtitle={favCount > 0 ? `${favCount} ${favCount === 1 ? "favorito" : "favoritos"}` : undefined}
+            subtitleClassName="profile-row__subtitle--accent"
+            onClick={() => navigate("/perfil/favoritos")}
           />
         </Section>
 

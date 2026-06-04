@@ -356,3 +356,12 @@
     transition: none;
   }
 }
+
+.admin-orders__td-address {
+  font-size: 0.75rem;
+  color: #64748b;
+  max-width: 14rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

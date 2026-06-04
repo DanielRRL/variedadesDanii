@@ -18,8 +18,7 @@ export interface LoyaltyAccount {
   level: 'BASIC' | 'PREFERRED' | 'VIP';
   /** Recurring percentage discount applied to every order at checkout. */
   discountPct: number;
-  /** Total bottles returned — used for eco-impact gamification on ProfilePage. */
-  bottleReturnsCount?: number;
+
 }
 
 /** A single entry in the loyalty transaction history.
@@ -226,8 +225,6 @@ export interface Essence {
   /** House / brand this essence belongs to. */
   house?: { id: string; name: string; handle: string };
   houseId?: string;
-  /** Price per milliliter in COP. Used to compute line totals in the cart. */
-  pricePerMl?: number;
   photoUrl?: string;
   isActive?: boolean;
   active?: boolean;
@@ -267,30 +264,18 @@ export interface Bottle {
 // CATALOG — PRODUCTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Sellable product — now supports lotions, creams, etc. via productType. */
+/** Sellable product — lotions, creams, splashes, accessories, etc. */
 export interface Product {
   id: string;
   name: string;
   description?: string;
-  /** Product classification for the updated catalog (lotions, creams, splashes, etc.). */
   productType: 'LOTION' | 'CREAM' | 'SHAMPOO' | 'MAKEUP' | 'SPLASH' | 'ACCESSORY' | 'ESSENCE_CATALOG';
-  /** Legacy category kept for backwards compatibility with existing pages. */
-  category: 'PERFUME' | 'ACCESSORY' | 'GENERAL';
-  /** Only present when productType links to an essence. */
-  essenceId?: string;
-  essence?: Essence;
-  /** Only present when the product ships in a specific bottle. */
-  bottle?: Bottle;
-  /** Milliliters of product in the container. */
-  mlQuantity?: number;
   /** Final selling price in COP. */
   price: number;
   active: boolean;
   /** Available units in warehouse. */
   stockUnits: number;
   photoUrl?: string;
-  /** When true, purchasing this product earns the customer 1 gram. Shows "Gana 1g" badge on card. */
-  generatesGram: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -313,8 +298,6 @@ export interface CartItem {
   /** Line total = quantity * unitPrice. */
   lineTotal: number;
   photoUrl?: string;
-  /** When true, each unit earns 1g — used to show gram preview in cart summary. */
-  generatesGram: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -346,6 +329,7 @@ export interface Order {
   /** ONLINE = web order; REFILL = store refill; CASH_ON_DELIVERY = COD. */
   type: 'ONLINE' | 'REFILL' | 'CASH_ON_DELIVERY';
   items: OrderItem[];
+  notes?: string;
   /** ISO 8601 timestamp string. */
   createdAt: string;
 }
@@ -407,29 +391,13 @@ export interface CreateOrderInput {
   notes?: string;
 }
 
-/** Payload for POST /api/payments/initiate (Wompi). */
-export interface PaymentInitInput {
-  orderId: string;
-  /** Amount in Colombian centavos (COP * 100). */
-  amountInCents: number;
-  customerEmail: string;
-  redirectUrl: string;
-}
-
-/** Payload for POST /api/returns (bottle return). */
-export interface BottleReturnInput {
-  bottleId: string;
-  orderId: string;
-  quantity: number;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // POS (Point of Sale) TYPES
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Payload for POST /api/pos/sales — register a new in-store sale. */
 export interface POSSaleInput {
-  products: { productId: string; quantity: number }[];
+  products: { productId: string; quantity: number; ozOverride?: number; essenceId?: string; mlQuantity?: number }[];
   paymentMethod: 'CASH' | 'NEQUI' | 'DAVIPLATA' | 'BANCOLOMBIA' | 'TRANSFERENCIA';
   userId?: string;
   walkInClientName?: string;
@@ -437,6 +405,10 @@ export interface POSSaleInput {
   walkInClientPhone?: string;
   notes?: string;
   discount?: number;
+  /** Si es true, aplica precios de recarga ($14k/$27k/$42k en vez de $16k/$29k/$44k). */
+  isRefill?: boolean;
+  /** Gramos extra adicionales (solo en recargas, $1.000 c/u). */
+  extraGrams?: number;
 }
 
 /** Simple invoice data returned after a POS sale. */

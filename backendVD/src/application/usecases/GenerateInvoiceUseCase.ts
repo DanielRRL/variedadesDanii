@@ -12,7 +12,7 @@
  *   - El admin puede reintentar con POST /api/admin/invoices/:orderId/retry.
  *
  * Uso:
- *   Se invoca desde PaymentWebhookController cuando Wompi confirma APPROVED.
+ *   Se invoca al confirmar un pago para generar la factura correspondiente.
  *   Tambien puede invocarse desde cualquier otro trigger (ej: entrega manual).
  */
 
@@ -36,7 +36,6 @@ export class GenerateInvoiceUseCase {
       // Nunca relanzar: un fallo en facturacion no debe:
       //   - Cancelar un pago confirmado.
       //   - Revertir el estado PAID de la orden.
-      //   - Hacer que Wompi reintente el webhook por error 5xx.
       //
       // Se loguea con nivel ERROR para que el equipo pueda actuar
       // y usar el endpoint de reintento desde el panel admin.

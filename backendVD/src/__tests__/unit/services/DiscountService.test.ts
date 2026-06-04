@@ -14,7 +14,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DiscountService, DiscountType } from "../../../application/services/DiscountService";
 import type { IUserRepository } from "../../../domain/repositories/IUserRepository";
-import type { IBottleReturnRepository } from "../../../domain/repositories/IBottleReturnRepository";
 
 // ── Mocks de repositorios ─────────────────────────────────────────────────────
 
@@ -31,47 +30,18 @@ function makeUserRepoMock(): IUserRepository {
   };
 }
 
-function makeBottleReturnRepoMock(): IBottleReturnRepository {
-  return {
-    create:        vi.fn(),
-    findByUserId:  vi.fn().mockResolvedValue([]),
-    countByUserId: vi.fn().mockResolvedValue(0),
-  };
-}
-
 // ── Suite principal ───────────────────────────────────────────────────────────
 
 describe("DiscountService", () => {
   let userRepo: IUserRepository;
-  let bottleReturnRepo: IBottleReturnRepository;
   let service: DiscountService;
 
   const BASE_SUBTOTAL = 100_000; // $100.000 COP como subtotal de referencia.
 
   beforeEach(() => {
     vi.clearAllMocks();
-    userRepo        = makeUserRepoMock();
-    bottleReturnRepo = makeBottleReturnRepoMock();
-    service         = new DiscountService(userRepo, bottleReturnRepo);
-  });
-
-  // ── 1. calculateBottleReturnDiscount ─────────────────────────────────────
-
-  describe("calculateBottleReturnDiscount", () => {
-    it("debe retornar 10% del subtotal como descuento", async () => {
-      const result = await service.calculateBottleReturnDiscount(BASE_SUBTOTAL);
-
-      expect(result.type).toBe(DiscountType.BOTTLE_RETURN);
-      expect(result.percentage).toBe(10);
-      expect(result.amount).toBe(10_000); // 10% de $100.000
-    });
-
-    it("debe retornar descuento correcto para subtotales no redondos", async () => {
-      const result = await service.calculateBottleReturnDiscount(75_300);
-
-      expect(result.percentage).toBe(10);
-      expect(result.amount).toBe(Math.round(75_300 * 0.1));
-    });
+    userRepo = makeUserRepoMock();
+    service  = new DiscountService(userRepo);
   });
 
   // ── 2. calculateFrequentClientDiscount ───────────────────────────────────
@@ -159,7 +129,7 @@ describe("DiscountService", () => {
     });
   });
 
-  // ── 4. calculateAllDiscounts — acumulacion de descuentos ─────────────────
+  // ── 3. calculateAllDiscounts — acumulacion de descuentos ─────────────────
 
   describe("calculateAllDiscounts", () => {
     it("debe acumular todos los descuentos cuando todas las condiciones se cumplen", async () => {
@@ -169,26 +139,23 @@ describe("DiscountService", () => {
       const discounts = await service.calculateAllDiscounts(
         "user-1",
         BASE_SUBTOTAL,
-        100, // >= 90 ml: volumen aplica
-        true // devolucion de frasco: aplica
+        100 // >= 90 ml: volumen aplica
       );
 
-      expect(discounts).toHaveLength(3);
+      expect(discounts).toHaveLength(2);
       const types = discounts.map((d) => d.type);
-      expect(types).toContain(DiscountType.BOTTLE_RETURN);
       expect(types).toContain(DiscountType.FREQUENT_CLIENT);
       expect(types).toContain(DiscountType.VOLUME);
     });
 
-    it("debe retornar solo descuento de volumen cuando no hay frasco ni frecuencia", async () => {
+    it("debe retornar solo descuento de volumen cuando no hay frecuencia", async () => {
       (userRepo.countOrdersByUser as ReturnType<typeof vi.fn>)
         .mockResolvedValue(3); // No es frecuente
 
       const discounts = await service.calculateAllDiscounts(
         "user-1",
         BASE_SUBTOTAL,
-        90,   // volumen aplica
-        false // sin devolucion de frasco
+        90 // volumen aplica
       );
 
       expect(discounts).toHaveLength(1);
@@ -202,8 +169,7 @@ describe("DiscountService", () => {
       const discounts = await service.calculateAllDiscounts(
         "user-1",
         BASE_SUBTOTAL,
-        50,   // < 90 ml: no aplica volumen
-        false // sin devolucion
+        50 // < 90 ml: no aplica volumen
       );
 
       expect(discounts).toHaveLength(0);

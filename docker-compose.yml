@@ -82,6 +82,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
 
   # ---------------------------------------------------------------------------
   # Servicio: Frontend React + TypeScript (Vite dev server)
@@ -133,3 +135,4 @@ services:
 volumes:
   pg_data:
   pgadmin_data:
+  uploads_data:

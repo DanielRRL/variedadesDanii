@@ -16,8 +16,6 @@ import type {
   RegisterData,
   EssenceFilters,
   CreateOrderInput,
-  PaymentInitInput,
-  BottleReturnInput,
   Product,
   WeeklyChallenge,
   POSSaleInput,
@@ -97,7 +95,7 @@ api.interceptors.response.use(
       // Ignore 401 from auth endpoints (login, register, etc.) — those are
       // credential errors, not session expiration.
       const url = error.config?.url ?? '';
-      if (!url.includes('/api/auth/')) {
+      if (!url.includes('/api/auth/') && !url.includes('/api/favorites')) {
         localStorage.removeItem('danii_auth');
         if (!window.location.pathname.startsWith('/login')) {
           useToastStore.getState().addToast('Sesion expirada. Inicia sesion nuevamente.', 'warning');
@@ -225,7 +223,7 @@ export const createEssence = (data: {
   olfactiveFamilyId: string;
   inspirationBrand?: string;
   houseId?: string;
-  pricePerMl?: number;
+  photoUrl?: string;
   tagIds?: string[];
 }) => api.post('/api/essences', data);
 
@@ -319,17 +317,7 @@ export const getOrderById = (id: string) =>
 export const getOrderHistory = (id: string) =>
   api.get(`/api/orders/${id}/history`);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PAYMENTS endpoints (Wompi)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Initiate a Wompi payment for an existing order.
- * POST /api/payments/initiate
- * Returns: { paymentUrl: string } — redirect the customer to this URL.
- */
-export const initiatePayment = (data: PaymentInitInput) =>
-  api.post('/api/payments/initiate', data);
+// ────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LOYALTY endpoints
@@ -376,18 +364,6 @@ export const redeemPoints = (points: number, orderId: string) =>
   api.post('/api/loyalty/redeem', { points, orderId });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BOTTLE RETURNS endpoint
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Register a bottle return to credit loyalty points.
- * POST /api/returns
- * Returns: { pointsEarned: number }
- */
-export const createBottleReturn = (data: BottleReturnInput) =>
-  api.post('/api/returns', data);
-
-// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — Dashboard + Reports
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -412,12 +388,6 @@ export const getDailySales = (params?: { from?: string; to?: string; period?: st
  */
 export const getLowStockAlerts = (threshold?: number) =>
   api.get('/api/admin/reports/low-stock', { params: threshold ? { threshold } : undefined });
-
-/**
- * GET /api/admin/reports/top-products?limit=N
- */
-export const getTopProducts = (limit = 5) =>
-  api.get('/api/admin/reports/top-products', { params: { limit } });
 
 /**
  * GET /api/admin/reports/sales/csv
@@ -594,7 +564,7 @@ export const getMyChallengeProgress = () =>
  * GET /api/admin/products?page&type&active
  * Paginated product list with filters for admin panel.
  */
-export const adminGetProducts = (params?: { page?: number; type?: string; active?: boolean }) =>
+export const adminGetProducts = (params?: { page?: number; type?: string; active?: boolean; limit?: number }) =>
   api.get('/api/admin/products', { params });
 
 /**
@@ -724,3 +694,33 @@ export const getRevenueSummary = (params?: { from?: string; to?: string }) =>
  */
 export const searchRegisteredClients = (search: string) =>
   api.get('/api/users', { params: { search, limit: 5 } });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UPLOAD endpoint
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Upload an image file to the server.
+ * POST /api/admin/upload (multipart/form-data)
+ * Returns: { url: string, filename: string, size: number }
+ */
+export const uploadImage = (file: File) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return api.post('/api/admin/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAVORITES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const getMyFavorites = () =>
+  api.get('/api/favorites');
+
+export const toggleFavorite = (data: { essenceId?: string; productId?: string }) =>
+  api.post('/api/favorites', data);
+
+export const getFavoriteItems = () =>
+  api.get('/api/favorites/items');

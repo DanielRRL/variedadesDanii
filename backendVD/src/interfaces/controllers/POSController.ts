@@ -85,7 +85,7 @@ export class POSController {
         where: { id },
         include: {
           user: { select: { id: true, name: true, phone: true, email: true } },
-          items: { include: { product: { include: { essence: true, bottle: true } } } },
+          items: { include: { product: true } },
           payment: true,
           discounts: true,
         },

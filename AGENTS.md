@@ -56,15 +56,12 @@ Clean/hexagonal architecture — **manual DI** in `app.ts` (the Composition Root
 src/
 ├── domain/           entities, repository interfaces, value-objects (no deps)
 ├── application/      services + use cases (business logic)
-├── infrastructure/   Prisma repos, payment gateways, email, DIAN invoice client
+├── infrastructure/   Prisma repos, email, DIAN invoice client
 ├── interfaces/       Express controllers, routes, middleware, validators
 ├── config/           env.ts, database.ts (Prisma client), seed.ts
 ├── server.ts         entry point (DB connect → seed → listen)
 └── app.ts            Composition Root (wires everything together)
 ```
-
-### Critical wiring detail
-Webhook routes are mounted **before** `express.json()` in `app.ts` because Wompi's signature validation needs the raw `Buffer` body. Adding any middleware that parses the body before the webhook route will break payment webhook verification.
 
 ### Path aliases (tsconfig paths)
 ```ts
@@ -135,7 +132,7 @@ Design tokens are in `@theme` block in `src/index.css`:
 ## Environment & secrets
 
 - Root `.env` drives Docker Compose (database, JWT, admin seed, email SMTP, Google OAuth).
-- `backendVD/.env` drives local backend dev (same vars + Wompi + DIAN).
+- `backendVD/.env` drives local backend dev (same vars + DIAN).
 - Both have `.env.example` files. **Never commit `.env` or `.pfx` certificate files.**
 - JWT uses `jsonwebtoken` with a configurable `JWT_EXPIRES_IN` (default `7d`).
 - Auth includes Google OAuth (`google-auth-library`).

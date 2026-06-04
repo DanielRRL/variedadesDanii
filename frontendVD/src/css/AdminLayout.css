@@ -631,40 +631,6 @@
   z-index: 1;
 }
 
-.admin-topbar__notif-btn {
-  position: relative;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  color: #94a3b8;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-}
-
-.admin-topbar__notif-btn:hover {
-  color: #475569;
-  background: #f1f5f9;
-}
-
-.admin-topbar__notif-badge {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  min-width: 1rem;
-  height: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  background: var(--color-brand-pink, #D81B60);
-  color: white;
-  font-size: 0.5625rem;
-  font-weight: 700;
-  padding-inline: 0.25rem;
-  line-height: 1;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
    CONTENT AREA
    ═══════════════════════════════════════════════════════════════════════════ */

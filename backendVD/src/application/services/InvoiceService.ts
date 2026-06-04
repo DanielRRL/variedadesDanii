@@ -19,7 +19,7 @@
  *
  * Idempotencia:
  *   Si ya existe una factura SENT o ACCEPTED para la orden, se devuelve
- *   sin crear un duplicado. Protege contra callbacks duplicados de Wompi.
+ *   sin crear un duplicado. Protege contra reprocesos del mismo pedido.
  */
 
 import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";

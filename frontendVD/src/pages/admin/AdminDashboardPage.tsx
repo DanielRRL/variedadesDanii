@@ -25,6 +25,8 @@ import {
   Gem,
   Gift,
   Clock,
+  Download,
+  Loader2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -50,6 +52,7 @@ import {
   getGamificationStats,
   getSalesByProductType,
   adminGetPendingRedemptions,
+  downloadSalesCSV,
 } from "../../services/api";
 import { formatCOP, formatCOPSplit } from "../../utils/format";
 import { cn } from "../../utils/cn";
@@ -247,7 +250,9 @@ function PeriodToggle({
 
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
   const [period, setPeriod] = useState<Period>("today");
+  const [downloadingCSV, setDownloadingCSV] = useState(false);
 
   const {
     data: dashRes,
@@ -289,6 +294,23 @@ export default function AdminDashboardPage() {
     queryFn: () => adminGetPendingRedemptions(1),
     staleTime: 60_000,
   });
+
+  const handleExportCSV = async () => {
+    setDownloadingCSV(true);
+    try {
+      const res = await downloadSalesCSV(getDateRange(period));
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ventas_${getDateRange(period).from}_${getDateRange(period).to}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      addToast("Error al descargar el reporte.", "error");
+    } finally {
+      setDownloadingCSV(false);
+    }
+  };
 
   const stats = dashRes?.data ?? {};
 
@@ -535,6 +557,34 @@ export default function AdminDashboardPage() {
                 Ventas por período
               </PageSectionHeading>
               <PeriodToggle period={period} onChange={setPeriod} />
+              <button
+                onClick={handleExportCSV}
+                disabled={downloadingCSV}
+                aria-label="Descargar CSV"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.375rem",
+                  padding: "0.375rem 0.75rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 500,
+                  color: "#64748B",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "0.5rem",
+                  background: "white",
+                  cursor: downloadingCSV ? "wait" : "pointer",
+                  opacity: downloadingCSV ? 0.5 : 1,
+                  transition: "background 0.15s",
+                }}
+              >
+                {downloadingCSV ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <Download size={12} />
+                )}
+                CSV
+              </button>
             </div>
 
             {salesError ? (
@@ -780,8 +830,7 @@ export default function AdminDashboardPage() {
                     const essenceItems =
                       order.items
                         ?.map(
-                          (it) =>
-                            it.product?.essence?.name ?? it.product?.name ?? "",
+                          (it) => it.product?.name ?? "",
                         )
                         .filter(Boolean) ?? [];
 

@@ -12,6 +12,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { Toast } from './components/ui/Toast';
+import { FavoriteSync } from './components/catalog/FavoriteSync';
 
 /** Single QueryClient instance for the entire app. */
 const queryClient = new QueryClient({
@@ -28,6 +29,7 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <FavoriteSync />
       <RouterProvider router={router} />
       <Toast />
     </QueryClientProvider>

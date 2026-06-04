@@ -32,7 +32,7 @@ export const createOrderValidator = [
   body("paymentMethod")
     .notEmpty()
     .withMessage("paymentMethod is required")
-    .isIn(["NEQUI", "DAVIPLATA", "BANCOLOMBIA", "CASH"])
+    .isIn(["NEQUI", "DAVIPLATA", "BANCOLOMBIA", "BREB", "CASH"])
     .withMessage("Invalid payment method"),
 
   // Tipo de orden opcional
@@ -43,12 +43,6 @@ export const createOrderValidator = [
 
   // Direccion opcional pero si viene debe ser UUID
   body("addressId").optional().isUUID().withMessage("addressId must be a valid UUID"),
-
-  // Flag de devolucion de frasco opcional
-  body("isBottleReturn")
-    .optional()
-    .isBoolean()
-    .withMessage("isBottleReturn must be boolean"),
 ];
 
 /** Validacion de actualizacion de estado de orden. */

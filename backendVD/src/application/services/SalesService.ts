@@ -14,20 +14,19 @@ import prisma from "../../config/database";
 import { IOrderRepository } from "../../domain/repositories/IOrderRepository";
 import { IProductRepository } from "../../domain/repositories/IProductRepository";
 import { InventoryService } from "./InventoryService";
-import { GramService } from "./GramService";
 import { GameTokenService } from "./GameTokenService";
 import { SimpleInvoiceService, SimpleInvoiceData } from "./SimpleInvoiceService";
 import { IEmailService } from "./IEmailService";
-import { GramSourceType } from "../../domain/entities/GramAccount";
 import { AppError } from "../../utils/AppError";
 import logger from "../../utils/logger";
+import { getEssencePriceWithGrams, OZ_TO_ML, getEssenceMlForOz } from "../../config/pricing";
 
 // ---------------------------------------------------------------------------
 // Interfaces publicas
 // ---------------------------------------------------------------------------
 
 export interface POSSaleInput {
-  products: Array<{ productId: string; quantity: number }>;
+  products: Array<{ productId: string; quantity: number; ozOverride?: number; essenceId?: string; mlQuantity?: number }>;
   paymentMethod: "CASH" | "NEQUI" | "DAVIPLATA" | "BANCOLOMBIA" | "TRANSFERENCIA";
   userId?: string;
   walkInClientName?: string;
@@ -36,13 +35,52 @@ export interface POSSaleInput {
   notes?: string;
   referralCode?: string;
   discount?: number;
+  isRefill?: boolean;
+  extraGrams?: number;
 }
 
 export interface POSSaleResult {
   order: any;
   invoice: SimpleInvoiceData;
-  gramsEarned: number;
   tokenIssued: boolean;
+}
+
+/** ID cached del producto placeholder para ventas de esencias en POS. */
+let _essencePlaceholderId: string | null = null;
+
+async function getOrCreateEssencePlaceholder(): Promise<string> {
+  if (_essencePlaceholderId) return _essencePlaceholderId;
+
+  const existing = await prisma.product.findFirst({
+    where: { name: "Catálogo de Esencias", productType: "ESSENCE_CATALOG" as any },
+  });
+
+  if (existing) {
+    _essencePlaceholderId = existing.id;
+    return existing.id;
+  }
+
+  const created = await prisma.product.create({
+    data: {
+      name: "Catálogo de Esencias",
+      category: "GENERAL" as any,
+      productType: "ESSENCE_CATALOG" as any,
+      price: 0,
+      stockUnits: 0,
+      generatesGram: false,
+      active: true,
+    },
+  });
+
+  _essencePlaceholderId = created.id;
+  logger.info("Created essence placeholder product for POS", { id: created.id });
+  return created.id;
+}
+
+/** Obtener el siguiente numero de orden via OrderCounter (compatible Prisma 7). */
+async function getNextSeq(): Promise<number> {
+  const counter = await prisma.orderCounter.create({});
+  return counter.id;
 }
 
 export class SalesService {
@@ -50,52 +88,72 @@ export class SalesService {
     private readonly orderRepo: IOrderRepository,
     private readonly productRepo: IProductRepository,
     private readonly inventoryService: InventoryService,
-    private readonly gramService: GramService,
     private readonly gameTokenService: GameTokenService,
     private readonly simpleInvoiceService: SimpleInvoiceService,
     private readonly emailService: IEmailService,
   ) {}
 
-  /**
-   * Crea una venta presencial (POS) de forma atomica.
-   * Pasos:
-   * 1. Validar stock de todos los productos
-   * 2. Crear orden con items en transaccion Prisma
-   * 3. Descontar inventario (essence o product movements)
-   * 4. Marcar como DELIVERED
-   * 5. Acreditar gramos y fichas si cliente registrado
-   * 6. Generar factura simple
-   */
   async createPOSSale(input: POSSaleInput): Promise<POSSaleResult> {
+    const essencePlaceholderId = await getOrCreateEssencePlaceholder();
+
     // -- Paso 1: Validar productos y stock --
     const validatedItems: Array<{
       productId: string;
+      dbProductId: string;
       quantity: number;
       unitPrice: number;
       subtotal: number;
       product: any;
+      inputEssenceId?: string;
+      inputMlQuantity?: number;
+      inputOzOverride?: number;
     }> = [];
 
     for (const item of input.products) {
-      const product = await this.productRepo.findByIdWithRelations(item.productId);
+      let product = await this.productRepo.findByIdWithRelations(item.productId);
+
+      if (!product && item.essenceId) {
+        const essence = await prisma.essence.findUnique({ where: { id: item.essenceId } });
+        if (!essence) {
+          throw AppError.notFound(`Esencia ${item.essenceId} no encontrada`);
+        }
+        if (!essence.active) {
+          throw AppError.badRequest(`Esencia "${essence.name}" no está disponible`);
+        }
+        product = {
+          id: essencePlaceholderId,
+          name: essence.name,
+          active: true,
+          essenceId: item.essenceId,
+          mlQuantity: null,
+          price: 0,
+          stockUnits: 0,
+      generatesGram: false,
+          bottleId: null,
+        };
+      }
+
       if (!product) {
         throw AppError.notFound(`Producto ${item.productId} no encontrado`);
       }
-      if (!product.active) {
-        throw AppError.badRequest(`Producto "${product.name}" no está disponible`);
+      if (!product.active && product.name) {
+        throw AppError.badRequest(`"${product.name}" no está disponible`);
       }
 
-      // Validar stock según tipo
-      if (product.essenceId) {
-        const mlNeeded = (product.mlQuantity || 0) * item.quantity;
-        const essenceStock = await this.inventoryService.getEssenceStock(product.essenceId);
+      const effectiveEssenceId = product.essenceId || item.essenceId;
+      if (effectiveEssenceId) {
+        const effectiveMl = item.mlQuantity
+          ?? (item.ozOverride ? item.ozOverride * OZ_TO_ML : (product.mlQuantity || 0));
+        const oz = item.ozOverride ?? Math.round(effectiveMl / OZ_TO_ML);
+        const essenceMlPerUnit = getEssenceMlForOz(oz);
+        const mlNeeded = essenceMlPerUnit * item.quantity;
+        const essenceStock = await this.inventoryService.getEssenceStock(effectiveEssenceId);
         if (essenceStock < mlNeeded) {
           throw AppError.badRequest(
-            `Stock insuficiente para "${product.name}". Disponible: ${essenceStock}ml, Necesario: ${mlNeeded}ml`
+            `Stock insuficiente para "${product.name}". Disponible: ${essenceStock.toFixed(0)}ml, Necesario: ${mlNeeded}ml`
           );
         }
       } else {
-        // Use product.stockUnits directly (source of truth for non-essence products)
         const productStock = product.stockUnits ?? 0;
         if (productStock < item.quantity) {
           throw AppError.badRequest(
@@ -104,41 +162,51 @@ export class SalesService {
         }
       }
 
+      let unitPrice = product.price;
+      const isEssence = effectiveEssenceId && (product.mlQuantity || item.mlQuantity);
+      if (isEssence) {
+        const effectiveMl = item.mlQuantity ?? (product.mlQuantity || 0);
+        const oz = item.ozOverride || Math.round(effectiveMl / OZ_TO_ML);
+        unitPrice = getEssencePriceWithGrams(oz, 0, input.isRefill || false).basePrice;
+      }
+
       validatedItems.push({
         productId: item.productId,
+        dbProductId: product.id,
         quantity: item.quantity,
-        unitPrice: product.price,
-        subtotal: product.price * item.quantity,
+        unitPrice,
+        subtotal: unitPrice * item.quantity,
         product,
+        inputEssenceId: item.essenceId,
+        inputMlQuantity: item.mlQuantity,
+        inputOzOverride: item.ozOverride,
       });
     }
 
     // -- Paso 2: Calcular totales --
-    const subtotal = validatedItems.reduce((sum, i) => sum + i.subtotal, 0);
+    const extraGrams = input.extraGrams || 0;
+    const extraGramsCost = extraGrams * 1_000;
+    const subtotal = validatedItems.reduce((sum, i) => sum + i.subtotal, 0) + extraGramsCost;
     const discount = input.discount || 0;
     const total = Math.max(0, subtotal - discount);
 
     // -- Paso 3: Transaccion atomica --
-    // Determinar userId: cliente registrado o admin POS
     const adminUser = await prisma.user.findFirst({ where: { role: "ADMIN" } });
     if (!adminUser) {
       throw AppError.badRequest("No hay usuario admin configurado para ventas POS");
     }
     const orderUserId = input.userId || adminUser.id;
 
-    // Generar numero de orden
-    const seqResult = await prisma.$queryRaw<[{ val: bigint }]>`SELECT nextval('order_number_seq') as val`;
+    const seq = await getNextSeq();
     const year = new Date().getFullYear();
-    const seq = String(Number(seqResult[0].val)).padStart(4, "0");
-    const orderNumber = `VD-${year}${seq}`;
+    const orderNumber = `VD-${year}${String(seq).padStart(4, "0")}`;
 
     const order = await prisma.$transaction(async (tx) => {
-      // 3a. Crear orden con items
       const newOrder = await tx.order.create({
         data: {
           orderNumber,
           userId: orderUserId,
-          type: "ONLINE" as any,
+          type: (input.isRefill ? "REFILL" : "ONLINE") as any,
           status: "DELIVERED" as any,
           saleChannel: "IN_STORE" as any,
           paymentMethod: input.paymentMethod as any,
@@ -149,7 +217,7 @@ export class SalesService {
           total,
           items: {
             create: validatedItems.map((item) => ({
-              productId: item.productId,
+              productId: item.dbProductId,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               subtotal: item.subtotal,
@@ -157,19 +225,21 @@ export class SalesService {
           },
         },
         include: {
-          items: { include: { product: { include: { essence: true, bottle: true } } } },
+          items: { include: { product: true } },
           user: { select: { id: true, name: true, phone: true, email: true } },
         },
       });
 
-      // 3b. Descontar inventario dentro de la transaccion
       for (const item of validatedItems) {
-        if (item.product.essenceId) {
-          // Esencia: salida de ml
-          const mlOut = (item.product.mlQuantity || 0) * item.quantity;
+        const deductibleEssenceId = item.product.essenceId || item.inputEssenceId;
+        if (deductibleEssenceId) {
+          const effectiveMl = item.inputMlQuantity ?? (item.product.mlQuantity || 0);
+          const oz = item.inputOzOverride ?? Math.round(effectiveMl / OZ_TO_ML);
+          const essenceMlPerUnit = getEssenceMlForOz(oz);
+          const mlOut = essenceMlPerUnit * item.quantity;
           await tx.essenceMovement.create({
             data: {
-              essenceId: item.product.essenceId,
+              essenceId: deductibleEssenceId,
               type: "OUT" as any,
               ml: mlOut,
               reason: "SALE" as any,
@@ -177,7 +247,6 @@ export class SalesService {
             },
           });
 
-          // Frasco: salida de unidades (si aplica)
           if (item.product.bottleId) {
             await tx.bottleMovement.create({
               data: {
@@ -190,14 +259,13 @@ export class SalesService {
             });
           }
         } else {
-          // Producto general: salida de unidades
           await tx.product.update({
-            where: { id: item.productId },
+            where: { id: item.dbProductId },
             data: { stockUnits: { decrement: item.quantity } },
           });
           await tx.productMovement.create({
             data: {
-              productId: item.productId,
+              productId: item.dbProductId,
               type: "OUT" as any,
               quantity: item.quantity,
               reason: "SALE" as any,
@@ -210,43 +278,21 @@ export class SalesService {
       return newOrder;
     });
 
-    // -- Paso 4: Acreditar gramos y ficha de juego si cliente registrado --
-    let gramsEarned = 0;
+    // -- Paso 4: Emitir ficha de juego si cliente registrado --
     let tokenIssued = false;
 
     if (input.userId) {
       try {
-        // Contar productos que generan gramos
-        for (const item of validatedItems) {
-          if (item.product.generatesGram) {
-            const result = await this.gramService.earnGrams(input.userId, {
-              sourceType: GramSourceType.PRODUCT_PURCHASE,
-              grams: item.quantity,
-              description: `Compra presencial: ${item.product.name} x${item.quantity}`,
-              referenceId: order.id,
-            });
-            gramsEarned += item.quantity;
-          }
-        }
-
-        // Emitir ficha de juego
         const token = await this.gameTokenService.issueToken(input.userId, order.id);
         tokenIssued = token !== null;
-
-        // Incrementar totalInStorePurchases
-        await prisma.gramAccount.updateMany({
-          where: { userId: input.userId },
-          data: { totalInStorePurchases: { increment: 1 } },
-        });
       } catch (err) {
-        logger.warn("Error acreditando gramos/ficha en venta POS", { orderId: order.id, error: err });
+        logger.warn("Error emitiendo ficha en venta POS", { orderId: order.id, error: err });
       }
     }
 
     // -- Paso 5: Generar factura simple --
     const invoice = await this.simpleInvoiceService.generateAndSend(order.id);
 
-    // Si es walk-in con email, enviar factura al email proporcionado
     if (!input.userId && input.walkInClientEmail) {
       try {
         await this.emailService.sendSimpleInvoice(input.walkInClientEmail, invoice);
@@ -267,7 +313,6 @@ export class SalesService {
     return {
       order,
       invoice,
-      gramsEarned,
       tokenIssued,
     };
   }

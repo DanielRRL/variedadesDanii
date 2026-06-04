@@ -32,10 +32,6 @@ export type { EssenceMovementProps } from "./EssenceMovement";
 export { BottleMovement, BottleMovementType, BottleMovementReason } from "./BottleMovement";
 export type { BottleMovementProps } from "./BottleMovement";
 
-// Entidad Devolucion de Frasco y sus tipos asociados.
-export { BottleReturn } from "./BottleReturn";
-export type { BottleReturnProps } from "./BottleReturn";
-
 // Entidad Auditoria de Inventario y sus tipos asociados.
 export { InventoryAudit, AuditEntityType } from "./InventoryAudit";
 export type { InventoryAuditProps } from "./InventoryAudit";

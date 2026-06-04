@@ -25,6 +25,18 @@ const createPOSSaleValidator = [
   body("products.*.quantity")
     .isInt({ gt: 0 })
     .withMessage("quantity debe ser mayor a 0"),
+  body("products.*.ozOverride")
+    .optional()
+    .isInt({ min: 1, max: 3 })
+    .withMessage("ozOverride debe ser 1, 2 o 3"),
+  body("products.*.essenceId")
+    .optional()
+    .isUUID()
+    .withMessage("essenceId debe ser UUID válido"),
+  body("products.*.mlQuantity")
+    .optional()
+    .isFloat({ gt: 0 })
+    .withMessage("mlQuantity debe ser mayor a 0"),
   body("paymentMethod")
     .isIn(["CASH", "NEQUI", "DAVIPLATA", "BANCOLOMBIA", "TRANSFERENCIA"])
     .withMessage("Método de pago inválido"),

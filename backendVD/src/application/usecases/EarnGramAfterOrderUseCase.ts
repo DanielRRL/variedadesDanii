@@ -3,11 +3,13 @@
  * Disparado cuando un pedido pasa a status DELIVERED.
  * Es fire-and-forget: nunca debe bloquear la entrega del pedido.
  *
+ * La ficha de juego se emite al confirmar el pago (PAID),
+ * no en este caso de uso.
+ *
  * Flujo:
  * 1. Recorrer cada item del pedido.
  * 2. Por cada producto con generatesGram=true: acumular GRAMS_PER_PURCHASE (1g).
  * 3. Incrementar totalPurchases en la billetera.
- * 4. Emitir una ficha de juego (GameToken) para el usuario.
  */
 
 // Repositorios.
@@ -17,7 +19,6 @@ import { IGramRepository } from "../../domain/repositories/IGramRepository";
 
 // Servicios.
 import { GramService, GRAMS_PER_PURCHASE } from "../services/GramService";
-import { GameTokenService } from "../services/GameTokenService";
 
 // Entidades.
 import { GramSourceType } from "../../domain/entities/GramAccount";
@@ -31,7 +32,6 @@ export class EarnGramAfterOrderUseCase {
     private readonly productRepo: IProductRepository,
     private readonly gramRepo: IGramRepository,
     private readonly gramService: GramService,
-    private readonly gameTokenService: GameTokenService,
   ) {}
 
   /**
@@ -74,9 +74,6 @@ export class EarnGramAfterOrderUseCase {
       // Paso 4: Incrementar totalPurchases en la billetera
       const account = await this.gramService.getOrCreateAccount(userId);
       await this.gramRepo.incrementTotalPurchases(account.id!);
-
-      // Paso 5: Emitir ficha de juego (retorna null si ya tiene 3 pendientes)
-      await this.gameTokenService.issueToken(userId, orderId);
 
       logger.info("EarnGramAfterOrderUseCase completado", {
         orderId,

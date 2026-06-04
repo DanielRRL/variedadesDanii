@@ -24,7 +24,7 @@ export class PrismaOrderRepository implements IOrderRepository {
     return prisma.order.findMany({
       include: {
         user: { select: { id: true, name: true, phone: true, email: true } },
-        items: { include: { product: { include: { essence: true, bottle: true } } } },
+        items: { include: { product: true } },
         payment: true,
         discounts: true,
       },
@@ -59,7 +59,7 @@ export class PrismaOrderRepository implements IOrderRepository {
         where,
         include: {
           user: { select: { id: true, name: true, phone: true, email: true } },
-          items: { include: { product: { include: { essence: true, bottle: true } } } },
+          items: { include: { product: true } },
           payment: true,
           discounts: true,
         },
@@ -83,7 +83,7 @@ export class PrismaOrderRepository implements IOrderRepository {
       include: {
         user: { select: { id: true, name: true, phone: true, email: true } },
         address: true,
-        items: { include: { product: { include: { essence: true, bottle: true } } } },
+        items: { include: { product: true } },
         payment: true,
         discounts: true,
       },
@@ -95,7 +95,7 @@ export class PrismaOrderRepository implements IOrderRepository {
     return prisma.order.findMany({
       where: { userId },
       include: {
-        items: { include: { product: { include: { essence: true, bottle: true } } } },
+        items: { include: { product: true } },
         payment: true,
         discounts: true,
       },
@@ -118,13 +118,11 @@ export class PrismaOrderRepository implements IOrderRepository {
    * Ejemplo:  VD-20260001 = primera orden del año 2026.
    */
   async create(data: CreateOrderData): Promise<any> {
-    // Obtener el siguiente entero de la secuencia atomicamente.
-    // Incluso si la transaccion de la orden falla despues, este valor
-    // NO se reutiliza; los gaps en la secuencia son intencionales y seguros.
-    const seqResult = await prisma.$queryRaw<[{ val: bigint }]>`SELECT nextval('order_number_seq') as val`;
+    // El OrderCounter reemplaza la secuencia PostgreSQL para compatibilidad con Prisma 7.
+    const counter = await prisma.orderCounter.create({});
+    const seq = counter.id;
     const year = new Date().getFullYear();
-    const seq = String(Number(seqResult[0].val)).padStart(4, "0");
-    const orderNumber = `VD-${year}${seq}`;
+    const orderNumber = `VD-${year}${String(seq).padStart(4, "0")}`;
 
     return prisma.order.create({
       data: {

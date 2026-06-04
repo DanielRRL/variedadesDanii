@@ -1,0 +1,91 @@
+/* ── FavoritesPage — Minimalist favorites list ─────────────────────────────── */
+
+.fav-page {
+  min-height: 100svh;
+  background: var(--color-background, #FAFAFA);
+  font-family: var(--font-body, 'Inter', sans-serif);
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.fav-main {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* ── Grid ────────────────────────────────────────────────────────────────── */
+.fav-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .fav-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .fav-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ── Skeleton ─────────────────────────────────────────────────────────────── */
+@keyframes fav-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.fav-skeleton {
+  background: var(--color-surface, #FFFFFF);
+  border-radius: 1rem;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  overflow: hidden;
+}
+
+.fav-skeleton__image {
+  aspect-ratio: 4 / 3;
+  background: #e2e8f0;
+  animation: fav-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.fav-skeleton__body {
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fav-skeleton__line {
+  background: #e2e8f0;
+  border-radius: 9999px;
+  animation: fav-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.fav-skeleton__line--title {
+  height: 1rem;
+  width: 75%;
+}
+
+.fav-skeleton__line--subtitle {
+  height: 0.75rem;
+  width: 45%;
+}
+
+.fav-skeleton__line--action {
+  height: 2rem;
+  border-radius: 9999px;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* ── Empty & Error states — use AdminEmptyState component ─────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .fav-skeleton__line,
+  .fav-skeleton__image {
+    animation: none;
+  }
+}

@@ -38,6 +38,7 @@ enum PaymentMethod {
   NEQUI
   DAVIPLATA
   BANCOLOMBIA
+  BREB
   CASH
   TRANSFERENCIA
 }
@@ -88,7 +89,6 @@ enum BottleType {
 /// Solo se mantiene el descuento por codigo de referido (5%, solo en lociones).
 /// Estos enums se conservan por compatibilidad con datos historicos.
 enum DiscountType {
-  BOTTLE_RETURN
   FREQUENT_CLIENT
   VOLUME
 }
@@ -205,7 +205,6 @@ model User {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   orders              Order[]
-  bottleReturns       BottleReturn[]
   addresses           Address[]
   inventoryAudits     InventoryAudit[]
   /// Cuenta de puntos de fidelizacion del cliente (1:1)
@@ -288,8 +287,8 @@ model Essence {
   inspirationBrand  String?  @map("inspiration_brand")
   /// Casa / marca a la que pertenece esta esencia.
   houseId           String?  @map("house_id")
-  /// Precio por mililitro en COP. Usado para cotizar en el carrito.
-  pricePerMl        Float?   @map("price_per_ml")
+  /// URL de la foto de la esencia (local /uploads/... o externa Google Drive).
+  photoUrl          String?  @map("photo_url")
   active            Boolean  @default(true)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
@@ -330,7 +329,6 @@ model Bottle {
 
   products        Product[]
   bottleMovements BottleMovement[]
-  bottleReturns   BottleReturn[]
 
   @@map("bottles")
 }
@@ -483,34 +481,12 @@ model Payment {
   amount          Float
   gatewayRef       String?       @map("gateway_ref")
   gatewayResponse  Json?         @map("gateway_response")
-  /// Referencia de transaccion Bre-B/Wompi para rastrear el pago en la pasarela
-  brebRef          String?       @map("breb_ref")
-  /// Payload JSON completo del webhook recibido de Bre-B, almacenado para auditoria y reproceso
-  brebWebhookData  Json?         @map("breb_webhook_data")
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("payments")
-}
-
-// ---------------------------------------------------------------------------
-// BOTTLE RETURNS (refill program)
-// ---------------------------------------------------------------------------
-
-model BottleReturn {
-  id              String   @id @default(uuid())
-  userId          String   @map("user_id")
-  bottleId        String   @map("bottle_id")
-  discountApplied Float    @map("discount_applied")
-  notes           String?
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  user   User   @relation(fields: [userId], references: [id])
-  bottle Bottle @relation(fields: [bottleId], references: [id])
-
-  @@map("bottle_returns")
 }
 
 // ---------------------------------------------------------------------------
@@ -910,4 +886,24 @@ model UserChallengeProgress {
 
   @@unique([userId, challengeId])
   @@map("user_challenge_progresses")
+}
+
+model UserFavorite {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  essenceId String?  @map("essence_id")
+  productId String?  @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, essenceId])
+  @@unique([userId, productId])
+  @@map("user_favorites")
+}
+
+/// Contador autoincremental para numeros de orden. 
+/// Cada fila creada genera el siguiente VD-YYYYXXXX via su ID serial.
+/// Reemplaza la secuencia PostgreSQL order_number_seq para
+/// compatibilidad con Prisma 7 (que no deserializa nextval() en $queryRawUnsafe).
+model OrderCounter {
+  id Int @id @default(autoincrement())
 }

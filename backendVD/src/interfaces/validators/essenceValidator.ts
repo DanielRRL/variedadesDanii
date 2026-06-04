@@ -15,9 +15,7 @@ export const createEssenceValidator = [
     .isLength({ max: 1000 }).withMessage("Description max 1000 characters"),
   body("houseId").optional(),
   body("inspirationBrand").optional(),
-  body("pricePerMl")
-    .optional({ values: "falsy" })
-    .isFloat({ gt: 0 }).withMessage("pricePerMl must be positive"),
+  body("photoUrl").optional({ values: "falsy" }).isString().isLength({ max: 500 }),
 ];
 
 export const createFamilyValidator = [
@@ -43,5 +41,5 @@ export const updateEssenceValidator = [
   body("description").optional({ values: "falsy" }).isLength({ max: 1000 }),
   body("inspirationBrand").optional(),
   body("houseId").optional(),
-  body("pricePerMl").optional({ values: "falsy" }).isFloat({ gt: 0 }),
+  body("photoUrl").optional({ values: "falsy" }).isString().isLength({ max: 500 }),
 ];

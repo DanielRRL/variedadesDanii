@@ -14,7 +14,6 @@ export { IOrderRepository } from "./IOrderRepository";
 export type { CreateOrderData } from "./IOrderRepository";
 export { IInventoryRepository } from "./IInventoryRepository";
 export { IPaymentRepository } from "./IPaymentRepository";
-export { IBottleReturnRepository } from "./IBottleReturnRepository";
 export { IAdminRepository } from "./IAdminRepository";
 export type {
   DailySalesResult,

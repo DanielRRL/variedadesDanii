@@ -34,10 +34,10 @@ function toEntity(e: any): Essence {
       : undefined,
     inspirationBrand: e.inspirationBrand ?? undefined,
     houseId: e.houseId ?? undefined,
+    photoUrl: e.photoUrl ?? undefined,
     house: e.house
       ? { id: e.house.id, name: e.house.name, handle: e.house.handle }
       : undefined,
-    pricePerMl: e.pricePerMl ?? undefined,
     olfactiveTags: e.olfactiveTags
       ? e.olfactiveTags.map((t: any) => ({
           id: t.olfactiveFamily.id,
@@ -81,7 +81,7 @@ export class PrismaEssenceRepository implements IEssenceRepository {
         olfactiveFamilyId: essence.olfactiveFamilyId,
         inspirationBrand: essence.inspirationBrand,
         houseId: essence.houseId || null,
-        pricePerMl: essence.pricePerMl ?? null,
+        photoUrl: essence.photoUrl ?? null,
         active: essence.active,
         ...(essence.olfactiveTags && essence.olfactiveTags.length > 0
           ? {
@@ -122,6 +122,7 @@ export class PrismaEssenceRepository implements IEssenceRepository {
             ...(data.olfactiveFamilyId && { olfactiveFamilyId: data.olfactiveFamilyId }),
             ...(data.inspirationBrand !== undefined && { inspirationBrand: data.inspirationBrand }),
             ...(data.houseId !== undefined && { houseId: data.houseId }),
+            ...(data.photoUrl !== undefined && { photoUrl: data.photoUrl }),
           },
           include: ESSENCE_INCLUDE,
         });
@@ -141,7 +142,7 @@ export class PrismaEssenceRepository implements IEssenceRepository {
           inspirationBrand: data.inspirationBrand,
         }),
         ...(data.houseId !== undefined && { houseId: data.houseId || null }),
-        ...(data.pricePerMl !== undefined && { pricePerMl: data.pricePerMl }),
+        ...(data.photoUrl !== undefined && { photoUrl: data.photoUrl }),
         ...(data.active !== undefined && { active: data.active }),
       },
       include: ESSENCE_INCLUDE,

@@ -1,0 +1,472 @@
+/*
+ * OrderDetailPage.module.css — CSS puro (cero Tailwind)
+ *
+ * Vista de detalle de pedido del cliente.
+ * Todos los tokens vienen de var(--color-*, --font-*, --shadow-*) en index.css.
+ */
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+
+.page {
+  min-height: 100vh;
+  background-color: var(--color-background);
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  padding: 1rem 1rem 6rem;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ── Loading ─────────────────────────────────────────────────────────────── */
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+.spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-brand-pink);
+  border-top-color: transparent;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Error ───────────────────────────────────────────────────────────────── */
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+  text-align: center;
+}
+
+.errorText {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.retryBtn {
+  background-color: var(--color-brand-pink);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.retryBtn:hover {
+  background-color: var(--color-brand-pink-dark);
+}
+
+.backLink {
+  color: var(--color-brand-pink);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+/* ── Header card ─────────────────────────────────────────────────────────── */
+
+.headerCard {
+  background-color: var(--color-surface);
+  border: 1px solid rgba(224, 224, 224, 0.6);
+  border-radius: 1.5rem;
+  padding: 1rem;
+  box-shadow: var(--shadow-glass);
+}
+
+.headerTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.headerLabel {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.headerNumber {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.headerDate {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-top: 0.5rem;
+}
+
+.statusBadge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.statusPending { background-color: #f3f4f6; color: #4b5563; }
+.statusPaid    { background-color: #dbeafe; color: #1d4ed8; }
+.statusPreparing { background-color: #fef3c7; color: #b45309; }
+.statusReady   { background-color: #d1fae5; color: #047857; }
+.statusDelivered { background-color: #d1fae5; color: #047857; }
+.statusCancelled { background-color: #fee2e2; color: #b91c1c; }
+
+/* ── Cancel card ─────────────────────────────────────────────────────────── */
+
+.cancelCard {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 1.5rem;
+  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.cancelIcon {
+  color: #ef4444;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.cancelTitle {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #991b1b;
+}
+
+.cancelDate {
+  font-size: 0.75rem;
+  color: #ef4444;
+  margin-top: 0.125rem;
+  opacity: 0.8;
+}
+
+.cancelNotes {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-top: 0.25rem;
+}
+
+/* ── Timeline ────────────────────────────────────────────────────────────── */
+
+.timelineCard {
+  background-color: var(--color-surface);
+  border: 1px solid rgba(224, 224, 224, 0.6);
+  border-radius: 1.5rem;
+  padding: 1rem;
+  box-shadow: var(--shadow-glass);
+}
+
+.timelineTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+
+.stepList {
+  display: flex;
+  flex-direction: column;
+}
+
+.stepRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.stepIndicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stepDotBase {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stepDotCompleted {
+  background-color: var(--color-success);
+  color: #fff;
+}
+
+.stepDotCurrent {
+  background-color: var(--color-brand-pink);
+  color: #fff;
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.stepDotPending {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+}
+
+.stepConnector {
+  width: 2px;
+  flex: 1;
+  min-height: 1.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.stepConnectorCompleted {
+  background: linear-gradient(to bottom, var(--color-success), var(--color-brand-pink));
+}
+
+.stepConnectorDefault {
+  background-color: #e5e7eb;
+}
+
+.stepContent {
+  padding-bottom: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.stepLabelCurrent {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-brand-pink);
+  font-family: var(--font-heading);
+}
+
+.stepLabelCompleted {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.stepLabelPending {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.stepTimestamp {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-top: 0.125rem;
+}
+
+.stepNotes {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.125rem;
+  font-style: italic;
+}
+
+/* ── Status banners ──────────────────────────────────────────────────────── */
+
+.bannerBase {
+  border-radius: 1.5rem;
+  padding: 0.875rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.bannerPending {
+  background-color: #fef9c3;
+  border: 1px solid #fde68a;
+}
+
+.bannerPaid {
+  background-color: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
+
+.bannerDelivered {
+  background-color: #d1fae5;
+  border: 1px solid #a7f3d0;
+}
+
+.bannerIcon { margin-top: 0.125rem; flex-shrink: 0; }
+.bannerIconPending { color: #a16207; }
+.bannerIconPaid { color: #2563eb; }
+.bannerIconDelivered { color: #047857; }
+
+.bannerTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.bannerTitlePending { color: #854d0e; }
+.bannerTitlePaid { color: #1e40af; }
+.bannerTitleDelivered { color: #065f46; }
+
+.bannerText {
+  font-size: 0.75rem;
+  margin-top: 0.125rem;
+  line-height: 1.625;
+}
+
+.bannerTextPending { color: #a16207; }
+.bannerTextPaid { color: #1d4ed8; }
+.bannerTextDelivered { color: #047857; }
+
+/* ── Items card ──────────────────────────────────────────────────────────── */
+
+.itemsCard {
+  background-color: var(--color-surface);
+  border: 1px solid rgba(224, 224, 224, 0.6);
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-glass);
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-heading);
+}
+
+.sectionIcon {
+  color: var(--color-brand-pink);
+  flex-shrink: 0;
+}
+
+.itemRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.itemDivider {
+  border-top: 1px solid rgba(224, 224, 224, 0.4);
+}
+
+.itemName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMeta {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-top: 0.125rem;
+}
+
+.itemSubtotal {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex-shrink: 0;
+}
+
+/* ── Totals card ─────────────────────────────────────────────────────────── */
+
+.totalsCard {
+  background-color: var(--color-surface);
+  border: 1px solid rgba(224, 224, 224, 0.6);
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-glass);
+}
+
+.totalsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.totalsRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.totalsDiscount {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--color-success);
+}
+
+.totalsDivider {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.totalsValue {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    animation: none;
+  }
+
+  .spinner {
+    animation: none;
+  }
+
+  .stepDotCurrent {
+    animation: none;
+    box-shadow: 0 0 0 4px rgba(216, 27, 96, 0.2);
+  }
+}

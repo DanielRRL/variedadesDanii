@@ -1,7 +1,6 @@
 /**
  * Rutas de pagos.
- * Solo endpoints de consulta. Los webhooks de pago se manejan en
- * /api/webhooks/wompi con validacion HMAC-SHA256 via PaymentWebhookController.
+ * Endpoints de consulta de pagos por orden.
  */
 
 // Router - Crea un enrutador modular de Express.

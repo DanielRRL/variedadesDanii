@@ -21,11 +21,7 @@ import {
   Gamepad2,
   Gift,
   FileText,
-  BarChart2,
-  ArrowLeftRight,
   Store,
-  Settings,
-  Bell,
   Menu,
   X,
   Home,
@@ -86,15 +82,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Finanzas",
     items: [
       { icon: TrendingUp, label: "Ganancias", path: "/admin/ganancias" },
-      { icon: FileText, label: "Facturas", path: "/admin/facturas" },
-      { icon: BarChart2, label: "Reportes", path: "/admin/reportes" },
-    ],
-  },
-  {
-    label: "Sistema",
-    items: [
-      { icon: ArrowLeftRight, label: "Devoluciones", path: "/admin/devoluciones" },
-      { icon: Settings, label: "Configuración", path: "/admin/configuracion" },
+      { icon: FileText, label: "Facturas",  path: "/admin/facturas" },
     ],
   },
 ];
@@ -342,20 +330,6 @@ export default function AdminLayout() {
               <span className="admin-topbar__greeting-comma">, </span>
               <span className="admin-topbar__greeting-name">{firstName}</span>
             </span>
-          </div>
-
-          <div className="admin-topbar__right">
-            <button
-              className="admin-topbar__notif-btn"
-              aria-label="Notificaciones"
-            >
-              <Bell size={18} />
-              {pendingCount > 0 && (
-                <span className="admin-topbar__notif-badge">
-                  {pendingCount > 9 ? "9+" : pendingCount}
-                </span>
-              )}
-            </button>
           </div>
         </header>
 

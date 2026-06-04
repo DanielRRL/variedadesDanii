@@ -25,9 +25,6 @@ import { IPaymentRepository } from "../../domain/repositories/IPaymentRepository
 // InventoryService - Para validar y registrar movimientos de stock.
 import { InventoryService } from "../services/InventoryService";
 
-// DiscountService - Para calcular descuentos (devolucion, frecuente, volumen).
-import { DiscountService } from "../services/DiscountService";
-
 // LoyaltyService - Para asegurar que el usuario tenga cuenta de fidelizacion.
 import { LoyaltyService } from "../services/LoyaltyService";
 
@@ -43,6 +40,9 @@ import logger from "../../utils/logger";
 // prisma - Cliente de BD para transacciones atomicas.
 import prisma from "../../config/database";
 
+// getEssencePrice - Precio por onza para esencias del catalogo.
+import { getEssencePrice, getEssenceMlFromProductMl } from "../../config/pricing";
+
 /** Datos de entrada requeridos para crear una orden. */
 export interface CreateOrderInput {
   userId: string;
@@ -50,7 +50,6 @@ export interface CreateOrderInput {
   type: string;
   paymentMethod: string;
   notes?: string;
-  isBottleReturn: boolean;
   products: Array<{
     productId: string;
     quantity: number;
@@ -82,7 +81,6 @@ export class CreateOrderUseCase {
     private readonly productRepo: IProductRepository,
     private readonly paymentRepo: IPaymentRepository,
     private readonly inventoryService: InventoryService,
-    private readonly discountService: DiscountService,
     private readonly loyaltyService: LoyaltyService
   ) {}
 
@@ -93,15 +91,18 @@ export class CreateOrderUseCase {
   async execute(input: CreateOrderInput): Promise<any> {
     // -- Paso 1: Validar productos y recopilar datos --
     const orderItems: ValidatedItem[] = [];
-    let totalMl = 0;
 
     for (const item of input.products) {
       // Buscar producto con esencia y frasco incluidos (null si no aplica)
-      const product = await this.productRepo.findByIdWithRelations(
+      let product = await this.productRepo.findByIdWithRelations(
         item.productId
       );
       if (!product) {
-        throw AppError.notFound(`Product ${item.productId} not found`);
+        // Fallback: ¿es un ID de esencia del catalogo?
+        // El frontend envia el UUID de la esencia como productId cuando
+        // el cliente agrega desde EssenceDetailPage. Buscamos la esencia
+        // y creamos un product placeholder para procesar la orden.
+        product = await this.getOrCreateEssenceCatalogProduct(item.productId, item.quantity);
       }
       if (!product.active) {
         throw AppError.badRequest(`Product "${product.name}" is not available`);
@@ -112,11 +113,9 @@ export class CreateOrderUseCase {
       // Stock insuficiente solo genera advertencias, no rechaza el pedido.
       if (product.category === "PERFUME") {
         await this.checkPerfumeStock(product, item.quantity);
-        const mlNeeded = product.mlQuantity! * item.quantity;
-        totalMl += mlNeeded;
 
         orderItems.push({
-          productId: item.productId,
+          productId: product.id,
           quantity: item.quantity,
           unitPrice: product.price,
           subtotal: product.price * item.quantity,
@@ -130,7 +129,7 @@ export class CreateOrderUseCase {
         await this.checkProductStock(product, item.quantity);
 
         orderItems.push({
-          productId: item.productId,
+          productId: product.id,
           quantity: item.quantity,
           unitPrice: product.price,
           subtotal: product.price * item.quantity,
@@ -141,24 +140,13 @@ export class CreateOrderUseCase {
 
     // -- Paso 3: Calcular subtotal --
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-
-    // -- Paso 4: Calcular descuentos aplicables --
-    const discounts = await this.discountService.calculateAllDiscounts(
-      input.userId,
-      subtotal,
-      totalMl,
-      input.isBottleReturn
-    );
-
-    const totalDiscount = discounts.reduce((sum, d) => sum + d.amount, 0);
-    // Total nunca puede ser negativo
-    const total = Math.max(0, subtotal - totalDiscount);
+    const total = subtotal;
 
     // -- Paso 5: Persistir la orden con items, descuentos Y descontar inventario en una transaccion atomica --
-    const seqResult = await prisma.$queryRaw<[{ val: bigint }]>`SELECT nextval('order_number_seq') as val`;
+    const counter = await prisma.orderCounter.create({});
+    const seq = counter.id;
     const year = new Date().getFullYear();
-    const seq = String(Number(seqResult[0].val)).padStart(4, "0");
-    const orderNumber = `VD-${year}${seq}`;
+    const orderNumber = `VD-${year}${String(seq).padStart(4, "0")}`;
 
     const order = await prisma.$transaction(async (tx) => {
       // 5a. Crear la orden con items y descuentos
@@ -171,7 +159,7 @@ export class CreateOrderUseCase {
           paymentMethod: input.paymentMethod as any,
           notes: input.notes,
           subtotal,
-          discount: totalDiscount,
+          discount: 0,
           total,
           items: {
             create: orderItems.map((item) => ({
@@ -181,28 +169,17 @@ export class CreateOrderUseCase {
               subtotal: item.subtotal,
             })),
           },
-          discounts: discounts.length > 0
-            ? {
-                create: discounts.map((d) => ({
-                  type: d.type as any,
-                  percentage: d.percentage,
-                  amount: d.amount,
-                  description: d.description,
-                })),
-              }
-            : undefined,
         },
         include: {
           items: { include: { product: true } },
           payment: true,
-          discounts: true,
         },
       });
 
       // 5b. Registrar movimientos de salida de inventario dentro de la transaccion
       for (const item of orderItems) {
         if (item.category === "PERFUME") {
-          const totalMlOut = item.mlQuantity! * item.quantity;
+          const totalMlOut = getEssenceMlFromProductMl(item.mlQuantity!) * item.quantity;
 
           // Salida de esencia (ml)
           await tx.essenceMovement.create({
@@ -271,7 +248,6 @@ export class CreateOrderUseCase {
 
     return {
       order,
-      discounts,
       payment: paymentResult,
     };
   }
@@ -288,7 +264,7 @@ export class CreateOrderUseCase {
     product: any,
     quantity: number
   ): Promise<void> {
-    const totalMlNeeded = product.mlQuantity * quantity;
+    const totalMlNeeded = getEssenceMlFromProductMl(product.mlQuantity) * quantity;
 
     const essenceAvailable =
       await this.inventoryService.validateEssenceAvailability(
@@ -335,5 +311,55 @@ export class CreateOrderUseCase {
         `[CreateOrderUseCase] Stock bajo para "${product.name}". Disponible: ${stock}, Necesario: ${quantity}`
       );
     }
+  }
+
+  /**
+   * Busca o crea un product placeholder para una esencia del catalogo.
+   *
+   * Cuando el frontend agrega una esencia al carrito desde EssenceDetailPage,
+   * envia el UUID de la esencia como productId. Como las esencias no tienen
+   * un registro Product asociado automaticamente, este metodo:
+   * 1. Busca la esencia por ID. Si no existe, lanza error.
+   * 2. Busca un Product existente con ese essenceId y tipo ESSENCE_CATALOG.
+   * 3. Si no existe, lo crea con precio global (getEssencePrice).
+   */
+  private async getOrCreateEssenceCatalogProduct(
+    potentialEssenceId: string,
+    oz: number,
+  ): Promise<any> {
+    // Buscar si existe la esencia
+    const essence = await prisma.essence.findUnique({
+      where: { id: potentialEssenceId },
+    });
+    if (!essence) {
+      throw AppError.notFound(`Product ${potentialEssenceId} not found`);
+    }
+
+    // Buscar product placeholder existente para esta esencia
+    const existing = await prisma.product.findFirst({
+      where: { essenceId: potentialEssenceId, productType: "ESSENCE_CATALOG" as any },
+    });
+    if (existing) return existing;
+
+    // Crear placeholder con precio global y nombre de la esencia
+    const product = await prisma.product.create({
+      data: {
+        name: essence.name,
+        essenceId: potentialEssenceId,
+        category: "GENERAL" as any,
+        productType: "ESSENCE_CATALOG" as any,
+        price: getEssencePrice(oz),
+        stockUnits: 999,
+        generatesGram: false,
+        active: true,
+      },
+    });
+
+    logger.info("[CreateOrderUseCase] Created placeholder product for essence", {
+      essenceId: potentialEssenceId,
+      productId: product.id,
+    });
+
+    return product;
   }
 }

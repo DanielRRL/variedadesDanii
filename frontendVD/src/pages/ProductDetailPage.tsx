@@ -15,14 +15,15 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft, Share2, Leaf, AlertCircle, RefreshCw,
-  Check, Minus, Plus, Info, ChevronDown, ChevronUp, ShoppingBag,
+  ArrowLeft, Share2, AlertCircle, RefreshCw,
+  Check, Minus, Plus, Info, ShoppingBag, Heart,
 } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { clsx } from 'clsx';
-import { getProductById, getMyGramAccount } from '../services/api';
+import { getProductById } from '../services/api';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
+import { useFavoriteStore } from '../stores/favoriteStore';
 import { useToastStore } from '../stores/toastStore';
 import { formatCOP } from '../utils/format';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
@@ -61,8 +62,11 @@ export default function ProductDetailPage() {
   const [justAdded, setJustAdded] = useState(false);
   const [justShared, setJustShared] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
-  const [gramInfoExpanded, setGramInfoExpanded] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+  const isFavorited = useFavoriteStore((s) => s.isFavorited);
+  const toggleFavorite = useFavoriteStore((s) => s.toggle);
+  const favorited = id ? isFavorited('product', id) : false;
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const sharedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -84,21 +88,21 @@ export default function ProductDetailPage() {
 
   const product: Product | null = res?.data ?? null;
 
-  // ── Data — Gram balance (only if logged in) ─────────────────────────────
-  const { data: gramRes } = useQuery({
-    queryKey: ['gram-account'],
-    queryFn: getMyGramAccount,
-    staleTime: 2 * 60 * 1000,
-    enabled: isAuthenticated,
-  });
-
-  const gramBalance: number = gramRes?.data?.account?.currentGrams ?? gramRes?.data?.currentGrams ?? 0;
-
   // ── Derived ─────────────────────────────────────────────────────────────
   const outOfStock = product ? product.stockUnits <= 0 : true;
   const lowStock = product ? product.stockUnits > 0 && product.stockUnits <= 5 : false;
   const maxAllowed = product ? Math.min(product.stockUnits, MAX_QTY) : 1;
   const lineTotal = product ? product.price * quantity : 0;
+
+  // ── Favorites ─────────────────────────────────────────────────────────────
+  const handleFavorite = async () => {
+    if (!isAuthenticated) { setShowAuthSheet(true); return; }
+    setFavLoading(true);
+    try {
+      if (id) await toggleFavorite('product', id);
+    } catch { addToast('Error al guardar favorito', 'error'); }
+    finally { setFavLoading(false); }
+  };
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleShare = useCallback(async () => {
@@ -135,8 +139,7 @@ export default function ProductDetailPage() {
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setJustAdded(false), 1500);
 
-    const gramMsg = product.generatesGram ? ` (+${quantity}g acumulable)` : '';
-    addToast(`${product.name} agregado al carrito${gramMsg}`, 'success');
+    addToast(`${product.name} agregado al carrito`, 'success');
   };
 
   useEffect(() => () => { clearTimeout(timerRef.current); clearTimeout(sharedTimerRef.current); }, []);
@@ -156,18 +159,7 @@ export default function ProductDetailPage() {
         >
           <ArrowLeft size={20} className="pd-topbar__icon" strokeWidth={2} />
         </button>
-        <button
-          onClick={handleShare}
-          className={clsx('pd-topbar__btn', justShared && 'pd-topbar__btn--shared')}
-          aria-label={justShared ? 'Enlace copiado' : 'Compartir'}
-          disabled={justShared}
-        >
-          {justShared ? (
-            <Check size={18} className="pd-topbar__icon--shared" strokeWidth={2.5} />
-          ) : (
-            <Share2 size={18} className="pd-topbar__icon" strokeWidth={2} />
-          )}
-        </button>
+        <div />
       </div>
 
       {/* Share confirmation toast */}
@@ -242,13 +234,29 @@ export default function ProductDetailPage() {
               {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
             </span>
 
-            {/* "Gana 1g" pill — top right */}
-            {product.generatesGram && (
-              <span className="pd-hero__gram-pill">
-                <Leaf size={12} strokeWidth={2.5} />
-                Gana 1g
-              </span>
-            )}
+            {/* Favorite & Share — top right */}
+            <div className="pd-hero__actions">
+              <button
+                onClick={handleFavorite}
+                disabled={favLoading}
+                className={clsx('pd-hero__action-btn', favorited && 'pd-hero__action-btn--favorited')}
+                aria-label={favorited ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+              >
+                <Heart
+                  size={18}
+                  color={favorited ? 'var(--color-brand-pink)' : 'var(--color-muted)'}
+                  fill={favorited ? 'var(--color-brand-pink)' : 'none'}
+                  strokeWidth={favorited ? 2.5 : 2}
+                />
+              </button>
+              <button
+                onClick={handleShare}
+                className="pd-hero__action-btn"
+                aria-label="Compartir"
+              >
+                <Share2 size={18} color="var(--color-muted)" strokeWidth={2} />
+              </button>
+            </div>
           </div>
 
           {/* ── SECTION 3 — Product info card ───────────────────────────── */}
@@ -282,13 +290,6 @@ export default function ProductDetailPage() {
                       : `${product.stockUnits} disponibles`}
                 </span>
               </div>
-
-              {/* Ml quantity */}
-              {product.mlQuantity && (
-                <p className="pd-info__ml">
-                  Contenido: {product.mlQuantity} ml
-                </p>
-              )}
             </div>
 
             {/* ── SECTION 4 — Description card ───────────────────────────── */}
@@ -358,67 +359,7 @@ export default function ProductDetailPage() {
                     <Plus size={18} strokeWidth={2} />
                   </button>
                 </div>
-
-                {/* Gram earning note */}
-                {product.generatesGram && (
-                  <p className="pd-quantity__gram-note">
-                    <Leaf size={14} />
-                    Esta compra te dará {quantity} gramo{quantity !== 1 ? 's' : ''} acumulable{quantity !== 1 ? 's' : ''}
-                  </p>
-                )}
               </div>
-            )}
-
-            {/* ── SECTION 6 — Gram explainer card ────────────────────────── */}
-            {product.generatesGram && (
-              <button
-                onClick={() => setGramInfoExpanded((v) => !v)}
-                className="pd-gram"
-              >
-                <div className="pd-gram__header">
-                  <div className="pd-gram__header-left">
-                    <Info size={16} className="pd-gram__icon" strokeWidth={2} />
-                    <span className="pd-gram__title">
-                      ¿Qué son los gramos?
-                    </span>
-                  </div>
-                  {gramInfoExpanded
-                    ? <ChevronUp size={16} className="pd-gram__chevron" />
-                    : <ChevronDown size={16} className="pd-gram__chevron" />}
-                </div>
-
-                <div
-                  className={clsx(
-                    'pd-gram__body',
-                    gramInfoExpanded ? 'pd-gram__body--expanded' : 'pd-gram__body--collapsed'
-                  )}
-                >
-                  <p className="pd-gram__text">
-                    Por cada loción comprada acumulas 1 gramo. Al juntar 13 gramos (1 onza)
-                    puedes canjear una esencia de perfume gratis. Es nuestro regalo por tu fidelidad.
-                  </p>
-
-                  {/* Progress bar */}
-                  <div className="pd-gram__progress">
-                    <div className="pd-gram__progress-labels">
-                      <span className="pd-gram__progress-label">
-                        {isAuthenticated ? `${gramBalance}g de 13g` : 'Progreso'}
-                      </span>
-                      <span className="pd-gram__progress-remaining">
-                        {isAuthenticated
-                          ? `Te faltan ${Math.max(0, 13 - gramBalance)}g`
-                          : 'Crea tu cuenta para acumular'}
-                      </span>
-                    </div>
-                    <div className="pd-gram__progress-bar">
-                      <div
-                        className="pd-gram__progress-fill"
-                        style={{ width: isAuthenticated ? `${Math.min(100, (gramBalance / 13) * 100)}%` : '0%' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </button>
             )}
           </div>
         </>

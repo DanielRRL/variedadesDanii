@@ -1,9 +1,9 @@
 /**
  * Patron Strategy para procesamiento de pagos.
- * Define una interfaz comun (IPaymentStrategy) y cuatro implementaciones
- * para los metodos de pago colombianos: Nequi, Daviplata, Bancolombia, Efectivo.
- * Cada estrategia genera una referencia unica y queda pendiente de confirmacion.
- * Bre-B usa la integracion real con Wompi.
+ * Define una interfaz comun (IPaymentStrategy) y cinco implementaciones
+ * para los metodos de pago colombianos: Nequi, Daviplata, Bancolombia, Bre-B, Efectivo.
+ * Todas las estrategias registran el pago como pendiente de confirmacion manual
+ * (el sistema no esta conectado a ninguna pasarela de pagos).
  */
 
 /** Resultado del procesamiento de un pago. */
@@ -25,14 +25,9 @@ export interface IPaymentStrategy {
 // AppError - Para lanzar errores HTTP tipados en vez de Error generico.
 import { AppError } from "../../utils/AppError";
 
-// BrebGateway - Integracion real con Wompi para pagos Bre-B instantaneos.
-import { BrebGateway } from "../../infrastructure/payment-gateways/BrebGateway";
-
 /** Estrategia de pago con Nequi (billetera digital colombiana). */
 export class NequiPayment implements IPaymentStrategy {
-  async pay(orderId: string, amount: number): Promise<PaymentResult> {
-    // TODO: Integrar con ePayco/Wompi para Nequi real
-    // Por ahora retorna pendiente para confirmacion manual
+  async pay(orderId: string, _amount: number): Promise<PaymentResult> {
     return {
       success: true,
       gatewayRef: `NEQUI-${orderId}-${Date.now()}`,
@@ -52,8 +47,7 @@ export class NequiPayment implements IPaymentStrategy {
 
 /** Estrategia de pago con Daviplata (billetera digital Davivienda). */
 export class DaviplataPayment implements IPaymentStrategy {
-  async pay(orderId: string, amount: number): Promise<PaymentResult> {
-    // TODO: Integrar con ePayco para Daviplata real
+  async pay(orderId: string, _amount: number): Promise<PaymentResult> {
     return {
       success: true,
       gatewayRef: `DAVI-${orderId}-${Date.now()}`,
@@ -73,11 +67,29 @@ export class DaviplataPayment implements IPaymentStrategy {
 /** Estrategia de pago con Bancolombia (transferencia bancaria). */
 export class BancolombiaPayment implements IPaymentStrategy {
   async pay(orderId: string, amount: number): Promise<PaymentResult> {
-    // TODO: Integrar con Wompi para Bancolombia real
     return {
       success: true,
       gatewayRef: `BANCO-${orderId}-${Date.now()}`,
       message: "Payment pending - Bancolombia transfer confirmation required",
+    };
+  }
+
+  async verify(gatewayRef: string): Promise<PaymentResult> {
+    return {
+      success: true,
+      gatewayRef,
+      message: "Payment verified",
+    };
+  }
+}
+
+/** Estrategia de pago Bre-B via transferencia (pendiente de confirmacion manual). */
+export class BrebPayment implements IPaymentStrategy {
+  async pay(orderId: string, _amount: number): Promise<PaymentResult> {
+    return {
+      success: true,
+      gatewayRef: `BREB-${orderId}-${Date.now()}`,
+      message: "Payment pending — Bre-B transfer confirmation required",
     };
   }
 
@@ -121,8 +133,7 @@ export class PaymentStrategyFactory {
     DAVIPLATA: new DaviplataPayment(),
     BANCOLOMBIA: new BancolombiaPayment(),
     CASH: new CashPayment(),
-    // BREB: Pago instantaneo Bre-B via Wompi (integracion real).
-    BREB: new BrebGateway(),
+    BREB: new BrebPayment(),
   };
 
   /** Obtiene la estrategia para un metodo dado. Lanza error si no existe. */

@@ -4,7 +4,6 @@
  * Route: /carrito (ProtectedRoute — requires authentication)
  * Backend:
  *   POST /api/orders               — creates the order
- *   POST /api/payments/initiate    — starts the Wompi payment flow
  *   POST /api/loyalty/apply-referral — validates referral code
  *
  * Sections:
@@ -23,14 +22,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Trash2, Truck, Store, Smartphone, Banknote, Landmark, ArrowLeftRight,
-  Lock, MapPin, Minus, Plus, ShoppingBag, Gem,
-  Tag,
+  Lock, MapPin, Minus, Plus, ShoppingBag,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCartStore } from '../stores/cartStore';
-import { useAuthStore } from '../stores/authStore';
-import { useToastStore } from '../stores/toastStore';
-import { createOrder, applyReferral, getMyGramAccount, getProducts } from '../services/api';
+import { createOrder, getProducts } from '../services/api';
 import type { CartItem, Order, Product } from '../types';
 import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
@@ -52,9 +48,6 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
   ACCESSORY: 'Accesorio',
   ESSENCE_CATALOG: 'Esencia',
 };
-
-/** Product types that qualify for referral discount (5%). ESSENCE_CATALOG excluded. */
-const REFERRAL_ELIGIBLE_TYPES = new Set(['LOTION', 'CREAM', 'SHAMPOO', 'MAKEUP', 'SPLASH']);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-component: CartItemRow
@@ -91,9 +84,6 @@ function CartItemRow({ item, onUpdateQty, onRemove, isOutOfStock }: CartItemRowP
           <span className="cart-item__type-badge">
             {PRODUCT_TYPE_LABELS[item.productType] ?? item.productType}
           </span>
-          {item.generatesGram && (
-            <span className="cart-item__gram-badge">Gana 1g</span>
-          )}
           {isOutOfStock && (
             <span className="cart-item__out-of-stock-badge">Agotado</span>
           )}
@@ -143,7 +133,6 @@ function CartItemRow({ item, onUpdateQty, onRemove, isOutOfStock }: CartItemRowP
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const addToast = useToastStore((s) => s.addToast);
 
   // ── Cart store ─────────────────────────────────────────────────────────────
   const items            = useCartStore((s) => s.items);
@@ -154,23 +143,7 @@ export default function CartPage() {
   const setDeliveryType  = useCartStore((s) => s.setDeliveryType);
   const paymentMethod    = useCartStore((s) => s.paymentMethod);
   const setPaymentMethod = useCartStore((s) => s.setPaymentMethod);
-  const referralCodeApplied   = useCartStore((s) => s.referralCodeApplied);
-  const applyReferralCode     = useCartStore((s) => s.applyReferralCode);
-  const clearReferralCode     = useCartStore((s) => s.clearReferralCode);
   const subtotal         = useCartStore((s) => s.subtotal());
-  const gramPreview      = useCartStore((s) => s.gramPreview());
-
-  // ── Auth store ─────────────────────────────────────────────────────────────
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-
-  // ── Gram balance (if authenticated) ────────────────────────────────────────
-  const { data: gramRes } = useQuery({
-    queryKey: ['gram-account'],
-    queryFn: getMyGramAccount,
-    staleTime: 2 * 60 * 1000,
-    enabled: isAuthenticated,
-  });
-  const gramBalance: number = gramRes?.data?.account?.currentGrams ?? gramRes?.data?.currentGrams ?? 0;
 
   // ── Live product stock (to detect out-of-stock items in cart) ──────────────
   const { data: productsRes } = useQuery({
@@ -185,31 +158,14 @@ export default function CartPage() {
 
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [referralInput, setReferralInput]     = useState('');
-  const [referralExpanded, setReferralExpanded] = useState(false);
-  const [referralLoading, setReferralLoading] = useState(false);
-  const [referralError, setReferralError]     = useState('');
   const [isSubmitting, setIsSubmitting]       = useState(false);
   const [errorMsg, setErrorMsg]               = useState('');
 
   // ── Computed ───────────────────────────────────────────────────────────────
 
-  /** Referral discount only applies to eligible product types */
-  const referralEligibleSubtotal = useMemo(
-    () =>
-      items
-        .filter((i) => REFERRAL_ELIGIBLE_TYPES.has(i.productType))
-        .reduce((sum, i) => sum + i.lineTotal, 0),
-    [items]
-  );
-
-  const referralDiscount = referralCodeApplied
-    ? Math.round(referralEligibleSubtotal * 0.05)
-    : 0;
-
   const deliveryFee = deliveryType === 'delivery' ? DELIVERY_FEE : 0;
 
-  const finalTotal = Math.max(0, subtotal - referralDiscount + deliveryFee);
+  const finalTotal = subtotal + deliveryFee;
 
   const outOfStockIds = useMemo(() => {
     if (!allProducts.length) return new Set<string>();
@@ -228,29 +184,6 @@ export default function CartPage() {
 
   const canSubmit = items.length > 0 && !disabledReason && !isSubmitting;
 
-  // ── Referral code handler ──────────────────────────────────────────────────
-  const handleApplyReferral = async () => {
-    const code = referralInput.trim().toUpperCase();
-    if (!code) return;
-    setReferralError('');
-    setReferralLoading(true);
-    try {
-      await applyReferral(code);
-      applyReferralCode(code, 5);
-      addToast('Código válido — 5% de descuento aplicado en lociones', 'success');
-    } catch {
-      setReferralError('Código inválido o ya utilizado');
-    } finally {
-      setReferralLoading(false);
-    }
-  };
-
-  const handleRemoveReferral = () => {
-    clearReferralCode();
-    setReferralInput('');
-    setReferralError('');
-  };
-
   // ── Order submission ───────────────────────────────────────────────────────
   const handleSubmit = async () => {
     setErrorMsg('');
@@ -263,7 +196,6 @@ export default function CartPage() {
         notes: deliveryType === 'delivery' && deliveryAddress.trim()
           ? `Entrega: ${deliveryAddress.trim()}`
           : undefined,
-        referralCode: referralCodeApplied || undefined,
       });
 
       const order: { id: string; orderNumber: string } =
@@ -271,7 +203,6 @@ export default function CartPage() {
       const orderId = order.id;
       const orderNumber = order.orderNumber ?? '';
 
-      const gramsEarned = gramPreview;
       clearCart();
 
       navigate('/pago-pendiente', {
@@ -280,7 +211,6 @@ export default function CartPage() {
           orderNumber,
           total: finalTotal,
           paymentMethod,
-          gramsEarned,
           deliveryType,
           deliveryAddress: deliveryType === 'delivery' ? deliveryAddress.trim() : undefined,
         },
@@ -344,30 +274,6 @@ export default function CartPage() {
           ))}
         </div>
 
-        {/* ── SECTION 3 — Gram preview card ────────────────────────────────── */}
-        {gramPreview > 0 && (
-          <div className="cart-gram-card">
-            <Gem size={20} className="cart-gram-card__icon" />
-            <div className="cart-gram-card__content">
-              <p className="cart-gram-card__title">
-                Con este pedido ganarás {gramPreview} gramo{gramPreview !== 1 ? 's' : ''} acumulable{gramPreview !== 1 ? 's' : ''}
-              </p>
-              <p className="cart-gram-card__desc">
-                Cada gramo te acerca a una esencia gratis (necesitas 13)
-              </p>
-              {isAuthenticated ? (
-                <p className={clsx('cart-gram-card__progress', 'cart-gram-card__progress--auth')}>
-                  Tienes {gramBalance}g · Te faltarán {Math.max(0, 13 - gramBalance - gramPreview)}g para 1 oz
-                </p>
-              ) : (
-                <p className={clsx('cart-gram-card__progress', 'cart-gram-card__progress--guest')}>
-                  Crea tu cuenta para acumular gramos
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* ── SECTION 4 — Order summary ────────────────────────────────────── */}
         <div className="cart-summary">
           <div className="cart-summary__row">
@@ -382,15 +288,6 @@ export default function CartPage() {
             </span>
           </div>
 
-          {referralDiscount > 0 && (
-            <div className={clsx('cart-summary__row', 'cart-summary__row--discount')}>
-              <span className="cart-summary__row-label">
-                Descuento referido (5% · {referralCodeApplied})
-              </span>
-              <span className="cart-summary__row-value">-{formatCOP(referralDiscount)}</span>
-            </div>
-          )}
-
           <hr className="cart-summary__divider" />
 
           <div className="cart-summary__total">
@@ -398,57 +295,6 @@ export default function CartPage() {
             <span className="cart-summary__total-value">{formatCOP(finalTotal)}</span>
           </div>
         </div>
-
-        {/* ── SECTION 5 — Referral code ────────────────────────────────────── */}
-        {isAuthenticated && (
-          <div className="cart-referral">
-            {referralCodeApplied ? (
-              <div className="cart-referral__applied">
-                <span className="cart-referral__applied-label">
-                  <Tag size={16} />
-                  Código {referralCodeApplied} aplicado — 5% en lociones
-                </span>
-                <button
-                  onClick={handleRemoveReferral}
-                  className="cart-referral__remove-btn"
-                >
-                  Quitar
-                </button>
-              </div>
-            ) : !referralExpanded ? (
-              <button
-                onClick={() => setReferralExpanded(true)}
-                className="cart-referral__toggle"
-              >
-                <Tag size={16} />
-                ¿Tienes un código de referido? Aplicar
-              </button>
-            ) : (
-              <div className="cart-referral__input-wrap">
-                <div className="cart-referral__input-row">
-                  <input
-                    type="text"
-                    value={referralInput}
-                    onChange={(e) => { setReferralInput(e.target.value.toUpperCase()); setReferralError(''); }}
-                    placeholder="Ej: MARIA15"
-                    className="cart-referral__input"
-                    maxLength={20}
-                  />
-                  <button
-                    onClick={handleApplyReferral}
-                    disabled={referralLoading || !referralInput.trim()}
-                    className="cart-referral__apply-btn"
-                  >
-                    {referralLoading ? '...' : 'Aplicar'}
-                  </button>
-                </div>
-                {referralError && (
-                  <p className="cart-referral__error">{referralError}</p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* ── SECTION 6 — Delivery type ────────────────────────────────────── */}
         <div className="cart-delivery">

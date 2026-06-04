@@ -167,7 +167,7 @@ export class SimpleInvoiceService {
 
     return prisma.$transaction(async (tx) => {
       // Adquirir lock de advisory dentro de la transaccion
-      await tx.$queryRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, INVOICE_LOCK_KEY);
+      await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, INVOICE_LOCK_KEY);
 
       // Leer el ultimo numero del año actual
       const latest = await tx.order.findFirst({

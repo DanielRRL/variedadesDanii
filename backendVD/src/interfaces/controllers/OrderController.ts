@@ -22,9 +22,6 @@ import { param } from "../../utils/param";
 // EarnPointsAfterOrderUseCase - Acredita puntos al marcar una orden como entregada.
 import { EarnPointsAfterOrderUseCase } from "../../application/usecases/EarnPointsAfterOrderUseCase";
 
-// EarnGramAfterOrderUseCase - Acumula gramos y emite ficha de juego al entregar una orden.
-import { EarnGramAfterOrderUseCase } from "../../application/usecases/EarnGramAfterOrderUseCase";
-
 // IOrderStatusHistoryRepository - Registra el log inmutable de transiciones de estado.
 import { IOrderStatusHistoryRepository } from "../../domain/repositories/IOrderStatusHistoryRepository";
 
@@ -40,6 +37,9 @@ import logger from "../../utils/logger";
 // SimpleInvoiceService - Genera factura simple al marcar como DELIVERED.
 import { SimpleInvoiceService } from "../../application/services/SimpleInvoiceService";
 
+// GameTokenService - Emite ficha de juego al confirmar el pago (PAID).
+import { GameTokenService } from "../../application/services/GameTokenService";
+
 export class OrderController {
   constructor(
     private readonly createOrderUseCase: CreateOrderUseCase,
@@ -47,8 +47,8 @@ export class OrderController {
     private readonly earnPointsUseCase: EarnPointsAfterOrderUseCase,
     private readonly orderStatusHistoryRepo: IOrderStatusHistoryRepository,
     private readonly emailService: IEmailService,
-    private readonly earnGramUseCase?: EarnGramAfterOrderUseCase,
     private readonly simpleInvoiceService?: SimpleInvoiceService,
+    private readonly gameTokenService?: GameTokenService,
   ) {}
 
   /** POST /orders - Crea una orden (userId viene del JWT en el middleware). */
@@ -66,7 +66,6 @@ export class OrderController {
         type: req.body.type || "ONLINE",
         paymentMethod: req.body.paymentMethod,
         notes: req.body.notes,
-        isBottleReturn: req.body.isBottleReturn || false,
         products: req.body.products,
       });
       res.status(201).json({ success: true, data: result });
@@ -124,9 +123,9 @@ export class OrderController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      // Si no hay param userId, usar el del JWT
-      const userId =
-        param(req, "userId") || req.userId!;
+    // Si no hay param userId en la URL (ej: /my-orders), usar el del JWT
+    const userId =
+      (req.params.userId as string) || req.userId!;
       const orders = await this.orderRepo.findByUserId(userId);
       res.json({ success: true, data: orders });
     } catch (error) {
@@ -216,36 +215,38 @@ export class OrderController {
       // de estado ya fue persistido.
       if (newStatus === OrderStatus.DELIVERED) {
         const svc = this.simpleInvoiceService;
-        const gramUC = this.earnGramUseCase;
         const pointsUC = this.earnPointsUseCase;
         const userId = currentOrder.userId;
 
         setImmediate(async () => {
           try {
-            // Factura simple
             if (svc) {
               await svc.generateAndSend(orderId);
             }
-            // Puntos de fidelizacion
             await pointsUC.execute(orderId, userId);
-            // Gramos y ficha de juego
-            if (gramUC) {
-              await gramUC.execute(orderId, userId);
-            }
           } catch (err) {
             logger.error("Error post-delivery hook", { orderId, err });
           }
         });
       }
 
-      // 5b. PAID: generar factura electronica (stub hasta Parte 7).
+      // 5b. PAID: emitir ficha de juego para que el cliente pueda jugar.
       if (newStatus === OrderStatus.PAID) {
-        // STUB: GenerateInvoiceUseCase se implementara en la Parte 7 con la DIAN.
-        // Por ahora se registra la intencion para trazabilidad en logs.
-        logger.info("Invoice generation stub: order paid, invoice pending", {
-          orderId,
-          orderNumber: currentOrder.orderNumber,
-        });
+        const tokenSvc = this.gameTokenService;
+        const userId = currentOrder.userId;
+
+        if (tokenSvc) {
+          setImmediate(async () => {
+            try {
+              await tokenSvc.issueToken(userId, orderId);
+              logger.info("Game token issued on PAID", { orderId, userId });
+            } catch (err) {
+              logger.warn("Failed to issue game token on PAID", { orderId, error: err });
+            }
+          });
+        }
+
+        logger.info("Order paid", { orderId, orderNumber: currentOrder.orderNumber });
       }
 
       // 5c. WhatsApp: notificacion al cliente via Twilio (stub hasta Parte 7).

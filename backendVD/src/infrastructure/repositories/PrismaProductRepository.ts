@@ -23,9 +23,6 @@ function toProduct(p: any): Product {
     name: p.name,
     description: p.description,
     category: p.category,
-    essenceId: p.essenceId,
-    bottleId: p.bottleId,
-    mlQuantity: p.mlQuantity,
     price: p.price,
     active: p.active,
     createdAt: p.createdAt,
@@ -51,10 +48,6 @@ export class PrismaProductRepository implements IProductRepository {
   async findAllWithRelations(): Promise<any[]> {
     return prisma.product.findMany({
       where: { active: true },
-      include: {
-        essence: { include: { olfactiveFamily: true } },
-        bottle: true,
-      },
       orderBy: { createdAt: "desc" },
     });
   }
@@ -70,10 +63,6 @@ export class PrismaProductRepository implements IProductRepository {
   async findByIdWithRelations(id: string): Promise<any | null> {
     return prisma.product.findUnique({
       where: { id },
-      include: {
-        essence: { include: { olfactiveFamily: true } },
-        bottle: true,
-      },
     });
   }
 

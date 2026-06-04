@@ -21,8 +21,8 @@ export interface EssenceProps {
   houseId?: string;
   /** Objeto de relacion de la casa. */
   house?: { id: string; name: string; handle: string };
-  /** Precio por mililitro en COP. */
-  pricePerMl?: number;
+  /** URL de la foto de la esencia. */
+  photoUrl?: string;
   /** Etiquetas de familias olfativas adicionales (many-to-many). */
   olfactiveTags?: { id: string; name: string }[];
   active: boolean;          // Si esta disponible en el catalogo.
@@ -44,7 +44,7 @@ export class Essence {
   public inspirationBrand?: string;
   public houseId?: string;
   public house?: { id: string; name: string; handle: string };
-  public pricePerMl?: number;
+  public photoUrl?: string;
   public olfactiveTags?: { id: string; name: string }[];
   public active: boolean;
   public readonly createdAt?: Date;
@@ -60,7 +60,7 @@ export class Essence {
     this.inspirationBrand = props.inspirationBrand;
     this.houseId = props.houseId;
     this.house = props.house;
-    this.pricePerMl = props.pricePerMl;
+    this.photoUrl = props.photoUrl;
     this.olfactiveTags = props.olfactiveTags;
     this.active = props.active;
     this.createdAt = props.createdAt;

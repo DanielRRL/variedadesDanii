@@ -9,7 +9,6 @@ export { PrismaProductRepository } from "./PrismaProductRepository";
 export { PrismaOrderRepository } from "./PrismaOrderRepository";
 export { PrismaInventoryRepository } from "./PrismaInventoryRepository";
 export { PrismaPaymentRepository } from "./PrismaPaymentRepository";
-export { PrismaBottleReturnRepository } from "./PrismaBottleReturnRepository";
 export { PrismaAdminRepository } from "./PrismaAdminRepository";
 export { PrismaLoyaltyRepository } from "./PrismaLoyaltyRepository";
 export { PrismaReferralRepository } from "./PrismaReferralRepository";

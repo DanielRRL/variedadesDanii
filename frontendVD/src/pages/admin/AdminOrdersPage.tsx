@@ -318,6 +318,7 @@ export default function AdminOrdersPage() {
           { key: "essences", header: "Esencias", hideOnMobile: true },
           { key: "total", header: "Total" },
           { key: "payment", header: "Pago", hideOnMobile: true },
+          { key: "address", header: "Dirección", hideOnMobile: true },
           { key: "status", header: "Estado" },
           { key: "actions", header: "Acciones" },
         ]}
@@ -345,7 +346,7 @@ export default function AdminOrdersPage() {
           });
           const essenceList =
             order.items
-              ?.map((it) => it.product?.essence?.name ?? it.product?.name ?? "")
+              ?.map((it) => it.product?.name ?? "")
               .filter(Boolean)
               .join(", ") ?? "—";
 
@@ -377,6 +378,9 @@ export default function AdminOrdersPage() {
               </td>
               <td className="admin-orders__td-payment">
                 {order.paymentMethod ?? "—"}
+              </td>
+              <td className="admin-orders__td-address">
+                {order.notes?.startsWith('Entrega:') ? order.notes.replace('Entrega:', '').trim() : '—'}
               </td>
               <td className="admin-orders__td-status">
                 <AdminStatusBadge

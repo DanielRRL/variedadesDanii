@@ -80,6 +80,41 @@
   background: rgba(216, 27, 96, 0.9);
 }
 
+/* ── Favorite button ─────────────────────────────────────────────────────── */
+.essence-card__fav-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+
+.essence-card__fav-btn:hover {
+  background-color: rgba(255, 255, 255, 1);
+}
+
+.essence-card__fav-btn--favorited {
+  background-color: rgba(216, 27, 96, 0.08);
+}
+
+.essence-card__fav-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 @keyframes essence-card-pop-in {
   0% { transform: scale(0.3); opacity: 0; }
   60% { transform: scale(1.2); }

@@ -26,13 +26,13 @@ import {
   adminToggleProduct,
   adminAddProductStock,
   adminDeleteProduct,
-  getEssences,
+  uploadImage,
 } from '../../services/api';
 import { formatCOP } from '../../utils/format';
 import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
 import { useToastStore } from '../../stores/toastStore';
 import { AdminQueryError } from '../../components/admin/AdminQueryError';
-import type { Product, Essence } from '../../types';
+import type { Product } from '../../types';
 import '../../css/AdminProductsPage.css';
 
 const PRODUCT_TYPES: Record<string, string> = {
@@ -78,31 +78,27 @@ type ProductFormData = {
   productType: string;
   price: string;
   stockUnits: string;
-  generatesGram: boolean;
-  essenceId: string;
-  mlQuantity: string;
+  photoUrl: string;
 };
 
 const EMPTY_FORM: ProductFormData = {
   name: '', description: '', productType: 'LOTION',
-  price: '', stockUnits: '', generatesGram: true,
-  essenceId: '', mlQuantity: '',
+  price: '', stockUnits: '', photoUrl: '',
 };
 
 function ProductForm({
-  initial, onSubmit, loading, submitLabel, essences,
+  initial, onSubmit, loading, submitLabel,
 }: {
   initial: ProductFormData;
   onSubmit: (d: ProductFormData) => void;
   loading: boolean;
   submitLabel: string;
-  essences: Essence[];
 }) {
   const [form, setForm] = useState<ProductFormData>(initial);
-  const set = (k: keyof ProductFormData, v: string | boolean) =>
+  const [photoMode, setPhotoMode] = useState<'upload' | 'url'>('url');
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const set = (k: keyof ProductFormData, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
-
-  const selectedEssence = essences.find((e) => e.id === form.essenceId);
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="admin-products__form">
@@ -111,7 +107,7 @@ function ProductForm({
         <input required value={form.name} onChange={(e) => set('name', e.target.value)} className="admin-products__form-input" />
       </div>
       <div className="admin-products__form-group">
-        <label className="admin-products__form-label">Descripción</label>
+        <label className="admin-products__form-label">Descripcion</label>
         <textarea rows={2} value={form.description} onChange={(e) => set('description', e.target.value)} className="admin-products__form-textarea" />
       </div>
       <div className="admin-products__form-row">
@@ -129,38 +125,56 @@ function ProductForm({
         </div>
       </div>
       <div className="admin-products__form-group">
-        <label className="admin-products__form-label">Esencia asociada</label>
-        <select value={form.essenceId} onChange={(e) => set('essenceId', e.target.value)} className="admin-products__form-select">
-          <option value="">Sin esencia</option>
-          {essences.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.name} {e.house ? `(@${e.house.handle})` : ''} — {e.olfactiveFamily?.name ?? ''}
-            </option>
-          ))}
-        </select>
-        {selectedEssence?.house && (
-          <p className="admin-products__form-hint">Casa: {selectedEssence.house.name} (@{selectedEssence.house.handle})</p>
+        <label className="admin-products__form-label">Stock (unidades)</label>
+        <input required type="number" min={0} value={form.stockUnits} onChange={(e) => set('stockUnits', e.target.value)} className="admin-products__form-input" />
+      </div>
+
+      <div className="admin-products__field-group" style={{ gridColumn: '1 / -1' }}>
+        <label className="admin-products__label">Foto</label>
+
+        <div className="admin-products__photo-toggle">
+          <button type="button" onClick={() => setPhotoMode('upload')}
+            className={photoMode === 'upload' ? 'admin-products__photo-toggle-btn admin-products__photo-toggle-btn--active' : 'admin-products__photo-toggle-btn'}>
+            Subir archivo
+          </button>
+          <button type="button" onClick={() => setPhotoMode('url')}
+            className={photoMode === 'url' ? 'admin-products__photo-toggle-btn admin-products__photo-toggle-btn--active' : 'admin-products__photo-toggle-btn'}>
+            Pegar URL
+          </button>
+        </div>
+
+        {photoMode === 'upload' ? (
+          <div className="admin-products__photo-upload">
+            <input type="file" accept="image/*" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setPhotoUploading(true);
+              try {
+                const res = await uploadImage(file);
+                const url = res.data?.data?.url;
+                if (url) setForm((f: any) => ({ ...f, photoUrl: url.startsWith('http') ? url : `http://localhost:4000${url}` }));
+              } catch { alert('Error al subir la imagen'); }
+              finally { setPhotoUploading(false); }
+            }} />
+            {photoUploading && <span className="admin-products__photo-uploading">Subiendo...</span>}
+          </div>
+        ) : (
+          <input type="url" value={form.photoUrl}
+            onChange={(e) => {
+              let val = e.target.value;
+              const driveMatch = val.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+              if (driveMatch) val = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+              setForm((f: any) => ({ ...f, photoUrl: val }));
+            }}
+            placeholder="https://drive.google.com/file/d/... o URL externa"
+            className="admin-products__input" />
+        )}
+
+        {form.photoUrl && (
+          <img src={form.photoUrl} alt="Preview" className="admin-products__photo-preview" />
         )}
       </div>
-      {form.essenceId && (
-        <div className="admin-products__form-group">
-          <label className="admin-products__form-label">Cantidad ml del producto</label>
-          <input type="number" min={0} step={0.1} value={form.mlQuantity} onChange={(e) => set('mlQuantity', e.target.value)} className="admin-products__form-input" placeholder="Ej: 30 ml" />
-          <p className="admin-products__form-detail">Se descontarán estos ml de la esencia por cada unidad vendida.</p>
-        </div>
-      )}
-      <div className="admin-products__form-row">
-        <div className="admin-products__form-group">
-          <label className="admin-products__form-label">Stock (unidades)</label>
-          <input required type="number" min={0} value={form.stockUnits} onChange={(e) => set('stockUnits', e.target.value)} className="admin-products__form-input" />
-        </div>
-        <div className="flex items-end pb-1">
-          <label className="admin-products__form-checkbox">
-            <input type="checkbox" checked={form.generatesGram} onChange={(e) => set('generatesGram', e.target.checked)} />
-            <span>Genera 1g</span>
-          </label>
-        </div>
-      </div>
+
       <button type="submit" disabled={loading} className="admin-products__form-submit">
         {loading && <Loader2 size={14} className="admin-products__spinner" />}
         {submitLabel}
@@ -238,9 +252,6 @@ export default function AdminProductsPage() {
     staleTime: 30_000,
   });
 
-  const { data: essencesRes } = useQuery({ queryKey: ['essences'], queryFn: getEssences, staleTime: 60_000 });
-  const essencesList: Essence[] = essencesRes?.data ?? [];
-
   const products: Product[] = res?.data?.products ?? res?.data ?? [];
   const totalPages: number = res?.data?.totalPages ?? 1;
 
@@ -254,9 +265,8 @@ export default function AdminProductsPage() {
       await adminCreateProduct({
         name: form.name, description: form.description || undefined,
         productType: form.productType, price: Number(form.price),
-        stockUnits: Number(form.stockUnits), generatesGram: form.generatesGram,
-        essenceId: form.essenceId || undefined,
-        mlQuantity: form.mlQuantity ? Number(form.mlQuantity) : undefined,
+        stockUnits: Number(form.stockUnits),
+        photoUrl: form.photoUrl || undefined,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setCreateOpen(false);
@@ -271,9 +281,8 @@ export default function AdminProductsPage() {
       await adminUpdateProduct(editTarget.id, {
         name: form.name, description: form.description || undefined,
         productType: form.productType as Product['productType'], price: Number(form.price),
-        stockUnits: Number(form.stockUnits), generatesGram: form.generatesGram,
-        essenceId: form.essenceId || undefined,
-        mlQuantity: form.mlQuantity ? Number(form.mlQuantity) : undefined,
+        stockUnits: Number(form.stockUnits),
+        photoUrl: form.photoUrl || undefined,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setEditTarget(null);
@@ -358,14 +367,14 @@ export default function AdminProductsPage() {
           <table className="admin-products__table">
             <thead>
               <tr>
-                {['PRODUCTO', 'TIPO', 'PRECIO', 'STOCK', 'ESENCIA', 'GRAMO', 'ESTADO', 'ACCIONES'].map((h) => (
+                {['PRODUCTO', 'TIPO', 'PRECIO', 'STOCK', 'ESTADO', 'ACCIONES'].map((h) => (
                   <th key={h} className="admin-products__th">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="admin-products__tbody">
               {filtered.length === 0 ? (
-                <tr><td colSpan={8} className="admin-products__empty">No se encontraron productos.</td></tr>
+                <tr><td colSpan={6} className="admin-products__empty">No se encontraron productos.</td></tr>
               ) : (
                 filtered.map((p) => (
                   <tr key={p.id}>
@@ -388,17 +397,6 @@ export default function AdminProductsPage() {
                     <td className="admin-products__td admin-products__td-price">{formatCOP(p.price)}</td>
                     <td className="admin-products__td">
                       <span className={clsx('admin-products__td-stock', p.stockUnits <= 5 && 'admin-products__td-stock--low')}>{p.stockUnits}</span>
-                    </td>
-                    <td className="admin-products__td">
-                      {p.essence ? (
-                        <div className="admin-products__td-info-text">
-                          <p className="admin-products__td-name" style={{ maxWidth: '8rem' }}>{p.essence.name}</p>
-                          {p.mlQuantity && <p className="admin-products__form-detail">{p.mlQuantity} ml</p>}
-                        </div>
-                      ) : <span className="admin-products__td-empty">—</span>}
-                    </td>
-                    <td className="admin-products__td">
-                      {p.generatesGram ? <span className="admin-products__td-gram-badge">+1g</span> : <span className="admin-products__td-empty">—</span>}
                     </td>
                     <td className="admin-products__td">
                       <span className={clsx('admin-products__td-status', p.active ? 'admin-products__td-status--active' : 'admin-products__td-status--inactive')}>
@@ -432,7 +430,7 @@ export default function AdminProductsPage() {
       </div>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo Producto">
-        <ProductForm initial={EMPTY_FORM} onSubmit={handleCreate} loading={saving} submitLabel="Crear producto" essences={essencesList} />
+        <ProductForm initial={EMPTY_FORM} onSubmit={handleCreate} loading={saving} submitLabel="Crear producto" />
       </Modal>
 
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Editar Producto">
@@ -441,10 +439,10 @@ export default function AdminProductsPage() {
             initial={{
               name: editTarget.name, description: editTarget.description ?? '',
               productType: editTarget.productType, price: String(editTarget.price),
-              stockUnits: String(editTarget.stockUnits), generatesGram: editTarget.generatesGram,
-              essenceId: editTarget.essenceId ?? '', mlQuantity: editTarget.mlQuantity ? String(editTarget.mlQuantity) : '',
+              stockUnits: String(editTarget.stockUnits),
+              photoUrl: editTarget.photoUrl || '',
             }}
-            onSubmit={handleEdit} loading={saving} submitLabel="Guardar cambios" essences={essencesList}
+            onSubmit={handleEdit} loading={saving} submitLabel="Guardar cambios"
           />
         )}
       </Modal>

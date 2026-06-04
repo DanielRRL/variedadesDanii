@@ -594,3 +594,91 @@ h1, h2, h3, h4, h5, h6 {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Admin photo field (shared by Essences + Products pages) ───────────────── */
+/* Toggle between file upload and URL input with image preview.                 */
+
+.admin-essences__photo-toggle,
+.admin-products__photo-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0.5rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-essences__photo-toggle-btn,
+.admin-products__photo-toggle-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: none;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-essences__photo-toggle-btn--active,
+.admin-products__photo-toggle-btn--active {
+  background: var(--color-brand-pink, #D81B60);
+  color: #fff;
+}
+
+.admin-essences__photo-upload,
+.admin-products__photo-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-essences__photo-uploading,
+.admin-products__photo-uploading {
+  font-size: 0.75rem;
+  color: var(--color-brand-pink, #D81B60);
+  animation: pulse 1.5s infinite;
+}
+
+.admin-essences__photo-preview,
+.admin-products__photo-preview {
+  margin-top: 0.75rem;
+  width: 100%;
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  object-fit: cover;
+}
+
+.admin-essences__label,
+.admin-products__label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.375rem;
+}
+
+.admin-essences__input,
+.admin-products__input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.admin-essences__input:focus,
+.admin-products__input:focus {
+  border-color: var(--color-brand-pink, #D81B60);
+  box-shadow: 0 0 0 3px rgba(216, 27, 96, 0.1);
+}
+
+.admin-essences__field-group,
+.admin-products__field-group {
+  margin-bottom: 1rem;
+}

@@ -28,14 +28,6 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: numericString(900000),
   RATE_LIMIT_MAX: numericString(100),
 
-  // Wompi (pasarela de pagos) — opcionales en desarrollo
-  WOMPI_API_URL: z.string().default("https://sandbox.wompi.co/v1"),
-  WOMPI_PUBLIC_KEY: z.string().default(""),
-  WOMPI_PRIVATE_KEY: z.string().default(""),
-  WOMPI_EVENTS_SECRET: z.string().default(""),
-  WOMPI_CURRENCY: z.string().default("COP"),
-  WOMPI_REDIRECT_URL: z.string().default("http://localhost:5173/payment-result"),
-
   // DIAN (facturacion electronica) — opcionales
   DIAN_ENV: z.string().default("test"),
   DIAN_API_URL: z.string().default("https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc"),
@@ -111,15 +103,6 @@ export const env = {
   rateLimit: {
     windowMs: v.RATE_LIMIT_WINDOW_MS,
     max: v.RATE_LIMIT_MAX,
-  },
-
-  wompi: {
-    apiUrl: v.WOMPI_API_URL,
-    publicKey: v.WOMPI_PUBLIC_KEY,
-    privateKey: v.WOMPI_PRIVATE_KEY,
-    eventsSecret: v.WOMPI_EVENTS_SECRET,
-    currency: v.WOMPI_CURRENCY,
-    redirectUrl: v.WOMPI_REDIRECT_URL,
   },
 
   dian: {

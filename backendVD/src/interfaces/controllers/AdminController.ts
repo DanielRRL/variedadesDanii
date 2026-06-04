@@ -103,15 +103,14 @@ export class AdminController {
         },
         include: {
           product: {
-            select: { name: true, essence: { select: { name: true } } },
+            select: { name: true },
           },
         },
       });
 
       const revenueByEssence = new Map<string, number>();
       for (const item of topItems) {
-        const essName =
-          item.product?.essence?.name ?? item.product?.name ?? "Otro";
+        const essName = item.product?.name ?? "Otro";
         revenueByEssence.set(
           essName,
           (revenueByEssence.get(essName) || 0) + item.subtotal
@@ -157,12 +156,9 @@ export class AdminController {
           productId: it.productId,
           quantity: it.quantity,
           subtotal: it.subtotal,
-          product: it.product
+            product: it.product
             ? {
                 name: it.product.name,
-                essence: it.product.essence
-                  ? { name: it.product.essence.name }
-                  : undefined,
               }
             : undefined,
         })),

@@ -17,6 +17,9 @@ import { env } from "../../config/env";
 // AppError - Para lanzar errores 401.
 import { AppError } from "../../utils/AppError";
 
+// prisma - Para verificar que el usuario existe en BD.
+import prisma from "../../config/database";
+
 /** Estructura del payload dentro del JWT. */
 export interface JwtPayload {
   userId: string;
@@ -27,11 +30,11 @@ export interface JwtPayload {
  * Middleware que protege rutas verificando el JWT.
  * Agrega req.userId y req.userRole para uso en controladores.
  */
-export const authMiddleware = (
+export const authMiddleware = async (
   req: Request,
   _res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   try {
     // Extraer header Authorization
     const authHeader = req.headers.authorization;
@@ -42,6 +45,20 @@ export const authMiddleware = (
     // Extraer y verificar token
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, env.jwt.secret) as JwtPayload;
+
+    // Verificar que el usuario aun existe en la BD.
+    // Si la BD fue recreada o el usuario fue eliminado, el JWT
+    // puede ser valido pero el userId ya no existe, causando FK
+    // violations en ordenes, gramos, lealtad, etc.
+    const userExists = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true },
+    });
+    if (!userExists) {
+      throw AppError.unauthorized(
+        "Sesión inválida. Cierra sesión y vuelve a iniciar."
+      );
+    }
 
     // Adjuntar datos del usuario al request
     req.userId = decoded.userId;

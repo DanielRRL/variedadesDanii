@@ -7,10 +7,15 @@
  * Out-of-stock state dims and disables interaction.
  */
 
-import { Star } from "lucide-react";
+import { useState } from "react";
+import { Star, Heart } from "lucide-react";
 import { clsx } from "clsx";
+import { useNavigate } from "react-router-dom";
+import { ESSENCE_PRICE_1OZ } from "../../utils/priceCalculator";
 import type { Essence } from "../../types";
 import { formatCOP } from "../../utils/format";
+import { useAuthStore } from "../../stores/authStore";
+import { useFavoriteStore } from "../../stores/favoriteStore";
 import "../../css/EssenceCard.css";
 
 const PREMIUM_BRANDS = [
@@ -54,14 +59,34 @@ export interface EssenceCardProps {
 }
 
 export function EssenceCard({ essence, onPress, className }: EssenceCardProps) {
+  const navigate = useNavigate();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isFavorited = useFavoriteStore((s) => s.isFavorited);
+  const toggleFavorite = useFavoriteStore((s) => s.toggle);
+  const [favLoading, setFavLoading] = useState(false);
+
   const isOutOfStock = essence.currentStockMl === 0;
   const lowStock = essence.currentStockMl !== undefined
     && essence.currentStockMl > 0
     && essence.currentStockMl < (essence.minStockGrams ?? 30);
-  const pricePerOz = (essence.pricePerMl ?? 0) * 29.5735;
+  const pricePerOz = ESSENCE_PRICE_1OZ;
+  const favorited = isFavorited('essence', essence.id);
 
   const showOriginalBadge = isPremiumBrand(essence.inspirationBrand);
   const showPopularBadge = !showOriginalBadge && (essence.rating ?? 0) >= 4.5;
+
+  const handleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setFavLoading(true);
+    try {
+      await toggleFavorite('essence', essence.id);
+    } catch { /* silently fail */ }
+    finally { setFavLoading(false); }
+  };
 
   return (
     <article
@@ -97,6 +122,24 @@ export function EssenceCard({ essence, onPress, className }: EssenceCardProps) {
             POPULAR
           </span>
         )}
+
+        {/* Favorite button */}
+        <button
+          onClick={handleFavorite}
+          disabled={favLoading}
+          className={clsx(
+            'essence-card__fav-btn',
+            favorited && 'essence-card__fav-btn--favorited',
+          )}
+          aria-label={favorited ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+        >
+          <Heart
+            size={16}
+            color={favorited ? 'var(--color-brand-pink)' : 'var(--color-muted)'}
+            fill={favorited ? 'var(--color-brand-pink)' : 'none'}
+            strokeWidth={favorited ? 2.5 : 2}
+          />
+        </button>
       </div>
 
       {/* Info */}

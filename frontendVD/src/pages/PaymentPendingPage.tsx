@@ -21,58 +21,26 @@ import {
 import { useState } from 'react';
 import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
+import styles from './PaymentPendingPage.module.css';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** WhatsApp business phone for Variedades DANII. */
 const WA_NUMBER = '573232943624';
-
-/** Payment destination for ALL methods — same Nequi number. */
 const PAYMENT_DESTINATION = '323 294 3624 · Variedades DANII';
 
-/** Payment details per method. */
 const PAYMENT_INFO: Record<string, { name: string; detail: string; icon: typeof Smartphone }> = {
-  NEQUI: {
-    name: 'Nequi',
-    detail: PAYMENT_DESTINATION,
-    icon: Smartphone,
-  },
-  DAVIPLATA: {
-    name: 'Daviplata',
-    detail: PAYMENT_DESTINATION,
-    icon: Landmark,
-  },
-  BANCOLOMBIA: {
-    name: 'Bancolombia',
-    detail: PAYMENT_DESTINATION,
-    icon: Banknote,
-  },
-  BREB: {
-    name: 'Bre-B / Llave',
-    detail: `Transferencia desde cualquier banco a ${PAYMENT_DESTINATION}`,
-    icon: ArrowLeftRight,
-  },
+  NEQUI:        { name: 'Nequi',              detail: PAYMENT_DESTINATION, icon: Smartphone },
+  DAVIPLATA:    { name: 'Daviplata',          detail: PAYMENT_DESTINATION, icon: Landmark },
+  BANCOLOMBIA:  { name: 'Bancolombia',        detail: PAYMENT_DESTINATION, icon: Banknote },
+  BREB:         { name: 'Bre-B / Llave',      detail: `Transferencia desde cualquier banco a ${PAYMENT_DESTINATION}`, icon: ArrowLeftRight },
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface PendingState {
   orderId: string;
   orderNumber: string;
   total: number;
   paymentMethod: string;
-  gramsEarned?: number;
   deliveryType?: 'pickup' | 'delivery';
   deliveryAddress?: string;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function PaymentPendingPage() {
   const navigate = useNavigate();
@@ -83,7 +51,6 @@ export default function PaymentPendingPage() {
     orderNumber = '',
     total = 0,
     paymentMethod = 'NEQUI',
-    gramsEarned = 0,
     deliveryType = 'pickup',
     deliveryAddress = '',
   } = state;
@@ -93,7 +60,6 @@ export default function PaymentPendingPage() {
   const payment = PAYMENT_INFO[paymentMethod] ?? PAYMENT_INFO.NEQUI;
   const PaymentIcon = payment.icon;
 
-  // Build WhatsApp message
   const waMessage = encodeURIComponent(
     `Hola Variedades DANII! Acabo de realizar mi pedido.\n\n` +
     `Pedido: ${orderNumber}\n` +
@@ -110,17 +76,16 @@ export default function PaymentPendingPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Redirect to home if no state
   if (!state.orderId) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className={styles.page}>
         <AppBar title="Pedido" />
-        <div className="flex-1 flex flex-col items-center justify-center px-8 gap-5">
-          <Package size={48} className="text-brand-pink/40" strokeWidth={1.2} />
-          <p className="text-muted text-sm text-center">No hay información del pedido.</p>
+        <div className={styles.emptyContainer}>
+          <Package size={48} className={styles.emptyIcon} strokeWidth={1.2} />
+          <p className={styles.emptyText}>No hay información del pedido.</p>
           <button
             onClick={() => navigate('/', { replace: true })}
-            className="bg-brand-pink text-white font-semibold px-8 py-3 rounded-full"
+            className={styles.emptyBtn}
           >
             Ir al inicio
           </button>
@@ -130,21 +95,19 @@ export default function PaymentPendingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-body">
+    <div className={styles.page}>
       <AppBar title="Pedido Creado" />
 
-      <main className="flex-1 px-4 py-6 space-y-5 pb-8">
+      <main className={styles.main}>
 
         {/* ── Success header ─────────────────────────────────────────────── */}
-        <div className="text-center space-y-3">
-          <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-            <CheckCircle2 size={40} className="text-emerald-500" />
+        <div className={styles.successHeader}>
+          <div className={styles.successIcon}>
+            <CheckCircle2 size={40} className={styles.iconGreen} />
           </div>
           <div>
-            <h1 className="font-heading text-xl font-bold text-text-primary">
-              ¡Pedido creado!
-            </h1>
-            <p className="text-muted text-sm mt-1">
+            <h1 className={styles.successTitle}>¡Pedido creado!</h1>
+            <p className={styles.successSubtitle}>
               {deliveryType === 'delivery'
                 ? 'Ahora envía tu comprobante de pago para que despachemos tu pedido.'
                 : 'Ahora envía tu comprobante de pago para confirmar tu pedido.'}
@@ -153,96 +116,82 @@ export default function PaymentPendingPage() {
         </div>
 
         {/* ── Order summary card ──────────────────────────────────────────── */}
-        <div className="bg-surface rounded-xl border border-border p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted font-medium">N° Pedido</span>
-            <button
-              onClick={handleCopyOrder}
-              className="flex items-center gap-1.5 font-mono text-sm font-bold text-text-primary bg-gray-100 px-3 py-1 rounded-full"
-            >
+        <div className={styles.orderCard}>
+          <div className={styles.orderRow}>
+            <span className={styles.orderLabel}>N° Pedido</span>
+            <button onClick={handleCopyOrder} className={styles.orderNumberBtn}>
               {orderNumber}
-              {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} className="text-muted" />}
+              {copied ? <Check size={12} className={styles.iconGreen} /> : <Copy size={12} className={styles.iconMuted} />}
             </button>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted font-medium">Total a pagar</span>
-            <span className="font-heading font-bold text-lg text-brand-gold">{formatCOP(total)}</span>
+          <div className={styles.orderRow}>
+            <span className={styles.orderLabel}>Total a pagar</span>
+            <span className={styles.orderTotal}>{formatCOP(total)}</span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted font-medium">Método</span>
-            <div className="flex items-center gap-1.5">
-              <PaymentIcon size={14} className="text-brand-pink" />
-              <span className="text-sm font-medium text-text-primary">{payment.name}</span>
+          <div className={styles.orderRow}>
+            <span className={styles.orderLabel}>Método</span>
+            <div className={styles.orderValue}>
+              <PaymentIcon size={14} className={styles.iconPink} />
+              <span className={styles.orderValueText}>{payment.name}</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted font-medium">Entrega</span>
-            <div className="flex items-center gap-1.5">
+          <div className={styles.orderRow}>
+            <span className={styles.orderLabel}>Entrega</span>
+            <div className={styles.orderValue}>
               {deliveryType === 'delivery' ? (
-                <Truck size={14} className="text-brand-pink" />
+                <Truck size={14} className={styles.iconPink} />
               ) : (
-                <Store size={14} className="text-brand-pink" />
+                <Store size={14} className={styles.iconPink} />
               )}
-              <span className="text-sm font-medium text-text-primary">
+              <span className={styles.orderValueText}>
                 {deliveryType === 'delivery' ? 'Domicilio' : 'Recoger en tienda'}
               </span>
             </div>
           </div>
 
           {deliveryType === 'delivery' && deliveryAddress && (
-            <div className="bg-gray-50 rounded-lg px-3 py-2">
-              <span className="text-xs text-muted">Dirección: </span>
-              <span className="text-xs text-text-primary font-medium">{deliveryAddress}</span>
-            </div>
-          )}
-
-          {gramsEarned > 0 && (
-            <div className="flex items-center gap-2 bg-amber-50 rounded-lg px-3 py-2">
-              <span className="text-amber-600 text-sm">🏆</span>
-              <span className="text-xs font-medium text-amber-700">
-                Ganarás {gramsEarned} gramo{gramsEarned !== 1 ? 's' : ''} con este pedido
-              </span>
+            <div className={styles.deliveryAddress}>
+              <span className={styles.addressLabel}>Dirección: </span>
+              <span className={styles.addressText}>{deliveryAddress}</span>
             </div>
           )}
         </div>
 
         {/* ── Payment instructions ────────────────────────────────────────── */}
-        <div className="bg-brand-pink/5 border border-brand-pink/20 rounded-xl p-4 space-y-3">
-          <h2 className="font-heading font-semibold text-sm text-text-primary">
-            Instrucciones de pago
-          </h2>
+        <div className={styles.instructionsCard}>
+          <h2 className={styles.sectionTitle}>Instrucciones de pago</h2>
 
-          <div className="space-y-2">
-            <div className="flex items-start gap-3">
-              <span className="flex-none w-6 h-6 bg-brand-pink text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
-              <p className="text-sm text-text-primary leading-relaxed">
+          <div className={styles.stepsList}>
+            <div className={styles.stepRow}>
+              <span className={styles.stepNumber}>1</span>
+              <p className={styles.stepText}>
                 Realiza la transferencia de <strong>{formatCOP(total)}</strong> a:
               </p>
             </div>
 
-            <div className="ml-9 bg-surface rounded-lg border border-border p-3">
-              <div className="flex items-center gap-2">
-                <PaymentIcon size={16} className="text-brand-pink flex-none" />
+            <div className={styles.paymentDetail}>
+              <div className={styles.paymentDetailRow}>
+                <PaymentIcon size={16} className={styles.iconPink} />
                 <div>
-                  <p className="font-heading font-semibold text-sm text-text-primary">{payment.name}</p>
-                  <p className="text-xs text-muted">{payment.detail}</p>
+                  <p className={styles.paymentName}>{payment.name}</p>
+                  <p className={styles.paymentInfo}>{payment.detail}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <span className="flex-none w-6 h-6 bg-brand-pink text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
-              <p className="text-sm text-text-primary leading-relaxed">
+            <div className={styles.stepRow}>
+              <span className={styles.stepNumber}>2</span>
+              <p className={styles.stepText}>
                 Toma un <strong>pantallazo del comprobante</strong> de pago.
               </p>
             </div>
 
-            <div className="flex items-start gap-3">
-              <span className="flex-none w-6 h-6 bg-brand-pink text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
-              <p className="text-sm text-text-primary leading-relaxed">
+            <div className={styles.stepRow}>
+              <span className={styles.stepNumber}>3</span>
+              <p className={styles.stepText}>
                 Envía el comprobante por <strong>WhatsApp</strong> con el botón de abajo.
               </p>
             </div>
@@ -254,29 +203,23 @@ export default function PaymentPendingPage() {
           href={waUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2.5 w-full py-4 rounded-full bg-[#25D366] text-white font-heading font-bold text-[15px] active:scale-[0.98] transition-transform shadow-lg"
+          className={styles.whatsappBtn}
         >
           <MessageCircle size={20} strokeWidth={2} />
           Enviar comprobante por WhatsApp
         </a>
 
-        <p className="text-center text-[11px] text-muted leading-relaxed">
+        <p className={styles.footerNote}>
           Una vez validemos tu pago, organizamos tu pedido y te avisamos.
           {deliveryType === 'delivery' && ' Coordinaremos la entrega a tu dirección.'}
         </p>
 
         {/* ── Secondary actions ───────────────────────────────────────────── */}
-        <div className="flex gap-3">
-          <Link
-            to="/pedidos"
-            className="flex-1 py-3 rounded-xl border border-border bg-surface text-center font-body font-medium text-sm text-text-primary active:bg-gray-50 transition-colors"
-          >
+        <div className={styles.actionsRow}>
+          <Link to="/pedidos" className={styles.secondaryBtn}>
             Ver mis pedidos
           </Link>
-          <Link
-            to="/catalogo"
-            className="flex-1 py-3 rounded-xl border border-brand-pink bg-brand-pink/5 text-center font-body font-medium text-sm text-brand-pink active:bg-brand-pink/10 transition-colors"
-          >
+          <Link to="/catalogo" className={styles.primaryLink}>
             Seguir comprando
           </Link>
         </div>

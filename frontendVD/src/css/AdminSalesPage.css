@@ -453,7 +453,7 @@
 .admin-sales__section {
   border: 1px solid var(--color-border, #E0E0E0);
   border-radius: 0.75rem;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .admin-sales__section-toggle {
@@ -464,10 +464,17 @@
   padding: 0.5rem 0.75rem;
   background: #f8fafc;
   border: none;
+  border-radius: 0.75rem;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-text-primary, #212121);
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.admin-sales__section-toggle:hover {
+  background: #f1f5f9;
 }
 
 .admin-sales__section-toggle-label {
@@ -476,11 +483,34 @@
   gap: 0.5rem;
 }
 
+.admin-sales__section-toggle-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-sales__client-summary {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-muted, #757575);
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .admin-sales__section-body {
-  padding: 0.75rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.875rem;
+  border-radius: 0 0 0.75rem 0.75rem;
+  animation: sales-section-expand 0.2s ease-out;
+}
+
+@keyframes sales-section-expand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Client section */
@@ -514,7 +544,7 @@
   width: 100%;
   border: 1px solid var(--color-border, #E0E0E0);
   border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
   outline: none;
   color: var(--color-text-primary, #212121);
@@ -567,7 +597,7 @@
   width: 100%;
   border: 1px solid var(--color-border, #E0E0E0);
   border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
   outline: none;
   color: var(--color-text-primary, #212121);
@@ -588,7 +618,7 @@
 
 .admin-sales__client-dropdown {
   position: absolute;
-  z-index: 20;
+  z-index: 30;
   margin-top: 0.25rem;
   width: 100%;
   background: white;
@@ -966,4 +996,149 @@
   .admin-sales__product-add-btn { min-width: 2.5rem; min-height: 2.5rem; }
   .admin-sales__item-btn { min-width: 2.75rem; min-height: 2.75rem; }
   .admin-sales__item-remove { padding: 0.5rem; }
+}
+
+/* ── Refill / New toggle ─────────────────────────────────────────────────── */
+.admin-sales__refill-toggle {
+  display: flex;
+  gap: 0;
+  padding: 0 0.75rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.admin-sales__refill-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1.5px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+.admin-sales__refill-btn:first-child {
+  border-radius: 0.5rem 0 0 0.5rem;
+  border-right: none;
+}
+.admin-sales__refill-btn:last-child {
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.admin-sales__refill-btn--default {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+.admin-sales__refill-btn--default:hover {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.admin-sales__refill-btn--active {
+  background: var(--color-brand-pink, #D81B60);
+  color: #fff;
+  border-color: var(--color-brand-pink, #D81B60);
+  box-shadow: 0 2px 8px rgba(216, 27, 96, 0.25);
+}
+
+/* ── Extra grams stepper ─────────────────────────────────────────────────── */
+.admin-sales__grams-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+.admin-sales__grams-label {
+  font-size: 0.8125rem;
+  color: #64748b;
+  flex: 1;
+}
+.admin-sales__grams-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.admin-sales__grams-qty {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #1e293b;
+  min-width: 2rem;
+  text-align: center;
+}
+.admin-sales__grams-cost {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-brand-pink, #D81B60);
+  white-space: nowrap;
+}
+.admin-sales__refill-badge {
+  display: inline-block;
+  margin-left: 0.375rem;
+  padding: 0.06rem 0.375rem;
+  border-radius: 9999px;
+  background: rgba(216, 27, 96, 0.1);
+  color: var(--color-brand-pink, #D81B60);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+/* Oz selector inside ticket items */
+.admin-sales__oz-selector {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.375rem;
+}
+
+.admin-sales__oz-btn {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border, #E0E0E0);
+  background: white;
+  color: var(--color-muted, #757575);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.admin-sales__oz-btn--active {
+  background: var(--color-brand-pink, #D81B60);
+  color: white;
+  border-color: var(--color-brand-pink, #D81B60);
+}
+
+/* Product card oz label */
+.admin-sales__product-oz-label {
+  font-size: 0.625rem;
+  color: var(--color-brand-pink, #D81B60);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Cash change */
+.admin-sales__cash-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.admin-sales__change-display {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.admin-sales__change-display--positive {
+  background: rgba(46, 125, 50, 0.1);
+  color: var(--color-success, #2E7D32);
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.admin-sales__change-display--negative {
+  background: rgba(198, 40, 40, 0.08);
+  color: var(--color-danger, #C62828);
+  border: 1px solid rgba(198, 40, 40, 0.2);
 }

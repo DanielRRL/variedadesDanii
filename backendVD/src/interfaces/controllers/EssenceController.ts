@@ -2,7 +2,7 @@
  * Controlador de esencias.
  * CRUD de esencias con stock actual agregado a cada respuesta.
  * El stock se calcula con InventoryService (SUM IN - SUM OUT).
- * Soporta casa (House), etiquetas olfativas y pricePerMl.
+ * Soporta casa (House) y etiquetas olfativas.
  */
 
 // Request, Response, NextFunction - Tipos base de Express.
@@ -149,7 +149,7 @@ export class EssenceController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { name, description, olfactiveFamilyId, inspirationBrand, houseId, pricePerMl, tagIds } = req.body;
+      const { name, description, olfactiveFamilyId, inspirationBrand, houseId, photoUrl, tagIds } = req.body;
       if (!name || !olfactiveFamilyId) {
         throw AppError.badRequest("name and olfactiveFamilyId are required");
       }
@@ -159,7 +159,7 @@ export class EssenceController {
         olfactiveFamilyId,
         inspirationBrand,
         houseId: houseId || undefined,
-        pricePerMl: pricePerMl ? Number(pricePerMl) : undefined,
+        photoUrl: photoUrl || undefined,
         olfactiveTags: tagIds ? tagIds.map((id: string) => ({ id, name: "" })) : [],
         active: true,
       });
@@ -183,7 +183,7 @@ export class EssenceController {
         data.olfactiveTags = tagIds.map((id: string) => ({ id, name: "" }));
       }
       if (data.pricePerMl !== undefined) {
-        data.pricePerMl = data.pricePerMl ? Number(data.pricePerMl) : null;
+        delete data.pricePerMl; // precios globales fijos, no por esencia
       }
       const essence = await this.essenceRepo.update(param(req, "id"), data);
       const stock = await this.inventoryService.getEssenceStock(essence.id!);

@@ -215,7 +215,7 @@ export default function AdminInventoryPage() {
           </div>
           <div className="admin-inventory__table-scroll">
             <table className="admin-inventory__table">
-              <thead><tr>{['PRODUCTO','TIPO','ESENCIA ASOC.','STOCK','ESTADO'].map(h => <th key={h} className="admin-inventory__th">{h}</th>)}</tr></thead>
+              <thead><tr>{['PRODUCTO','TIPO','STOCK','ESTADO'].map(h => <th key={h} className="admin-inventory__th">{h}</th>)}</tr></thead>
               <tbody className="admin-inventory__tbody">
                 {filteredProducts.map(p => {
                   const isLow = p.stockUnits <= 5;
@@ -223,7 +223,6 @@ export default function AdminInventoryPage() {
                     <tr key={p.id} className={clsx(isLow && 'admin-inventory__row--low')}>
                       <td className="admin-inventory__td"><span className="admin-inventory__td-name">{p.name}</span></td>
                       <td className="admin-inventory__td" style={{ color: '#94a3b8', fontSize: '0.6875rem' }}>{PRODUCT_TYPE_LABELS[p.productType] ?? p.productType}</td>
-                      <td className="admin-inventory__td" style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{p.essence?.name ?? '—'}</td>
                       <td className="admin-inventory__td"><span className={clsx('admin-inventory__td-stock', isLow && 'admin-inventory__td-stock--low')}>{p.stockUnits}</span></td>
                       <td className="admin-inventory__td">
                         {isLow ? <span className="admin-inventory__status-low"><AlertTriangle size={10} /> BAJO</span>

@@ -9,13 +9,8 @@
 
 // IUserRepository - Para contar ordenes entregadas del usuario (descuento frecuente).
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
-
-// IBottleReturnRepository - Para verificar devoluciones del usuario.
-import { IBottleReturnRepository } from "../../domain/repositories/IBottleReturnRepository";
-
 /** Tipos de descuento soportados en el sistema. */
 export enum DiscountType {
-  BOTTLE_RETURN = "BOTTLE_RETURN",
   FREQUENT_CLIENT = "FREQUENT_CLIENT",
   VOLUME = "VOLUME",
 }
@@ -29,9 +24,6 @@ export interface DiscountResult {
 }
 
 // -- Constantes de reglas de negocio --
-
-/** Porcentaje de descuento por devolver un frasco. */
-const BOTTLE_RETURN_DISCOUNT_PERCENT = 10;
 
 /** Cada cuantas compras entregadas se aplica descuento frecuente. */
 const FREQUENT_CLIENT_THRESHOLD = 5;
@@ -51,24 +43,8 @@ export class DiscountService {
    * Se usan para consultar historial de compras y devoluciones.
    */
   constructor(
-    private readonly userRepo: IUserRepository,
-    private readonly bottleReturnRepo: IBottleReturnRepository
+    private readonly userRepo: IUserRepository
   ) {}
-
-  /** Calcula el descuento del 10% por devolucion de frasco. */
-  async calculateBottleReturnDiscount(
-    subtotal: number
-  ): Promise<DiscountResult> {
-    const percentage = BOTTLE_RETURN_DISCOUNT_PERCENT;
-    const amount = Math.round(subtotal * (percentage / 100));
-
-    return {
-      type: DiscountType.BOTTLE_RETURN,
-      percentage,
-      amount,
-      description: `Descuento por devolucion de frasco: ${percentage}%`,
-    };
-  }
 
   /**
    * Calcula descuento del 5% por cliente frecuente.
@@ -128,17 +104,9 @@ export class DiscountService {
   async calculateAllDiscounts(
     userId: string,
     subtotal: number,
-    totalMl: number,
-    isBottleReturn: boolean
+    totalMl: number
   ): Promise<DiscountResult[]> {
     const discounts: DiscountResult[] = [];
-
-    // Descuento por devolucion de frasco (si aplica)
-    if (isBottleReturn) {
-      const bottleDiscount =
-        await this.calculateBottleReturnDiscount(subtotal);
-      discounts.push(bottleDiscount);
-    }
 
     // Descuento por cliente frecuente (si aplica)
     const frequentDiscount = await this.calculateFrequentClientDiscount(

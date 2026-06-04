@@ -22,12 +22,14 @@ import {
   ChevronDown,
   ChevronUp,
   Tag,
+  RefreshCw,
 } from 'lucide-react';
 import clsx from 'clsx';
 
-import { adminGetProducts, createPOSSale, searchRegisteredClients } from '../../services/api';
+import { adminGetProducts, createPOSSale, searchRegisteredClients, getEssences } from '../../services/api';
 import { formatCOP } from '../../utils/format';
-import type { Product, POSSaleInput, POSSaleResult } from '../../types';
+import { getEssencePriceWithGrams, OZ_TO_ML } from '../../utils/priceCalculator';
+import type { Product, Essence, POSSaleInput, POSSaleResult } from '../../types';
 import '../../css/AdminSalesPage.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,6 +61,9 @@ const PAYMENT_METHODS = [
 interface TicketItem {
   product: Product;
   quantity: number;
+  selectedOz?: number;
+  _essenceId?: string;
+  _mlPerOz?: number;
 }
 
 interface ClientInfo {
@@ -139,6 +144,9 @@ function SuccessModal({
 
 function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
   const outOfStock = product.stockUnits <= 0;
+  const displayPrice = product.productType === 'ESSENCE_CATALOG'
+    ? getEssencePriceWithGrams(1, 0, false).basePrice
+    : product.price;
 
   return (
     <div
@@ -168,7 +176,10 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }
       </div>
 
       <div className="admin-sales__product-right">
-        <span className="admin-sales__product-price">{formatCOP(product.price)}</span>
+        <span className="admin-sales__product-price">{formatCOP(displayPrice)}</span>
+        {product.productType === 'ESSENCE_CATALOG' && (
+          <span className="admin-sales__product-oz-label">1oz</span>
+        )}
         <button
           disabled={outOfStock}
           className={clsx(
@@ -279,7 +290,11 @@ export default function AdminSalesPage() {
   const [discount, setDiscount] = useState(0);
   const [showDiscount, setShowDiscount] = useState(false);
   const [showClient, setShowClient] = useState(true);
+  const [cashReceived, setCashReceived] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
+
+  const [saleType, setSaleType] = useState<'new' | 'refill'>('new');
+  const [extraGrams, setExtraGrams] = useState(0);
 
   const [saleResult, setSaleResult] = useState<POSSaleResult | null>(null);
   const [mobileTab, setMobileTab] = useState<'products' | 'ticket'>('products');
@@ -292,14 +307,42 @@ export default function AdminSalesPage() {
 
   const { data: productsRes, isLoading: loadingProducts } = useQuery({
     queryKey: ['admin-products-pos'],
-    queryFn: () => adminGetProducts({ active: true }),
+    queryFn: () => adminGetProducts({ active: true, limit: 200 }),
+    staleTime: 60_000,
+  });
+
+  const { data: essencesRes, isLoading: loadingEssences } = useQuery({
+    queryKey: ['essences-pos'],
+    queryFn: () => getEssences({ limit: 200 }),
     staleTime: 60_000,
   });
 
   const allProducts: Product[] = useMemo(() => {
     const raw = productsRes?.data;
-    return Array.isArray(raw) ? raw : (raw as { products?: Product[] })?.products ?? [];
-  }, [productsRes]);
+    const productList: Product[] = Array.isArray(raw) ? raw : (raw as { products?: Product[] })?.products ?? [];
+
+    const essencesRaw = essencesRes?.data;
+    const essenceList: Essence[] = Array.isArray(essencesRaw)
+      ? essencesRaw
+      : (essencesRaw as { essences?: Essence[] })?.essences ?? [];
+
+    const virtualEssenceProducts: Product[] = essenceList
+      .filter((e) => e.active !== false && (e.currentStockMl ?? 0) > 0)
+      .map((e) => ({
+        id: e.id,
+        name: e.name,
+        productType: 'ESSENCE_CATALOG' as const,
+        price: 0,
+        active: true,
+        stockUnits: Math.floor((e.currentStockMl ?? 0) / OZ_TO_ML),
+        generatesGram: true,
+        photoUrl: e.photoUrl ?? undefined,
+      })) as Product[];
+
+    return [...productList, ...virtualEssenceProducts];
+  }, [productsRes, essencesRes]);
+
+  const isLoading = loadingProducts || loadingEssences;
 
   const filteredProducts = useMemo(() => {
     let list = allProducts;
@@ -310,7 +353,7 @@ export default function AdminSalesPage() {
       const q = searchTerm.toLowerCase();
       list = list.filter((p) => p.name.toLowerCase().includes(q));
     }
-    return list;
+    return list.filter((p) => p.name !== 'Catálogo de Esencias');
   }, [allProducts, typeFilter, searchTerm]);
 
   const addItem = useCallback((product: Product) => {
@@ -322,7 +365,15 @@ export default function AdminSalesPage() {
           i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i,
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, {
+        product,
+        quantity: 1,
+        ...(product.productType === 'ESSENCE_CATALOG' ? {
+          selectedOz: 1,
+          _essenceId: product.id,
+          _mlPerOz: OZ_TO_ML,
+        } : {}),
+      }];
     });
     if (items.length === 0) setMobileTab('ticket');
   }, [items.length]);
@@ -345,13 +396,42 @@ export default function AdminSalesPage() {
   }, []);
 
   const subtotal = useMemo(
-    () => items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
-    [items],
+    () => {
+      const itemsTotal = items.reduce((sum, i) => {
+        if (i.product.productType === 'ESSENCE_CATALOG') {
+          const oz = i.selectedOz || 1;
+          const price = getEssencePriceWithGrams(oz, 0, saleType === 'refill').basePrice;
+          return sum + price * i.quantity;
+        }
+        return sum + i.product.price * i.quantity;
+      }, 0);
+      return itemsTotal + (extraGrams * 1000);
+    },
+    [items, saleType, extraGrams],
   );
   const total = Math.max(0, subtotal - discount);
 
-  const clientName = client.isRegistered ? client.name : client.name;
-  const canSubmit = items.length > 0 && paymentMethod && clientName.trim().length > 0;
+  const change = paymentMethod === 'CASH' && typeof cashReceived === 'number' && cashReceived > 0
+    ? cashReceived - total
+    : 0;
+
+  const clientName = client.name;
+  const canSubmit = items.length > 0
+    && paymentMethod
+    && clientName.trim().length > 0
+    && (paymentMethod !== 'CASH' || (typeof cashReceived === 'number' && cashReceived >= total));
+
+  const disabledReason = !canSubmit
+    ? items.length === 0
+      ? 'Agrega productos desde el catálogo'
+      : !paymentMethod
+        ? 'Selecciona un método de pago'
+        : clientName.trim().length === 0
+          ? 'Ingresa el nombre del cliente'
+          : paymentMethod === 'CASH' && (typeof cashReceived !== 'number' || cashReceived < total)
+            ? 'El efectivo recibido es menor al total'
+            : ''
+    : '';
 
   const saleMutation = useMutation({
     mutationFn: (data: POSSaleInput) => createPOSSale(data),
@@ -366,7 +446,15 @@ export default function AdminSalesPage() {
     if (!canSubmit || saleMutation.isPending) return;
 
     const payload: POSSaleInput = {
-      products: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
+      products: items.map((i) => ({
+        productId: i.product.id,
+        quantity: i.quantity,
+        ...(i.product.productType === 'ESSENCE_CATALOG' && i.selectedOz ? {
+          ozOverride: i.selectedOz,
+          essenceId: i._essenceId,
+          mlQuantity: (i.selectedOz || 1) * OZ_TO_ML,
+        } : {}),
+      })),
       paymentMethod: paymentMethod!,
       ...(client.isRegistered && client.userId ? { userId: client.userId } : {}),
       walkInClientName: client.name || undefined,
@@ -374,10 +462,12 @@ export default function AdminSalesPage() {
       walkInClientPhone: client.phone || undefined,
       notes: notes || undefined,
       discount: discount > 0 ? discount : undefined,
+      isRefill: saleType === 'refill',
+      extraGrams: extraGrams > 0 ? extraGrams : undefined,
     };
 
     saleMutation.mutate(payload);
-  }, [canSubmit, saleMutation, items, paymentMethod, client, notes, discount]);
+  }, [canSubmit, saleMutation, items, paymentMethod, client, notes, discount, saleType, extraGrams]);
 
   const ticketRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -396,7 +486,11 @@ export default function AdminSalesPage() {
     setClient({ isRegistered: false, name: '', email: '', phone: '' });
     setDiscount(0);
     setShowDiscount(false);
+    setShowClient(false);
+    setCashReceived('');
     setNotes('');
+    setSaleType('new');
+    setExtraGrams(0);
     setSaleResult(null);
     setMobileTab('products');
   }, []);
@@ -431,7 +525,7 @@ export default function AdminSalesPage() {
       </div>
 
       <div className="admin-sales__grid">
-        {loadingProducts ? (
+        {isLoading ? (
           <div className="admin-sales__loading">
             <Loader2 className="admin-sales__loading-spinner" size={28} />
           </div>
@@ -459,20 +553,78 @@ export default function AdminSalesPage() {
         </span>
       </div>
 
+      {/* ── Refill / New toggle ───────────────────────────────── */}
+      <div className="admin-sales__refill-toggle">
+        <button
+          onClick={() => setSaleType('new')}
+          className={clsx(
+            'admin-sales__refill-btn',
+            saleType === 'new' ? 'admin-sales__refill-btn--active' : 'admin-sales__refill-btn--default',
+          )}
+        >
+          Nueva
+        </button>
+        <button
+          onClick={() => setSaleType('refill')}
+          className={clsx(
+            'admin-sales__refill-btn',
+            saleType === 'refill' ? 'admin-sales__refill-btn--active' : 'admin-sales__refill-btn--default',
+          )}
+        >
+          <RefreshCw size={12} />
+          Recarga
+        </button>
+      </div>
+
       <div className="admin-sales__ticket-body">
         {items.length === 0 ? (
           <p className="admin-sales__ticket-empty">
             Agrega productos desde el catálogo
           </p>
         ) : (
-          <div className="admin-sales__ticket-body">
-            {items.map((item) => (
+          <>
+            {items.map((item) => {
+              const itemOz = item.product.productType === 'ESSENCE_CATALOG'
+                ? (item.selectedOz || 1)
+                : 0;
+              const itemPrice = item.product.productType === 'ESSENCE_CATALOG'
+                ? getEssencePriceWithGrams(itemOz, 0, saleType === 'refill').basePrice
+                : item.product.price;
+              return (
               <div key={item.product.id} className="admin-sales__item">
                 <div className="admin-sales__item-info">
                   <p className="admin-sales__item-name">{item.product.name}</p>
                   <p className="admin-sales__item-unit">
-                    {formatCOP(item.product.price)} c/u
+                    {formatCOP(itemPrice)} c/u
+                    {saleType === 'refill' && item.product.productType === 'ESSENCE_CATALOG' && (
+                      <span className="admin-sales__refill-badge">recarga</span>
+                    )}
                   </p>
+                  {item.product.productType === 'ESSENCE_CATALOG' && (
+                    <div className="admin-sales__oz-selector">
+                      {[1, 2, 3].map((oz) => (
+                        <button
+                          key={oz}
+                          type="button"
+                          onClick={() =>
+                            setItems((prev) =>
+                              prev.map((i) =>
+                                i.product.id === item.product.id
+                                  ? { ...i, selectedOz: oz }
+                                  : i,
+                              ),
+                            )
+                          }
+                          className={clsx(
+                            'admin-sales__oz-btn',
+                            itemOz === oz && 'admin-sales__oz-btn--active',
+                          )}
+                        >
+                          {oz}oz
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="admin-sales__item-stepper">
@@ -493,7 +645,7 @@ export default function AdminSalesPage() {
                 </div>
 
                 <span className="admin-sales__item-total">
-                  {formatCOP(item.product.price * item.quantity)}
+                  {formatCOP(itemPrice * item.quantity)}
                 </span>
 
                 <button
@@ -503,12 +655,41 @@ export default function AdminSalesPage() {
                   <X size={14} />
                 </button>
               </div>
-            ))}
+              );
+            })}
+          </>
+        )}
+
+        {/* ── Extra grams (only for refill) ──────────────────────────────── */}
+        {saleType === 'refill' && (
+          <div className="admin-sales__section">
+            <div className="admin-sales__grams-row">
+              <span className="admin-sales__grams-label">Gramos extra (+$1.000 c/u)</span>
+              <div className="admin-sales__grams-stepper">
+                <button
+                  onClick={() => setExtraGrams(Math.max(0, extraGrams - 1))}
+                  className="admin-sales__item-btn"
+                  disabled={extraGrams <= 0}
+                >
+                  <Minus size={12} />
+                </button>
+                <span className="admin-sales__grams-qty">{extraGrams}g</span>
+                <button
+                  onClick={() => setExtraGrams(extraGrams + 1)}
+                  className="admin-sales__item-btn"
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
+              {extraGrams > 0 && (
+                <span className="admin-sales__grams-cost">+{formatCOP(extraGrams * 1000)}</span>
+              )}
+            </div>
           </div>
         )}
 
         {/* Client section */}
-        <div className="admin-sales__section">
+        <div className="admin-sales__section" style={{ position: 'relative', zIndex: 2 }}>
           <button
             onClick={() => setShowClient(!showClient)}
             className="admin-sales__section-toggle"
@@ -516,7 +697,12 @@ export default function AdminSalesPage() {
             <span className="admin-sales__section-toggle-label">
               <User size={14} /> Cliente
             </span>
-            {showClient ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <span className="admin-sales__section-toggle-right">
+              {!showClient && clientName.trim() && (
+                <span className="admin-sales__client-summary">{clientName}</span>
+              )}
+              {showClient ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </span>
           </button>
           {showClient && (
             <div className="admin-sales__section-body">
@@ -618,9 +804,8 @@ export default function AdminSalesPage() {
               <input
                 type="number"
                 min={0}
-                max={subtotal}
                 value={discount || ''}
-                onChange={(e) => setDiscount(Math.max(0, Number(e.target.value)))}
+                onChange={(e) => setDiscount(Math.min(Math.max(0, Number(e.target.value)), subtotal))}
                 placeholder="Descuento en pesos COP"
                 className="admin-sales__discount-input"
               />
@@ -667,7 +852,10 @@ export default function AdminSalesPage() {
             {PAYMENT_METHODS.map((m) => (
               <button
                 key={m.value}
-                onClick={() => setPaymentMethod(m.value)}
+                onClick={() => {
+                  setPaymentMethod(m.value);
+                  if (m.value !== 'CASH') setCashReceived('');
+                }}
                 className={clsx(
                   'admin-sales__payment-chip',
                   paymentMethod === m.value ? 'admin-sales__payment-chip--active' : 'admin-sales__payment-chip--default',
@@ -678,6 +866,34 @@ export default function AdminSalesPage() {
             ))}
           </div>
         </div>
+
+        {paymentMethod === 'CASH' && (
+          <div className="admin-sales__cash-section">
+            <label className="admin-sales__payment-label">Efectivo recibido</label>
+            <input
+              type="number"
+              min={0}
+              step={100}
+              value={cashReceived}
+              onChange={(e) => {
+                const v = e.target.value;
+                setCashReceived(v === '' ? '' : Number(v));
+              }}
+              placeholder="Ingresa el monto recibido"
+              className="admin-sales__discount-input"
+            />
+            {typeof cashReceived === 'number' && cashReceived > 0 && (
+              <p className={clsx(
+                'admin-sales__change-display',
+                change >= 0 ? 'admin-sales__change-display--positive' : 'admin-sales__change-display--negative',
+              )}>
+                {change >= 0
+                  ? `Cambio: ${formatCOP(change)}`
+                  : `Faltan: ${formatCOP(Math.abs(change))}`}
+              </p>
+            )}
+          </div>
+        )}
 
         <button
           disabled={!canSubmit || saleMutation.isPending}
@@ -691,8 +907,10 @@ export default function AdminSalesPage() {
             <>
               <Loader2 size={16} className="admin-sales__submit-spinner" /> Procesando...
             </>
-          ) : (
+          ) : canSubmit ? (
             'Registrar Venta'
+          ) : (
+            disabledReason || 'Completa los datos requeridos'
           )}
         </button>
 

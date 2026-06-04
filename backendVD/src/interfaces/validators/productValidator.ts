@@ -59,3 +59,18 @@ export const createProductValidator = [
     .isFloat({ gt: 0 })
     .withMessage("mlQuantity must be greater than 0"),
 ];
+
+/** Validacion de creacion de producto via admin (con photoUrl). */
+export const adminCreateProductValidator = [
+  body("name")
+    .notEmpty().withMessage("name is required")
+    .isLength({ min: 1, max: 150 }).withMessage("name must be between 1 and 150 characters"),
+  body("productType")
+    .notEmpty().withMessage("productType is required"),
+  body("price")
+    .notEmpty().withMessage("price is required")
+    .isFloat({ gt: 0 }).withMessage("price must be greater than 0"),
+  body("description").optional({ values: "falsy" }).isLength({ max: 500 }),
+  body("photoUrl").optional({ values: "falsy" }).isString().isLength({ max: 500 }),
+  body("stockUnits").optional().isInt({ min: 0 }),
+];

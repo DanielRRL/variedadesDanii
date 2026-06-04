@@ -8,8 +8,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
-import { Check, ShoppingBag } from "lucide-react";
+import { Check, ShoppingBag, Heart } from "lucide-react";
 import { useCartStore } from "../../stores/cartStore";
+import { useAuthStore } from "../../stores/authStore";
+import { useFavoriteStore } from "../../stores/favoriteStore";
 import { formatCOP } from "../../utils/format";
 import type { Product } from "../../types";
 import "../../css/ProductCard.css";
@@ -27,12 +29,17 @@ export default function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
   const cartItems = useCartStore((s) => s.items);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isFavorited = useFavoriteStore((s) => s.isFavorited);
+  const toggleFavorite = useFavoriteStore((s) => s.toggle);
   const [justAdded, setJustAdded] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const outOfStock = product.stockUnits <= 0;
   const lowStock = product.stockUnits > 0 && product.stockUnits <= 5;
   const isInCart = cartItems.some((item) => item.productId === product.id);
+  const favorited = isFavorited('product', product.id);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,6 +48,19 @@ export default function ProductCard({ product }: ProductCardProps) {
     setJustAdded(true);
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setJustAdded(false), 1500);
+  };
+
+  const handleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setFavLoading(true);
+    try {
+      await toggleFavorite('product', product.id);
+    } catch { /* silently fail */ }
+    finally { setFavLoading(false); }
   };
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
@@ -72,10 +92,23 @@ export default function ProductCard({ product }: ProductCardProps) {
           {TYPE_LABELS[product.productType] ?? product.productType}
         </span>
 
-        {/* Gram badge */}
-        {product.generatesGram && (
-          <span className="product-card__gram-badge">+1g</span>
-        )}
+        {/* Favorite button */}
+        <button
+          onClick={handleFavorite}
+          disabled={favLoading}
+          className={clsx(
+            'product-card__fav-btn',
+            favorited && 'product-card__fav-btn--favorited',
+          )}
+          aria-label={favorited ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+        >
+          <Heart
+            size={16}
+            color={favorited ? 'var(--color-brand-pink)' : 'var(--color-muted)'}
+            fill={favorited ? 'var(--color-brand-pink)' : 'none'}
+            strokeWidth={favorited ? 2.5 : 2}
+          />
+        </button>
       </div>
 
       {/* Info */}

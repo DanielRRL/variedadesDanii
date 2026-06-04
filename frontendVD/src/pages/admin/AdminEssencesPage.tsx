@@ -8,8 +8,8 @@ import { AdminQueryError } from '../../components/admin/AdminQueryError';
 import {
   getEssences, getOlfactiveFamilies, getHouses, createEssence, updateEssence,
   createHouse, createOlfactiveFamily, registerEssenceMovement, getLowStockAlerts, adminDeleteEssence,
+  uploadImage,
 } from '../../services/api';
-import { formatCOP } from '../../utils/format';
 import type { Essence, OlfactiveFamily, House } from '../../types';
 import '../../css/AdminEssencesPage.css';
 
@@ -76,8 +76,8 @@ function MovementModal({ essence, onClose }: { essence: Essence; onClose: () => 
 
 // ─── Essence Form Modal (create / edit) ──────────────────────────────────────
 
-type EssenceFormData = { name: string; description: string; olfactiveFamilyId: string; inspirationBrand: string; houseId: string; pricePerMl: string; tagIds: string[]; };
-const EMPTY_FORM: EssenceFormData = { name: '', description: '', olfactiveFamilyId: '', inspirationBrand: '', houseId: '', pricePerMl: '', tagIds: [] };
+type EssenceFormData = { name: string; description: string; olfactiveFamilyId: string; inspirationBrand: string; houseId: string; tagIds: string[]; photoUrl: string; };
+const EMPTY_FORM: EssenceFormData = { name: '', description: '', olfactiveFamilyId: '', inspirationBrand: '', houseId: '', tagIds: [], photoUrl: '' };
 
 function EssenceFormModal({ initial, open, onClose, onSubmit, loading, title, submitLabel, families, houses, onCreateFamily, onCreateHouse }: {
   initial: EssenceFormData; open: boolean; onClose: () => void; onSubmit: (d: EssenceFormData) => void;
@@ -85,6 +85,8 @@ function EssenceFormModal({ initial, open, onClose, onSubmit, loading, title, su
   onCreateFamily: (name: string) => Promise<void>; onCreateHouse: (name: string, handle: string) => Promise<void>;
 }) {
   const [form, setForm] = useState<EssenceFormData>(initial);
+  const [photoMode, setPhotoMode] = useState<'upload' | 'url'>('url');
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [newFamilyName, setNewFamilyName] = useState(''); const [showNewFamily, setShowNewFamily] = useState(false);
   const [newHouseName, setNewHouseName] = useState(''); const [newHouseHandle, setNewHouseHandle] = useState(''); const [showNewHouse, setShowNewHouse] = useState(false);
   if (!open) return null;
@@ -153,15 +155,56 @@ function EssenceFormModal({ initial, open, onClose, onSubmit, loading, title, su
               </div>
             )}
           </div>
-          <div className="admin-essences__form-row">
-            <div className="admin-essences__form-group">
-              <label className="admin-essences__form-label">Inspiración</label>
-              <input value={form.inspirationBrand} onChange={e => set('inspirationBrand', e.target.value)} className="admin-essences__form-input" placeholder="Ej: Chanel Nº5" />
+          <div className="admin-essences__form-group">
+            <label className="admin-essences__form-label">Inspiración</label>
+            <input value={form.inspirationBrand} onChange={e => set('inspirationBrand', e.target.value)} className="admin-essences__form-input" placeholder="Ej: Chanel Nº5" />
+          </div>
+
+          {/* ── Photo URL ────────────────────────────── */}
+          <div className="admin-essences__field-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="admin-essences__label">Foto</label>
+
+            <div className="admin-essences__photo-toggle">
+              <button type="button" onClick={() => setPhotoMode('upload')}
+                className={photoMode === 'upload' ? 'admin-essences__photo-toggle-btn admin-essences__photo-toggle-btn--active' : 'admin-essences__photo-toggle-btn'}>
+                Subir archivo
+              </button>
+              <button type="button" onClick={() => setPhotoMode('url')}
+                className={photoMode === 'url' ? 'admin-essences__photo-toggle-btn admin-essences__photo-toggle-btn--active' : 'admin-essences__photo-toggle-btn'}>
+                Pegar URL
+              </button>
             </div>
-            <div className="admin-essences__form-group">
-              <label className="admin-essences__form-label">Precio / ml (COP)</label>
-              <input type="number" min={0} value={form.pricePerMl} onChange={e => set('pricePerMl', e.target.value)} className="admin-essences__form-input" placeholder="0" />
-            </div>
+
+            {photoMode === 'upload' ? (
+              <div className="admin-essences__photo-upload">
+                <input type="file" accept="image/*" onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setPhotoUploading(true);
+                  try {
+                    const res = await uploadImage(file);
+                    const url = res.data?.data?.url;
+                    if (url) setForm((f: any) => ({ ...f, photoUrl: url.startsWith('http') ? url : `http://localhost:4000${url}` }));
+                  } catch { alert('Error al subir la imagen'); }
+                  finally { setPhotoUploading(false); }
+                }} />
+                {photoUploading && <span className="admin-essences__photo-uploading">Subiendo...</span>}
+              </div>
+            ) : (
+              <input type="url" value={form.photoUrl}
+                onChange={(e) => {
+                  let val = e.target.value;
+                  const driveMatch = val.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+                  if (driveMatch) val = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+                  setForm((f: any) => ({ ...f, photoUrl: val }));
+                }}
+                placeholder="https://drive.google.com/file/d/... o URL externa"
+                className="admin-essences__input" />
+            )}
+
+            {form.photoUrl && (
+              <img src={form.photoUrl} alt="Preview" className="admin-essences__photo-preview" />
+            )}
           </div>
           <button type="submit" disabled={loading || !form.name || !form.olfactiveFamilyId} className="admin-essences__form-submit">
             {loading && <div className="admin-essences__spinner" style={{ width: '1rem', height: '1rem' }} />} {submitLabel}
@@ -205,8 +248,8 @@ export default function AdminEssencesPage() {
   const q = search.toLowerCase();
   const filtered = q ? essences.filter(e => e.name.toLowerCase().includes(q) || e.olfactiveFamily?.name?.toLowerCase().includes(q) || (e.house?.name?.toLowerCase().includes(q)) || (e.house?.handle?.toLowerCase().includes(q))) : essences;
 
-  const handleCreate = async (form: EssenceFormData) => { setSaving(true); try { await createEssence({ name: form.name, description: form.description || undefined, olfactiveFamilyId: form.olfactiveFamilyId, inspirationBrand: form.inspirationBrand || undefined, houseId: form.houseId || undefined, pricePerMl: form.pricePerMl ? Number(form.pricePerMl) : undefined, tagIds: form.tagIds.length > 0 ? form.tagIds : undefined }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); setCreateOpen(false); } catch { addToast('Error al crear esencia.', 'error'); } finally { setSaving(false); } };
-  const handleEdit = async (form: EssenceFormData) => { if (!editTarget) return; setSaving(true); try { await updateEssence(editTarget.id, { name: form.name, description: form.description || undefined, olfactiveFamilyId: form.olfactiveFamilyId, inspirationBrand: form.inspirationBrand || undefined, houseId: form.houseId || undefined, pricePerMl: form.pricePerMl ? Number(form.pricePerMl) : undefined, tagIds: form.tagIds }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); setEditTarget(null); } catch { addToast('Error al actualizar esencia.', 'error'); } finally { setSaving(false); } };
+  const handleCreate = async (form: EssenceFormData) => { setSaving(true); try { await createEssence({ name: form.name, description: form.description || undefined, olfactiveFamilyId: form.olfactiveFamilyId, inspirationBrand: form.inspirationBrand || undefined, houseId: form.houseId || undefined, photoUrl: form.photoUrl || undefined, tagIds: form.tagIds.length > 0 ? form.tagIds : undefined }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); setCreateOpen(false); } catch { addToast('Error al crear esencia.', 'error'); } finally { setSaving(false); } };
+  const handleEdit = async (form: EssenceFormData) => { if (!editTarget) return; setSaving(true); try { await updateEssence(editTarget.id, { name: form.name, description: form.description || undefined, olfactiveFamilyId: form.olfactiveFamilyId, inspirationBrand: form.inspirationBrand || undefined, houseId: form.houseId || undefined, photoUrl: form.photoUrl || undefined, tagIds: form.tagIds }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); setEditTarget(null); } catch { addToast('Error al actualizar esencia.', 'error'); } finally { setSaving(false); } };
   const handleToggle = async () => { if (!toggleTarget) return; const e = toggleTarget; setToggleTarget(null); const newActive = e.active === false ? true : (e.isActive === false ? true : false); try { await updateEssence(e.id, { active: newActive }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); } catch { addToast('Error al cambiar estado.', 'error'); } };
   const handleDelete = async () => { if (!deleteTarget || !deletePassword) return; setDeleting(true); setDeleteError(''); try { await adminDeleteEssence(deleteTarget.id, deletePassword); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] }); setDeleteTarget(null); setDeletePassword(''); } catch (err: unknown) { const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message; setDeleteError(msg ?? 'Error al eliminar esencia.'); } finally { setDeleting(false); } };
   const handleCreateFamily = async (name: string) => { try { await createOlfactiveFamily(name); queryClient.invalidateQueries({ queryKey: ['olfactive-families'] }); } catch { addToast('Error al crear familia.', 'error'); } };
@@ -249,8 +292,6 @@ export default function AdminEssencesPage() {
             const minStock = e.minStockGrams ?? 30;
             const isLow = stockMl > 0 && stockMl < minStock;
             const pct = Math.min(100, (stockMl / Math.max(minStock * 2, 1)) * 100);
-            const pricePerMl = e.pricePerMl ?? 0;
-            const pricePerOz = pricePerMl * OZ_TO_ML;
 
             return (
               <div key={e.id} className={clsx('admin-essences__card', !isActive && 'admin-essences__card--inactive')}>
@@ -282,7 +323,6 @@ export default function AdminEssencesPage() {
                   </div>
                   <div className="admin-essences__card-stock-row">
                     <span className="admin-essences__card-stock-label" style={{ fontSize: '0.625rem' }}>Mín: {minStock}g</span>
-                    <span className="admin-essences__card-stock-value" style={{ fontSize: '0.75rem', color: '#F9A825' }}>{formatCOP(pricePerOz)}/oz</span>
                   </div>
                 </div>
                 <div className="admin-essences__card-actions">
@@ -298,7 +338,7 @@ export default function AdminEssencesPage() {
       )}
 
       <EssenceFormModal initial={EMPTY_FORM} open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={handleCreate} loading={saving} title="Nueva Esencia" submitLabel="Crear esencia" families={families} houses={houses} onCreateFamily={handleCreateFamily} onCreateHouse={handleCreateHouse} />
-      <EssenceFormModal initial={editTarget ? { name: editTarget.name, description: editTarget.description ?? '', olfactiveFamilyId: editTarget.olfactiveFamily?.id ?? '', inspirationBrand: editTarget.inspirationBrand ?? '', houseId: editTarget.houseId ?? '', pricePerMl: editTarget.pricePerMl ? String(editTarget.pricePerMl) : '', tagIds: editTarget.olfactiveTags?.map(t => t.id) ?? [] } : EMPTY_FORM} open={!!editTarget} onClose={() => setEditTarget(null)} onSubmit={handleEdit} loading={saving} title="Editar Esencia" submitLabel="Guardar cambios" families={families} houses={houses} onCreateFamily={handleCreateFamily} onCreateHouse={handleCreateHouse} />
+      <EssenceFormModal initial={editTarget ? { name: editTarget.name, description: editTarget.description ?? '', olfactiveFamilyId: editTarget.olfactiveFamily?.id ?? '', inspirationBrand: editTarget.inspirationBrand ?? '', houseId: editTarget.houseId ?? '', tagIds: editTarget.olfactiveTags?.map(t => t.id) ?? [], photoUrl: editTarget.photoUrl || '' } : EMPTY_FORM} open={!!editTarget} onClose={() => setEditTarget(null)} onSubmit={handleEdit} loading={saving} title="Editar Esencia" submitLabel="Guardar cambios" families={families} houses={houses} onCreateFamily={handleCreateFamily} onCreateHouse={handleCreateHouse} />
       {movementTarget && <MovementModal essence={movementTarget} onClose={() => setMovementTarget(null)} />}
 
       {/* Delete modal */}

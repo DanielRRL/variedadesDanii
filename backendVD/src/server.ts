@@ -33,6 +33,10 @@ async function main(): Promise<void> {
     await prisma.$connect();
     logger.info("Database connected successfully");
 
+    // Crear secuencia para numeros de orden (no se crea con db push)
+    await prisma.$executeRawUnsafe("CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1;");
+    logger.info("Order sequence ensured");
+
     // Crear usuario administrador por defecto si no existe
     await seedAdminUser();
 

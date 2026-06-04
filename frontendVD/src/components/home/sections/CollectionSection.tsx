@@ -81,12 +81,6 @@ function FeaturedProductCard({
         <span className="home-product-card__badge">
           {TYPE_LABELS[product.productType] ?? product.productType}
         </span>
-
-        {product.generatesGram && (
-          <span className="home-product-card__badge home-product-card__badge--gram">
-            +1g
-          </span>
-        )}
       </div>
 
       <div className="home-product-card__content">

@@ -12,6 +12,7 @@
 
 // express - Framework HTTP. Crea la app y maneja request/response.
 import express from "express";
+import path from "path";
 
 // cors - Middleware que habilita Cross-Origin Resource Sharing para el frontend.
 import cors from "cors";
@@ -45,7 +46,6 @@ import { PrismaProductRepository } from "./infrastructure/repositories/PrismaPro
 import { PrismaOrderRepository } from "./infrastructure/repositories/PrismaOrderRepository";
 import { PrismaInventoryRepository } from "./infrastructure/repositories/PrismaInventoryRepository";
 import { PrismaPaymentRepository } from "./infrastructure/repositories/PrismaPaymentRepository";
-import { PrismaBottleReturnRepository } from "./infrastructure/repositories/PrismaBottleReturnRepository";
 // PrismaAdminRepository - Consultas de reportes y metricas del negocio.
 import { PrismaAdminRepository } from "./infrastructure/repositories/PrismaAdminRepository";
 // PrismaEmailVerificationRepository - Tokens de verificacion de correo.
@@ -72,8 +72,6 @@ import { PrismaEssenceRedemptionRepository } from "./infrastructure/repositories
 import { AuthService } from "./application/services/AuthService";
 // InventoryService - Operaciones de inventario (stock, movimientos).
 import { InventoryService } from "./application/services/InventoryService";
-// DiscountService - Calculo de descuentos por devolucion de frascos.
-import { DiscountService } from "./application/services/DiscountService";
 // AdminService - Reportes y metricas del panel administrativo.
 import { AdminService } from "./application/services/AdminService";
 // EmailService - Envio de correos electronicos (verificacion, reset, pedidos).
@@ -98,14 +96,10 @@ import { SalesService } from "./application/services/SalesService";
 // --- Casos de uso: orquestan la logica de negocio compleja ---
 // CreateOrderUseCase - Crear orden con validacion de stock y descuentos.
 import { CreateOrderUseCase } from "./application/usecases/CreateOrderUseCase";
-// ProcessBottleReturnUseCase - Procesar devolucion de frasco.
-import { ProcessBottleReturnUseCase } from "./application/usecases/ProcessBottleReturnUseCase";
-// EarnPointsAfterOrderUseCase - Acreditar puntos al entregar una orden.
-import { EarnPointsAfterOrderUseCase } from "./application/usecases/EarnPointsAfterOrderUseCase";
-// GenerateInvoiceUseCase - Generar factura electronica tras pago confirmado.
+// GenerateInvoiceUseCase - Factura electronica DIAN.
 import { GenerateInvoiceUseCase } from "./application/usecases/GenerateInvoiceUseCase";
-// EarnGramAfterOrderUseCase - Acumular gramos tras entrega de pedido.
-import { EarnGramAfterOrderUseCase } from "./application/usecases/EarnGramAfterOrderUseCase";
+// EarnPointsAfterOrderUseCase - Acredita puntos de fidelizacion al entregar.
+import { EarnPointsAfterOrderUseCase } from "./application/usecases/EarnPointsAfterOrderUseCase";
 
 // --- Controladores: manejan HTTP y delegan a servicios/casos de uso ---
 import { AuthController } from "./interfaces/controllers/AuthController";
@@ -115,7 +109,6 @@ import { BottleController } from "./interfaces/controllers/BottleController";
 import { ProductController } from "./interfaces/controllers/ProductController";
 import { OrderController } from "./interfaces/controllers/OrderController";
 import { InventoryController } from "./interfaces/controllers/InventoryController";
-import { BottleReturnController } from "./interfaces/controllers/BottleReturnController";
 import { PaymentController } from "./interfaces/controllers/PaymentController";
 // AdminController - Dashboard y reportes de negocio.
 import { AdminController } from "./interfaces/controllers/AdminController";
@@ -131,6 +124,8 @@ import { LoyaltyController } from "./interfaces/controllers/LoyaltyController";
 import { InvoiceController } from "./interfaces/controllers/InvoiceController";
 // POSController - Ventas presenciales.
 import { POSController } from "./interfaces/controllers/POSController";
+// FavoriteController - Favoritos de productos y esencias.
+import { FavoriteController } from "./interfaces/controllers/FavoriteController";
 // DianSoapClient - Gateway de facturacion (STUB hasta completar habilitacion DIAN).
 import { DianSoapClient } from "./infrastructure/invoice/DianSoapClient";
 
@@ -142,7 +137,6 @@ import { createBottleRoutes } from "./interfaces/routes/bottleRoutes";
 import { createProductRoutes } from "./interfaces/routes/productRoutes";
 import { createOrderRoutes } from "./interfaces/routes/orderRoutes";
 import { createInventoryRoutes } from "./interfaces/routes/inventoryRoutes";
-import { createBottleReturnRoutes } from "./interfaces/routes/bottleReturnRoutes";
 import { createPaymentRoutes } from "./interfaces/routes/paymentRoutes";
 // createAdminRoutes - Rutas de dashboard y reportes admin.
 import { createAdminRoutes } from "./interfaces/routes/adminRoutes";
@@ -158,15 +152,14 @@ import { createAdminProductRoutes } from "./interfaces/routes/productRoutes";
 import { createChallengeRoutes } from "./interfaces/routes/challengeRoutes";
 // createLoyaltyRoutes, createAdminLoyaltyRoutes - Fidelizacion y referidos.
 import { createLoyaltyRoutes, createAdminLoyaltyRoutes } from "./interfaces/routes/loyaltyRoutes";
-// createWebhookRoutes - Webhooks de pasarelas de pago (raw body; debe montarse antes de express.json).
-import { createWebhookRoutes } from "./interfaces/routes/webhookRoutes";
 // createInvoiceRoutes, createAdminInvoiceRoutes - Facturas electronicas DIAN.
 import { createInvoiceRoutes, createAdminInvoiceRoutes } from "./interfaces/routes/invoiceRoutes";
 // createPOSRoutes - Ventas presenciales (POS).
 import { createPOSRoutes } from "./interfaces/routes/posRoutes";
-
-// PaymentWebhookController - Valida y procesa eventos de Wompi.
-import { PaymentWebhookController } from "./interfaces/controllers/PaymentWebhookController";
+// createFavoriteRoutes - Favoritos de usuario.
+import { createFavoriteRoutes } from "./interfaces/routes/favoriteRoutes";
+// createUploadRoutes - Subida de imagenes con multer (admin).
+import { createUploadRoutes } from "./interfaces/routes/uploadRoutes";
 
 /**
  * Crea y configura la aplicacion Express completa.
@@ -186,11 +179,11 @@ export function createApp(): express.Application {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "https://checkout.wompi.co", "https://js.wompi.co"],
+          scriptSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: ["'self'", "https://sandbox.wompi.co", "https://production.wompi.co"],
-          frameSrc: ["'self'", "https://checkout.wompi.co"],
+          connectSrc: ["'self'"],
+          frameSrc: ["'self'"],
         },
       },
       hsts: env.nodeEnv === "production" ? {
@@ -214,35 +207,6 @@ export function createApp(): express.Application {
   // Proteccion contra HTTP Parameter Pollution (ej: ?status=PAID&status=CANCELLED).
   app.use(hpp());
 
-  // ---------------------------------------------------------------------------
-  // Webhook routes (ANTES de express.json)
-  // ---------------------------------------------------------------------------
-  // Los webhooks de Wompi necesitan el body RAW (Buffer) para validar la firma
-  // HMAC-SHA256. Si express.json() corre primero, el body es parseado y el
-  // string original se pierde, haciendo imposible recalcular el hash correcto.
-  // Se instancian repos minimos aqui ANTES del parser JSON.
-  // NOTA: estos repos se recrean abajo en la Composition Root como parte
-  // del grafo de dependencias principal. El overhead es cero porque todos
-  // comparten la misma instancia singleton de PrismaClient.
-  const _webhookPaymentRepo  = new PrismaPaymentRepository();
-  const _webhookOrderRepo    = new PrismaOrderRepository();
-  const _webhookInvoiceRepo  = new PrismaInvoiceRepository();
-  const _webhookEmailService = new EmailService();
-  const _webhookDianClient   = new DianSoapClient();
-  const _webhookInvoiceService = new InvoiceService(
-    _webhookInvoiceRepo,
-    _webhookOrderRepo,
-    _webhookDianClient,
-    _webhookEmailService,
-  );
-  const _webhookGenerateInvoice = new GenerateInvoiceUseCase(_webhookInvoiceService);
-  const webhookController = new PaymentWebhookController(
-    _webhookPaymentRepo,
-    _webhookOrderRepo,
-    _webhookGenerateInvoice,
-  );
-  app.use("/api/webhooks", createWebhookRoutes(webhookController));
-
   // CORS: permite requests desde el frontend (origen configurado en .env)
   app.use(
     cors({
@@ -254,6 +218,9 @@ export function createApp(): express.Application {
   // Parseo del body: JSON y formularios URL-encoded
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Servir archivos estaticos (imagenes subidas via /api/admin/upload)
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
   // Rate limiting: protege /api de abuso (limite configurable en .env)
   const limiter = rateLimit({
@@ -277,7 +244,6 @@ export function createApp(): express.Application {
   const orderRepo = new PrismaOrderRepository();
   const inventoryRepo = new PrismaInventoryRepository();
   const paymentRepo = new PrismaPaymentRepository();
-  const bottleReturnRepo = new PrismaBottleReturnRepository();
   const adminRepo = new PrismaAdminRepository();
   const emailVerificationRepo = new PrismaEmailVerificationRepository();
   const passwordResetRepo = new PrismaPasswordResetRepository();
@@ -300,7 +266,6 @@ export function createApp(): express.Application {
     emailService,
   );
   const inventoryService = new InventoryService(inventoryRepo);
-  const discountService = new DiscountService(userRepo, bottleReturnRepo);
   const adminService = new AdminService(adminRepo);
   const reportService = new ReportService();
   const loyaltyService = new LoyaltyService(loyaltyRepo, userRepo, emailService);
@@ -314,7 +279,6 @@ export function createApp(): express.Application {
     orderRepo,
     productRepo,
     inventoryService,
-    gramService,
     gameTokenService,
     simpleInvoiceService,
     emailService,
@@ -326,26 +290,13 @@ export function createApp(): express.Application {
     productRepo,
     paymentRepo,
     inventoryService,
-    discountService,
     loyaltyService,
-  );
-  const processBottleReturnUseCase = new ProcessBottleReturnUseCase(
-    bottleReturnRepo,
-    bottleRepo,
-    inventoryService
   );
   const generateInvoiceUseCase = new GenerateInvoiceUseCase(invoiceService);
   const earnPointsAfterOrderUseCase = new EarnPointsAfterOrderUseCase(
     loyaltyService,
     orderRepo,
     userRepo,
-  );
-  const earnGramAfterOrderUseCase = new EarnGramAfterOrderUseCase(
-    orderRepo,
-    productRepo,
-    gramRepo,
-    gramService,
-    gameTokenService,
   );
 
   // 4. Instanciar controladores (inyectando servicios, casos de uso, repos)
@@ -354,12 +305,8 @@ export function createApp(): express.Application {
   const essenceController = new EssenceController(essenceRepo, inventoryService);
   const bottleController = new BottleController(bottleRepo, inventoryService);
   const productController = new ProductController(productRepo);
-  const orderController = new OrderController(createOrderUseCase, orderRepo, earnPointsAfterOrderUseCase, orderStatusHistoryRepo, emailService, earnGramAfterOrderUseCase, simpleInvoiceService);
+  const orderController = new OrderController(createOrderUseCase, orderRepo, earnPointsAfterOrderUseCase, orderStatusHistoryRepo, emailService, simpleInvoiceService, gameTokenService);
   const inventoryController = new InventoryController(inventoryService);
-  const bottleReturnController = new BottleReturnController(
-    processBottleReturnUseCase,
-    bottleReturnRepo
-  );
   const paymentController = new PaymentController(paymentRepo, orderRepo);
   const adminController = new AdminController(adminService, reportService);
   const gramController = new GramController(gramService, gramRepo, essenceRedemptionRepo);
@@ -368,6 +315,7 @@ export function createApp(): express.Application {
   const loyaltyController = new LoyaltyController(loyaltyService, referralService);
   const invoiceController = new InvoiceController(invoiceService, invoiceRepo, orderRepo);
   const posController = new POSController(salesService, orderRepo);
+  const favoriteController = new FavoriteController();
 
   // ---------------------------------------------------------------------------
   // Rutas de la API
@@ -386,7 +334,6 @@ export function createApp(): express.Application {
   app.use("/api/products", createProductRoutes(productController));
   app.use("/api/orders", createOrderRoutes(orderController));
   app.use("/api/inventory", createInventoryRoutes(inventoryController));
-  app.use("/api/returns", createBottleReturnRoutes(bottleReturnController));
   app.use("/api/payments", createPaymentRoutes(paymentController));
   app.use("/api/admin", createAdminRoutes(adminController));
   app.use("/api/admin/products", createAdminProductRoutes(productController));
@@ -400,7 +347,9 @@ export function createApp(): express.Application {
   app.use("/api/admin/loyalty", createAdminLoyaltyRoutes(loyaltyController));
   app.use("/api/invoices", createInvoiceRoutes(invoiceController));
   app.use("/api/admin/invoices", createAdminInvoiceRoutes(invoiceController));
+  app.use("/api/admin/upload", createUploadRoutes());
   app.use("/api/pos", createPOSRoutes(posController));
+  app.use("/api/favorites", createFavoriteRoutes(favoriteController));
 
   // ---------------------------------------------------------------------------
   // Cron: expirar fichas de juego viejas cada 6 horas
