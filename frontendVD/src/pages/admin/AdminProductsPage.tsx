@@ -151,8 +151,8 @@ function ProductForm({
               setPhotoUploading(true);
               try {
                 const res = await uploadImage(file);
-                const url = res.data?.data?.url;
-                if (url) setForm((f: any) => ({ ...f, photoUrl: url.startsWith('http') ? url : `http://localhost:4000${url}` }));
+                const url = res.data?.url as string | undefined;
+                if (url) setForm((f: any) => ({ ...f, photoUrl: url.startsWith('http') ? url : `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000'}${url}` }));
               } catch { alert('Error al subir la imagen'); }
               finally { setPhotoUploading(false); }
             }} />

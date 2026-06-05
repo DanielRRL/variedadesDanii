@@ -320,12 +320,12 @@ export interface Order {
   /** Human-readable order number in format VD-YYYYXXXX. */
   orderNumber: string;
   /** Current fulfillment status. READY = prepared, awaiting pickup/delivery. */
-  status: 'PENDING' | 'PAID' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED';
+  status: 'PENDING' | 'PAID' | 'PREPARING' | 'READY' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   subtotal: number;
   /** Total discount applied (loyalty + promotions + bottle returns). */
   discount: number;
   total: number;
-  paymentMethod: 'NEQUI' | 'DAVIPLATA' | 'BANCOLOMBIA' | 'BREB' | 'CASH';
+  paymentMethod: 'NEQUI' | 'DAVIPLATA' | 'BANCOLOMBIA' | 'BREB' | 'CASH' | 'TRANSFERENCIA';
   /** ONLINE = web order; REFILL = store refill; CASH_ON_DELIVERY = COD. */
   type: 'ONLINE' | 'REFILL' | 'CASH_ON_DELIVERY';
   items: OrderItem[];

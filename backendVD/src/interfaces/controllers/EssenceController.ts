@@ -212,6 +212,9 @@ export class EssenceController {
       if (!adminUser) {
         throw AppError.unauthorized("User not found.");
       }
+      if (!adminUser.password) {
+        throw AppError.unauthorized("Admin password not set. Login with password first.");
+      }
       const valid = await bcrypt.compare(password, adminUser.password);
       if (!valid) {
         throw AppError.unauthorized("Contraseña incorrecta.");

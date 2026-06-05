@@ -196,8 +196,8 @@ export class AdminController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const from = parseDateParam(req.query.from as string, "from")!;
-      const to = parseDateParam(req.query.to as string, "to")!;
+      const from = parseDateParam(req.query.from as string, "from");
+      const to = parseDateParam(req.query.to as string, "to");
       if (!from || !to) throw AppError.badRequest("from and to query params are required.");
       const sales = await this.adminService.getDailySales(from, to);
 
@@ -262,8 +262,8 @@ export class AdminController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const from = parseDateParam(req.query.from as string, "from")!;
-      const to   = parseDateParam(req.query.to   as string, "to")!;
+      const from = parseDateParam(req.query.from as string, "from");
+      const to   = parseDateParam(req.query.to   as string, "to");
       if (!from || !to) throw AppError.badRequest("from and to query params are required.");
       const buffer = await this.reportService.generateSalesCSV({ from, to });
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -284,8 +284,8 @@ export class AdminController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const from = parseDateParam(req.query.from as string, "from")!;
-      const to   = parseDateParam(req.query.to   as string, "to")!;
+      const from = parseDateParam(req.query.from as string, "from");
+      const to   = parseDateParam(req.query.to   as string, "to");
       if (!from || !to) throw AppError.badRequest("from and to query params are required.");
       const buffer = await this.reportService.generateSalesPDF({ from, to });
       res.setHeader("Content-Type", "application/pdf");
@@ -347,8 +347,8 @@ export class AdminController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const from = parseDateParam(req.query.from as string, "from")!;
-      const to   = parseDateParam(req.query.to   as string, "to")!;
+      const from = parseDateParam(req.query.from as string, "from");
+      const to   = parseDateParam(req.query.to   as string, "to");
 
       if (!from || !to) {
         throw AppError.badRequest("from and to must be valid dates (YYYY-MM-DD).");

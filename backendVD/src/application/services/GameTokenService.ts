@@ -161,10 +161,7 @@ export class GameTokenService {
     // Paso 2: Calcular gramos ganados segun tipo de juego
     const gramsWon = this.resolveWeightedRandom(gameType);
 
-    // Paso 3: Marcar la ficha como usada
-    await this.gameTokenRepo.markAsUsed(tokenId, gameType, gramsWon);
-
-    // Paso 4: Acreditar gramos via GramService
+    // Paso 3: Acreditar gramos via GramService PRIMERO (antes de marcar usada)
     const sourceType = GAME_SOURCE_MAP[gameType] ?? GramSourceType.GAME_ROULETTE;
     const result = await this.gramService.earnGrams(userId, {
       sourceType,
@@ -172,6 +169,9 @@ export class GameTokenService {
       description: `Juego ${gameType}: ganaste ${gramsWon}g`,
       referenceId: tokenId,
     });
+
+    // Paso 4: Marcar la ficha como usada (despues de acreditar)
+    await this.gameTokenRepo.markAsUsed(tokenId, gameType, gramsWon);
 
     logger.info("Juego completado", {
       userId,

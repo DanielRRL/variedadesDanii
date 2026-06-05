@@ -63,7 +63,7 @@ const envSchema = z.object({
 
   // Admin seed
   ADMIN_EMAIL: z.string().default("admin@variedadesdanii.com"),
-  ADMIN_PASSWORD: z.string().default("Admin1234#"),
+  ADMIN_PASSWORD: z.string().min(8),
   ADMIN_NAME: z.string().default("Administrador"),
   ADMIN_PHONE: z.string().default("+573000000000"),
 });

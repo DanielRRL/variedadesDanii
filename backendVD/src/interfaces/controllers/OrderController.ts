@@ -99,7 +99,7 @@ export class OrderController {
     }
   };
 
-  /** GET /orders/:id - Detalle de una orden con relaciones. */
+  /** GET /orders/:id - Detalle de una orden con relaciones. Solo propietario o ADMIN. */
   getById = async (
     req: Request,
     res: Response,
@@ -109,6 +109,11 @@ export class OrderController {
       const order = await this.orderRepo.findById(param(req, "id"));
       if (!order) {
         throw AppError.notFound("Order not found");
+      }
+      const requesterId = req.userId as string;
+      const requesterRole = req.userRole as string;
+      if (requesterRole !== "ADMIN" && order.userId !== requesterId) {
+        throw AppError.forbidden("You do not have access to this order");
       }
       res.json({ success: true, data: order });
     } catch (error) {

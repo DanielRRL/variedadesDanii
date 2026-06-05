@@ -19,6 +19,7 @@ export interface AdminKpiCardProps {
   progressLabel?: string;
   subtitle?: string;
   className?: string;
+  sparklineData?: number[];
 }
 
 const TREND_CONFIG = {
@@ -38,14 +39,11 @@ export default function AdminKpiCard({
   progressLabel,
   subtitle,
   className,
+  sparklineData,
 }: AdminKpiCardProps) {
   const sparkline = useMemo(() => {
-    if (trend === undefined) return null;
-    const points = trend === "up"
-      ? [20, 15, 25, 18, 30]
-      : trend === "down"
-        ? [20, 25, 15, 22, 10]
-        : [20, 22, 18, 21, 20];
+    if (trend === undefined || !sparklineData) return null;
+    const points = sparklineData;
     const min = Math.min(...points);
     const max = Math.max(...points);
     const range = max - min || 1;

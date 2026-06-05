@@ -101,10 +101,9 @@ export function AppBar({
   variant = 'default',
 }: AppBarProps) {
   const navigate   = useNavigate();
-  const cartItems  = useCartStore((s) => s.items);
+  const cartCount  = useCartStore((s) => s.items.length);
   const user       = useAuthStore((s) => s.user);
   const level      = user?.loyaltyAccount?.level;
-  const cartCount  = cartItems.length;
 
   /** Initials for the avatar fallback (e.g. "DA" from "Daniel Arias"). */
   const initials = user?.name

@@ -22,6 +22,9 @@ import { AppError } from "../../utils/AppError";
 // param - Helper de Express 5 para extraer params.
 import { param } from "../../utils/param";
 
+// prisma - Cliente de BD para transacciones atomicas.
+import prisma from "../../config/database";
+
 export class EssenceRedemptionController {
   /**
    * @param essenceRedemptionRepo - Repo de canjes de esencia.
@@ -125,24 +128,46 @@ export class EssenceRedemptionController {
         throw AppError.badRequest("reason is required to cancel a redemption.");
       }
 
-      // Paso 1: Cancelar el canje en la BD
-      const cancelled = await this.essenceRedemptionRepo.cancelRedemption(
-        redemptionId,
-        adminId,
-      );
+      // Cancelar canje y devolver gramos atomicamente
+      const result = await prisma.$transaction(async (tx) => {
+        // Paso 1: Cancelar el canje en la BD
+        const cancelled = await tx.essenceRedemption.update({
+          where: { id: redemptionId },
+          data: {
+            status: "CANCELLED",
+            adminNotes: reason,
+            cancelledById: adminId,
+            cancelledAt: new Date(),
+          },
+        });
 
-      // Paso 2: Devolver los gramos al usuario
-      await this.gramService.earnGrams(cancelled.userId, {
-        sourceType:  GramSourceType.ADMIN_ADJUSTMENT,
-        grams:       cancelled.gramsUsed,
-        description: `Devolucion por canje cancelado: ${reason}`,
-        referenceId: redemptionId,
+        // Paso 2: Devolver los gramos al usuario
+        const gramAccount = await tx.gramAccount.findUnique({
+          where: { userId: cancelled.userId },
+        });
+        if (gramAccount) {
+          await tx.gramAccount.update({
+            where: { id: gramAccount.id },
+            data: { currentGrams: { increment: cancelled.gramsUsed } },
+          });
+          await tx.gramTransaction.create({
+            data: {
+              accountId: gramAccount.id,
+              sourceType: "ADMIN_ADJUSTMENT",
+              gramsDelta: cancelled.gramsUsed,
+              description: `Devolucion por canje cancelado: ${reason}`,
+              referenceId: redemptionId,
+            },
+          });
+        }
+
+        return cancelled;
       });
 
       res.json({
         success: true,
-        data: cancelled,
-        message: `Canje cancelado. ${cancelled.gramsUsed}g devueltos al usuario.`,
+        data: result,
+        message: `Canje cancelado. ${result.gramsUsed}g devueltos al usuario.`,
       });
     } catch (error) {
       next(error);

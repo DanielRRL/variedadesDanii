@@ -49,6 +49,10 @@ export class PrismaProductRepository implements IProductRepository {
     return prisma.product.findMany({
       where: { active: true },
       orderBy: { createdAt: "desc" },
+      include: {
+        essence: { include: { olfactiveFamily: true } },
+        bottle: true,
+      },
     });
   }
 
@@ -63,6 +67,10 @@ export class PrismaProductRepository implements IProductRepository {
   async findByIdWithRelations(id: string): Promise<any | null> {
     return prisma.product.findUnique({
       where: { id },
+      include: {
+        essence: { include: { olfactiveFamily: true } },
+        bottle: true,
+      },
     });
   }
 

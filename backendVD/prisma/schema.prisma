@@ -425,7 +425,7 @@ model Order {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  user     User        @relation(fields: [userId], references: [id])
+  user     User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   address  Address?    @relation(fields: [addressId], references: [id])
   items         OrderItem[]
   payment       Payment?
@@ -438,6 +438,7 @@ model Order {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([saleChannel])
   @@map("orders")
 }
 
@@ -453,6 +454,7 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
+  @@index([productId])
   @@map("order_items")
 }
 
@@ -625,6 +627,7 @@ model ReferralUsage {
   /// Nuevo usuario que utilizo el codigo
   newUser      User         @relation(fields: [newUserId], references: [id])
 
+  @@index([newUserId])
   @@map("referral_usages")
 }
 
@@ -679,6 +682,7 @@ model EmailVerification {
   /// Usuario al que pertenece este token (cascade: si se elimina el usuario, se eliminan sus tokens)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("email_verifications")
 }
 
@@ -700,6 +704,7 @@ model PasswordReset {
   /// Usuario al que pertenece este token (cascade: si se elimina el usuario, se eliminan sus tokens)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("password_resets")
 }
 
@@ -809,6 +814,7 @@ model GameToken {
 
   @@index([userId])
   @@index([status])
+  @@index([expiresAt])
   @@map("game_tokens")
 }
 
@@ -897,6 +903,7 @@ model UserFavorite {
 
   @@unique([userId, essenceId])
   @@unique([userId, productId])
+  @@index([userId])
   @@map("user_favorites")
 }
 

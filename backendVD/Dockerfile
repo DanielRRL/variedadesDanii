@@ -73,7 +73,6 @@ COPY --from=builder /app/dist ./dist
 # Puerto que expone la aplicacion (informativo, no abre puertos realmente)
 EXPOSE 4000
 
-# Comando por defecto: ejecutar las migraciones pendientes y arrancar el servidor.
-# "prisma migrate deploy" aplica migraciones en produccion (no crea nuevas).
-# Luego "node dist/server.js" arranca el servidor Express compilado.
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+# Comando por defecto: arrancar el servidor Express compilado.
+# El prisma db push se ejecuta via docker-compose.railway.yml antes de node.
+CMD ["node", "dist/server.js"]

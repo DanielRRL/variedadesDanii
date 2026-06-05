@@ -55,10 +55,15 @@ export default function GoogleSignInButton() {
     if (window.google?.accounts?.id) {
       initGsi();
     } else {
+      let attempts = 0;
+      const MAX_ATTEMPTS = 75; // 200ms * 75 = 15s timeout
       const interval = setInterval(() => {
+        attempts++;
         if (window.google?.accounts?.id) {
           clearInterval(interval);
           initGsi();
+        } else if (attempts >= MAX_ATTEMPTS) {
+          clearInterval(interval);
         }
       }, 200);
       return () => clearInterval(interval);

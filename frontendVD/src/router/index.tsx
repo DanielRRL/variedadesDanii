@@ -29,6 +29,7 @@
 
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 
 // ── Lazy page imports (code-split per route) ──────────────────────────────────
 import { lazy, Suspense } from 'react';
@@ -80,9 +81,11 @@ function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Outlet />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <Outlet />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -95,11 +98,7 @@ function AdminRoute() {
   if (user?.role !== 'ADMIN') {
     return <Navigate to="/" replace />;
   }
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Outlet />
-    </Suspense>
-  );
+  return <Outlet />;
 }
 
 /** Minimal loading state shown while lazy-loaded page chunks are fetched. */
@@ -118,9 +117,11 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: (
-      <Suspense fallback={<PageLoader />}>
-        <Outlet />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
+      </ErrorBoundary>
     ),
     children: [
       { index: true,                 element: <HomePage /> },

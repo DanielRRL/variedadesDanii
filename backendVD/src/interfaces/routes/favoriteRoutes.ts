@@ -6,8 +6,10 @@
  */
 
 import { Router } from "express";
+import { body } from "express-validator";
 import { FavoriteController } from "../controllers/FavoriteController";
 import { authMiddleware } from "../middleware/authMiddleware";
+import { validate } from "../validators/validate";
 
 export const createFavoriteRoutes = (favoriteController: FavoriteController): Router => {
   const router = Router();
@@ -16,7 +18,13 @@ export const createFavoriteRoutes = (favoriteController: FavoriteController): Ro
 
   router.get("/items", favoriteController.getFavoriteItems);
   router.get("/", favoriteController.getMyFavorites);
-  router.post("/", favoriteController.toggleFavorite);
+  router.post(
+    "/",
+    body("essenceId").optional().isUUID(),
+    body("productId").optional().isUUID(),
+    validate,
+    favoriteController.toggleFavorite
+  );
 
   return router;
 };

@@ -41,7 +41,9 @@ export enum PaymentMethod {
   NEQUI = "NEQUI",
   DAVIPLATA = "DAVIPLATA",
   BANCOLOMBIA = "BANCOLOMBIA",
+  BREB = "BREB",
   CASH = "CASH",
+  TRANSFERENCIA = "TRANSFERENCIA",
 }
 
 /** Datos de un item dentro de un pedido. */

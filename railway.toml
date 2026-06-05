@@ -1,0 +1,8 @@
+[build]
+dockerComposeFile = "docker-compose.railway.yml"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 60
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

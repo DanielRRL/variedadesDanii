@@ -47,17 +47,12 @@ export class InventoryController {
   ): Promise<void> => {
     try {
       const { essenceId, type, ml, reason, reference } = req.body;
-      let movement;
-
-      if (type === "IN") {
-        movement = await this.inventoryService.registerEssenceEntry(
-          essenceId, ml, reason, reference
-        );
-      } else {
-        movement = await this.inventoryService.registerEssenceExit(
-          essenceId, ml, reason, reference
-        );
+      if (type !== "IN" && type !== "OUT") {
+        throw AppError.badRequest("type must be 'IN' or 'OUT'");
       }
+      const movement = type === "IN"
+        ? await this.inventoryService.registerEssenceEntry(essenceId, ml, reason, reference)
+        : await this.inventoryService.registerEssenceExit(essenceId, ml, reason, reference);
 
       res.status(201).json({ success: true, data: movement });
     } catch (error) {
@@ -159,17 +154,12 @@ export class InventoryController {
   ): Promise<void> => {
     try {
       const { bottleId, type, quantity, reason, reference } = req.body;
-      let movement;
-
-      if (type === "IN") {
-        movement = await this.inventoryService.registerBottleEntry(
-          bottleId, quantity, reason, reference
-        );
-      } else {
-        movement = await this.inventoryService.registerBottleExit(
-          bottleId, quantity, reason, reference
-        );
+      if (type !== "IN" && type !== "OUT") {
+        throw AppError.badRequest("type must be 'IN' or 'OUT'");
       }
+      const movement = type === "IN"
+        ? await this.inventoryService.registerBottleEntry(bottleId, quantity, reason, reference)
+        : await this.inventoryService.registerBottleExit(bottleId, quantity, reason, reference);
 
       res.status(201).json({ success: true, data: movement });
     } catch (error) {
@@ -220,17 +210,12 @@ export class InventoryController {
   ): Promise<void> => {
     try {
       const { productId, type, quantity, reason, reference } = req.body;
-      let movement;
-
-      if (type === "IN") {
-        movement = await this.inventoryService.registerProductEntry(
-          productId, quantity, reason, reference
-        );
-      } else {
-        movement = await this.inventoryService.registerProductExit(
-          productId, quantity, reason, reference
-        );
+      if (type !== "IN" && type !== "OUT") {
+        throw AppError.badRequest("type must be 'IN' or 'OUT'");
       }
+      const movement = type === "IN"
+        ? await this.inventoryService.registerProductEntry(productId, quantity, reason, reference)
+        : await this.inventoryService.registerProductExit(productId, quantity, reason, reference);
 
       res.status(201).json({ success: true, data: movement });
     } catch (error) {

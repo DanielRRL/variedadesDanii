@@ -52,20 +52,30 @@ export class FavoriteController {
         return;
       }
 
-      const where: any = { userId };
-      if (essenceId) where.essenceId = essenceId;
-      if (productId) where.productId = productId;
+      // Use deleteMany to handle race conditions safely — if the row
+      // doesn't exist, deleteMany simply returns { count: 0 }.
+      const deleteResult = essenceId
+        ? await prisma.userFavorite.deleteMany({ where: { userId, essenceId } })
+        : await prisma.userFavorite.deleteMany({ where: { userId, productId } });
 
-      const existing = await prisma.userFavorite.findFirst({ where });
-
-      if (existing) {
-        await prisma.userFavorite.delete({ where: { id: existing.id } });
-        res.json({ success: true, data: { favorited: false, id: existing.id } });
+      if (deleteResult.count > 0) {
+        res.json({ success: true, data: { favorited: false } });
       } else {
-        const created = await prisma.userFavorite.create({
-          data: { userId, essenceId: essenceId || null, productId: productId || null },
-        });
-        res.status(201).json({ success: true, data: { favorited: true, id: created.id } });
+        // Now safe to create because the unique constraint will prevent
+        // duplicates if two concurrent requests race here.
+        try {
+          const created = await prisma.userFavorite.create({
+            data: { userId, essenceId: essenceId || null, productId: productId || null },
+          });
+          res.status(201).json({ success: true, data: { favorited: true, id: created.id } });
+        } catch (err: any) {
+          // P2002 = unique constraint violation = already exists (race condition)
+          if (err?.code === "P2002") {
+            res.json({ success: true, data: { favorited: false } });
+          } else {
+            throw err;
+          }
+        }
       }
     } catch (error) {
       next(error);

@@ -4,7 +4,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToastStore } from "../../stores/toastStore";
+import { useToastStore } from "../stores/toastStore";
 
 interface UseAdminMutationOptions<TData, TVariables> {
   mutationFn: (variables: TVariables) => Promise<TData>;

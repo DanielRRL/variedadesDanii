@@ -335,7 +335,6 @@ export default function AdminSalesPage() {
         price: 0,
         active: true,
         stockUnits: Math.floor((e.currentStockMl ?? 0) / OZ_TO_ML),
-        generatesGram: true,
         photoUrl: e.photoUrl ?? undefined,
       })) as Product[];
 

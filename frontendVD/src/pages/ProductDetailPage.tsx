@@ -7,9 +7,8 @@
  *  2. Product hero — image 320px, type badge top-left, "Gana 1g" pill top-right
  *  3. Product info card — name, price, stock, ml quantity
  *  4. Description card — collapsible (Info icon + "Descripción")
- *  5. Quantity card — [−] [N] [+] stepper + gram earning note (ShoppingBag icon)
- *  6. Gram explainer card — expandable (only if generatesGram)
- *  7. Sticky add-to-cart button
+ *  5. Quantity card — [−] [N] [+] stepper
+ *  6. Sticky add-to-cart button
  */
 
 import { useParams, useNavigate } from 'react-router-dom';

@@ -32,7 +32,7 @@ import { useToastStore } from '../stores/toastStore';
  * If the env var is missing, falls back to the Docker Compose service URL.
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:4000',
+  baseURL: import.meta.env.VITE_API_URL || '__VITE_API_URL__',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
 });
@@ -79,14 +79,21 @@ api.interceptors.request.use((config) => {
  */
 api.interceptors.response.use(
   (response) => {
-    // Unwrap { success: true, data: { ... } } -> data becomes the inner object
+    // Unwrap { success: true, data: { ... } } -> data becomes the inner object.
+    // Preserves extra top-level keys (e.g. pagination) alongside the unwrapped data.
     if (
       response.data &&
       typeof response.data === 'object' &&
       'success' in response.data &&
       'data' in response.data
     ) {
-      response.data = response.data.data;
+      const { success, data, ...rest } = response.data;
+      const extraKeys = Object.keys(rest);
+      if (extraKeys.length > 0 && typeof data === 'object' && data !== null && !Array.isArray(data)) {
+        response.data = { ...data, ...rest };
+      } else {
+        response.data = data;
+      }
     }
     return response;
   },
@@ -163,8 +170,8 @@ export const resetPassword = (token: string, newPassword: string, confirmPasswor
  * POST /api/auth/resend-verification
  * Returns: { message: string }
  */
-export const resendVerification = () =>
-  api.post('/api/auth/resend-verification');
+export const resendVerification = (email: string) =>
+  api.post('/api/auth/resend-verification', { email });
 
 /**
  * Update the authenticated user's own profile (name + phone).
@@ -707,9 +714,7 @@ export const searchRegisteredClients = (search: string) =>
 export const uploadImage = (file: File) => {
   const formData = new FormData();
   formData.append('image', file);
-  return api.post('/api/admin/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return api.post('/api/admin/upload', formData);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -169,6 +169,10 @@ export class UserController {
         delete req.body.active;
         delete req.body.emailVerified;
         delete req.body.password;
+      } else {
+        // Even for ADMIN, whitelist allowed fields
+        delete req.body.passwordHash;
+        delete req.body.email;  // prevent email change (breaks auth)
       }
 
       const user = await this.userRepo.update(targetId, req.body);

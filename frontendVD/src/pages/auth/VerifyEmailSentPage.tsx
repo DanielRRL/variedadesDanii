@@ -40,7 +40,7 @@ export default function VerifyEmailSentPage() {
   async function handleResend() {
     setResending(true);
     try {
-      await resendVerification();
+      await resendVerification(email);
       addToast('Código reenviado. Revisa tu correo.', 'success');
       setResendCooldown(45);
     } catch {

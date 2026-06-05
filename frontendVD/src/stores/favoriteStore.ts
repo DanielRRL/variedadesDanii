@@ -6,6 +6,7 @@ interface FavoriteState {
   favoriteProductIds: string[];
   loading: boolean;
   fetched: boolean;
+  error: string | null;
 }
 
 interface FavoriteActions {
@@ -21,6 +22,7 @@ export const useFavoriteStore = create<FavoriteState & FavoriteActions>()(
     favoriteProductIds: [],
     loading: false,
     fetched: false,
+    error: null,
 
     fetchFavorites: async () => {
       set({ loading: true });
@@ -38,9 +40,10 @@ export const useFavoriteStore = create<FavoriteState & FavoriteActions>()(
             .map((f) => f.productId!),
           loading: false,
           fetched: true,
+          error: null,
         });
       } catch {
-        set({ loading: false });
+        set({ loading: false, error: "No se pudieron cargar los favoritos" });
       }
     },
 
@@ -90,6 +93,7 @@ export const useFavoriteStore = create<FavoriteState & FavoriteActions>()(
         favoriteProductIds: [],
         loading: false,
         fetched: false,
+        error: null,
       });
     },
   })

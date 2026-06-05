@@ -20,6 +20,7 @@ import { IEmailService } from "./IEmailService";
 import { AppError } from "../../utils/AppError";
 import logger from "../../utils/logger";
 import { getEssencePriceWithGrams, OZ_TO_ML, getEssenceMlForOz } from "../../config/pricing";
+import { generateOrderNumber } from "../../utils/orderNumber";
 
 // ---------------------------------------------------------------------------
 // Interfaces publicas
@@ -75,12 +76,6 @@ async function getOrCreateEssencePlaceholder(): Promise<string> {
   _essencePlaceholderId = created.id;
   logger.info("Created essence placeholder product for POS", { id: created.id });
   return created.id;
-}
-
-/** Obtener el siguiente numero de orden via OrderCounter (compatible Prisma 7). */
-async function getNextSeq(): Promise<number> {
-  const counter = await prisma.orderCounter.create({});
-  return counter.id;
 }
 
 export class SalesService {
@@ -197,9 +192,7 @@ export class SalesService {
     }
     const orderUserId = input.userId || adminUser.id;
 
-    const seq = await getNextSeq();
-    const year = new Date().getFullYear();
-    const orderNumber = `VD-${year}${String(seq).padStart(4, "0")}`;
+    const orderNumber = await generateOrderNumber();
 
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({

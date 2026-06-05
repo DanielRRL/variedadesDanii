@@ -88,7 +88,7 @@ export class ProductController {
         mlQuantity: category === "PERFUME" ? mlQuantity : undefined,
         price,
         active: true,
-        isPerfume() { return this.category === "PERFUME"; },
+        isPerfume: () => category === "PERFUME",
       });
 
       res.status(201).json({ success: true, data: product });
@@ -385,6 +385,9 @@ export class ProductController {
       if (!adminUser) {
         throw AppError.unauthorized("User not found.");
       }
+      if (!adminUser.password) {
+        throw AppError.unauthorized("Admin password not set. Login with password first.");
+      }
       const valid = await bcrypt.compare(password, adminUser.password);
       if (!valid) {
         throw AppError.unauthorized("Contraseña incorrecta.");
@@ -396,12 +399,12 @@ export class ProductController {
         throw AppError.notFound("Product not found");
       }
 
-      // Delete related movements first, then product
-      await prisma.$transaction([
-        prisma.productMovement.deleteMany({ where: { productId: id } }),
-        prisma.orderItem.deleteMany({ where: { productId: id } }),
-        prisma.product.delete({ where: { id } }),
-      ]);
+      // Soft-delete approach: mark product inactive instead of hard-deleting
+      // This preserves order history and referential integrity
+      await prisma.product.update({
+        where: { id },
+        data: { active: false },
+      });
 
       logger.info(`Product deleted by admin: ${existing.name} (${id})`);
       res.json({ success: true, message: "Product deleted" });

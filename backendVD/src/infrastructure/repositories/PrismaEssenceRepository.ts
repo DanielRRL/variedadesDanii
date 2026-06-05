@@ -54,6 +54,7 @@ export class PrismaEssenceRepository implements IEssenceRepository {
   /** Obtiene todas las esencias con relaciones incluidas. */
   async findAll(): Promise<Essence[]> {
     const essences = await prisma.essence.findMany({
+      where: { active: true },
       include: ESSENCE_INCLUDE,
       orderBy: { createdAt: "desc" },
     });

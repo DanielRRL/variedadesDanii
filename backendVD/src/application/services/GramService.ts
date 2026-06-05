@@ -28,6 +28,9 @@ import { AppError } from "../../utils/AppError";
 // logger - Logger centralizado Winston.
 import logger from "../../utils/logger";
 
+// prisma - Cliente de BD para transacciones que cruzan repos.
+import prisma from "../../config/database";
+
 // ---------------------------------------------------------------------------
 // Constantes de reglas de negocio del sistema de gramos
 // ---------------------------------------------------------------------------
@@ -179,23 +182,33 @@ export class GramService {
       throw AppError.notFound("Billetera de gramos no encontrada.");
     }
 
-    // Paso 1-2: Descontar 13 gramos y registrar atomicamente via repo
-    await this.gramRepo.earnGramsAtomically(account.id!, -GRAMS_PER_OZ, {
-      sourceType: GramSourceType.REDEMPTION,
-      description: "Conversion automatica: 13g = 1 oz de esencia",
+    return prisma.$transaction(async (tx) => {
+      // Paso 1-2: Descontar 13 gramos y registrar atomicamente
+      await tx.gramAccount.update({
+        where: { id: account.id },
+        data: { currentGrams: { decrement: GRAMS_PER_OZ } },
+      });
+      await tx.gramTransaction.create({
+        data: {
+          accountId: account.id!,
+          sourceType: GramSourceType.REDEMPTION,
+          gramsDelta: -GRAMS_PER_OZ,
+          description: "Conversion automatica: 13g = 1 oz de esencia",
+        },
+      });
+
+      // Paso 3: Crear el registro de canje pendiente de entrega
+      const redemption = await tx.essenceRedemption.create({
+        data: {
+          userId,
+          gramsUsed: GRAMS_PER_OZ,
+          ozRedeemed: 1.0,
+          essenceName: "Pendiente de seleccion",
+        },
+      });
+
+      return redemption as unknown as EssenceRedemption;
     });
-
-    // Paso 3: Crear el registro de canje pendiente de entrega
-    const redemption = await this.essenceRedemptionRepo.create({
-      userId,
-      gramsUsed:   GRAMS_PER_OZ,
-      ozRedeemed:  1.0,
-      essenceName: "Pendiente de seleccion",
-    });
-
-    logger.info("Auto-conversion a 1 oz completada", { userId, redemptionId: redemption.id });
-
-    return redemption;
   }
 
   // ─────────────────────────────────────────────────────────────────────────

@@ -38,10 +38,12 @@ import { env } from "../../config/env";
 // "1"  = Efectivo (instrumento de pago 1).
 // "42" = Consignacion / Transferencia bancaria electronica.
 const PAYMENT_MEANS_MAP: Record<string, "1" | "42"> = {
-  CASH:        "1",
-  NEQUI:       "42",
-  BREB:        "42",
-  BANCOLOMBIA: "42",
+  CASH:          "1",
+  NEQUI:         "42",
+  DAVIPLATA:     "42",
+  BREB:          "42",
+  BANCOLOMBIA:   "42",
+  TRANSFERENCIA: "42",
 };
 
 export class InvoiceService {

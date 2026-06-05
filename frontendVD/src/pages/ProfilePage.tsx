@@ -248,7 +248,7 @@ export default function ProfilePage() {
   const allTokens: GameToken[] = tokensRes?.data?.pendingTokens ?? tokensRes?.data ?? [];
   const pendingTokens = allTokens.filter((t) => t.status === "PENDING");
 
-  const favList: unknown[] = favRes?.data?.data ?? favRes?.data ?? [];
+  const favList: unknown[] = favRes?.data ?? [];
   const favCount = favList.length;
 
   const initials = user?.name
@@ -261,7 +261,7 @@ export default function ProfilePage() {
     setResendLoading(true);
     setResendError("");
     try {
-      await resendVerification();
+      await resendVerification(user?.email ?? '');
       setResendDone(true);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };

@@ -43,6 +43,9 @@ import prisma from "../../config/database";
 // getEssencePrice - Precio por onza para esencias del catalogo.
 import { getEssencePrice, getEssenceMlFromProductMl } from "../../config/pricing";
 
+// generateOrderNumber - Generación secuencial de numeros de orden.
+import { generateOrderNumber } from "../../utils/orderNumber";
+
 /** Datos de entrada requeridos para crear una orden. */
 export interface CreateOrderInput {
   userId: string;
@@ -142,11 +145,8 @@ export class CreateOrderUseCase {
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
     const total = subtotal;
 
-    // -- Paso 5: Persistir la orden con items, descuentos Y descontar inventario en una transaccion atomica --
-    const counter = await prisma.orderCounter.create({});
-    const seq = counter.id;
-    const year = new Date().getFullYear();
-    const orderNumber = `VD-${year}${String(seq).padStart(4, "0")}`;
+    // -- Paso 5: Persistir la orden con items Y descontar inventario en una transaccion atomica --
+    const orderNumber = await generateOrderNumber();
 
     const order = await prisma.$transaction(async (tx) => {
       // 5a. Crear la orden con items y descuentos
@@ -275,7 +275,7 @@ export class CreateOrderUseCase {
       const stock = await this.inventoryService.getEssenceStock(
         product.essenceId
       );
-      console.warn(
+      logger.warn(
         `[CreateOrderUseCase] Stock bajo de esencia para "${product.name}". Disponible: ${stock}ml, Necesario: ${totalMlNeeded}ml`
       );
     }
@@ -286,7 +286,7 @@ export class CreateOrderUseCase {
         quantity
       );
     if (!bottleAvailable) {
-      console.warn(
+      logger.warn(
         `[CreateOrderUseCase] Stock bajo de frascos para "${product.name}"`
       );
     }
@@ -307,7 +307,7 @@ export class CreateOrderUseCase {
       );
     if (!available) {
       const stock = await this.inventoryService.getProductStock(product.id);
-      console.warn(
+      logger.warn(
         `[CreateOrderUseCase] Stock bajo para "${product.name}". Disponible: ${stock}, Necesario: ${quantity}`
       );
     }

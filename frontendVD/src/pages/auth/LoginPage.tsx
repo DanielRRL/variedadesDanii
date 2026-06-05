@@ -73,7 +73,7 @@ export default function LoginPage() {
   async function handleResend() {
     setResending(true);
     try {
-      await resendVerification();
+      await resendVerification(email);
       addToast('Enlace de verificación enviado. Revisa tu correo.', 'success');
     } catch {
       addToast('No se pudo enviar el enlace. Intenta más tarde.', 'error');

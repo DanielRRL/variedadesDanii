@@ -1,7 +1,4 @@
-/**
- * AdminConfirmDialog — Branded confirmation dialog for destructive actions.
- */
-
+import { useEffect, useId } from "react";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "../../utils/cn";
 import "../../css/AdminConfirmDialog.css";
@@ -27,17 +24,28 @@ export default function AdminConfirmDialog({
   variant = "danger",
   loading = false,
 }: AdminConfirmDialogProps) {
+  const titleId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
-    <div className="admin-confirm-overlay">
+    <div className="admin-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div className="admin-confirm-backdrop" onClick={onClose} />
       <div className="admin-confirm-body">
         <div className="admin-confirm-content">
           <div className={cn("admin-confirm-icon", `admin-confirm-icon--${variant}`)}>
             <AlertTriangle size={22} />
           </div>
-          <h3 className="admin-confirm-title">{title}</h3>
+          <h3 id={titleId} className="admin-confirm-title">{title}</h3>
           <p className="admin-confirm-message">{message}</p>
         </div>
         <div className="admin-confirm-actions">

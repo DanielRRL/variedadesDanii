@@ -71,8 +71,11 @@ export function BottomTabBar({ activeOrderCount = 0, pendingGameTokens = 0 }: Bo
   });
 
   const fetchedPending = isAuthenticated
-    ? ((tokensRes?.data?.pendingTokens ?? tokensRes?.data ?? []) as GameToken[])
-        .filter((t) => t.status === 'PENDING').length
+    ? (Array.isArray(tokensRes?.data?.pendingTokens)
+        ? (tokensRes.data.pendingTokens as GameToken[]).filter((t) => t.status === 'PENDING').length
+        : Array.isArray(tokensRes?.data)
+          ? (tokensRes.data as GameToken[]).filter((t) => t.status === 'PENDING').length
+          : 0)
     : 0;
 
   // Merge: prop overrides if passed explicitly, else use fetched value

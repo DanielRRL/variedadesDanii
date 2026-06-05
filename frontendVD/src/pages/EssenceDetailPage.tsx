@@ -141,7 +141,6 @@ export default function EssenceDetailPage() {
       active: true,
       stockUnits: 999,
       photoUrl: essence.photoUrl,
-      generatesGram: false,
     } as Product);
 
     showToast(`¡${essence.name} agregado al carrito!`);
