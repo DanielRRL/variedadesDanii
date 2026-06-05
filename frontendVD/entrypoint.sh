@@ -1,9 +1,8 @@
 #!/bin/sh
-set -e
 export PORT=${PORT:-80}
-if [ -n "$API_URL" ]; then
-  find /usr/share/nginx/html -name "*.js" -exec sed -i "s|__VITE_API_URL__|${API_URL}|g" {} \;
-fi
-envsubst '${PORT}' < /etc/nginx/conf.d/default.conf > /tmp/default.conf
-mv /tmp/default.conf /etc/nginx/conf.d/default.conf
-exec nginx -g "daemon off;"
+# Reemplaza API URL en los archivos JS del build
+find /usr/share/nginx/html -name "*.js" -exec sed -i "s|VITE_API_URL_PLACEHOLDER|${API_URL}|g" {} \;
+# Reemplaza el puerto en nginx.conf
+sed -i "s/listen \${PORT}/listen ${PORT}/g" /etc/nginx/conf.d/default.conf
+sed -i "s/listen 80/listen ${PORT}/g" /etc/nginx/conf.d/default.conf
+nginx -g "daemon off;"
