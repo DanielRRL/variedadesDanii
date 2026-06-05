@@ -145,7 +145,8 @@ export default function AdminInvoicesPage() {
 
   if (isError) return <AdminQueryError />;
 
-  const invoices: AdminInvoice[] = data?.data?.invoices ?? data?.data ?? [];
+  const invoicesRaw = data?.data?.invoices ?? data?.data;
+  const invoices: AdminInvoice[] = Array.isArray(invoicesRaw) ? invoicesRaw : [];
   const total: number            = data?.data?.total    ?? invoices.length;
   const totalPages               = Math.max(1, Math.ceil(total / limit));
 

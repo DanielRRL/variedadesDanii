@@ -32,6 +32,7 @@ export class PrismaUserRepository implements IUserRepository {
           role: u.role as any,
           active: u.active,
           emailVerified: u.emailVerified,
+          googleId: u.googleId ?? null,
           createdAt: u.createdAt,
           updatedAt: u.updatedAt,
         })
@@ -51,6 +52,7 @@ export class PrismaUserRepository implements IUserRepository {
       role: u.role as any,
       active: u.active,
       emailVerified: u.emailVerified,
+      googleId: u.googleId ?? null,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });
@@ -69,6 +71,7 @@ export class PrismaUserRepository implements IUserRepository {
       role: u.role as any,
       active: u.active,
       emailVerified: u.emailVerified,
+      googleId: u.googleId ?? null,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });
@@ -87,6 +90,7 @@ export class PrismaUserRepository implements IUserRepository {
       role: u.role as any,
       active: u.active,
       emailVerified: u.emailVerified,
+      googleId: u.googleId ?? null,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });
@@ -102,6 +106,7 @@ export class PrismaUserRepository implements IUserRepository {
         password: user.password,
         role: user.role as any,
         active: user.active,
+        ...(user.googleId !== undefined && { googleId: user.googleId }),
       },
     });
     return new User({
@@ -113,6 +118,7 @@ export class PrismaUserRepository implements IUserRepository {
       role: u.role as any,
       active: u.active,
       emailVerified: u.emailVerified,
+      googleId: u.googleId ?? null,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });
@@ -130,6 +136,7 @@ export class PrismaUserRepository implements IUserRepository {
         ...(data.role !== undefined && { role: data.role as any }),
         ...(data.active !== undefined && { active: data.active }),
         ...(data.emailVerified !== undefined && { emailVerified: data.emailVerified }),
+        ...(data.googleId !== undefined && { googleId: data.googleId }),
       },
     });
     return new User({
@@ -141,6 +148,7 @@ export class PrismaUserRepository implements IUserRepository {
       role: u.role as any,
       active: u.active,
       emailVerified: u.emailVerified,
+      googleId: u.googleId ?? null,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     });

@@ -22,6 +22,20 @@ import {
 // validate - Middleware que revisa errores de express-validator.
 import { validate } from "../validators/validate";
 
+// express-rate-limit - Protege login contra fuerza bruta.
+import rateLimit from "express-rate-limit";
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: "Demasiados intentos de login. Intenta de nuevo en 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.ip ?? req.socket.remoteAddress ?? "unknown";
+  },
+});
+
 /**
  * Crea y retorna el router de autenticacion.
  * @param authController - Controlador inyectado desde app.ts.
@@ -43,8 +57,8 @@ export const createAuthRoutes = (authController: AuthController): Router => {
     authController.register
   );
 
-  // POST /login - Cadena: validar campos -> revisar errores -> login
-  router.post("/login", loginValidator, validate, authController.login);
+  // POST /login - Cadena: rate limiter -> validar campos -> revisar errores -> login
+  router.post("/login", loginLimiter, loginValidator, validate, authController.login);
 
   // POST /verify-email - Verifica el correo del usuario con el token recibido
   router.post(

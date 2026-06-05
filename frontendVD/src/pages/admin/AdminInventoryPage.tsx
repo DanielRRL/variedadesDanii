@@ -119,8 +119,10 @@ export default function AdminInventoryPage() {
 
   if (isEssencesError || isProductsError) return <AdminQueryError />;
 
-  const rawEssences: Essence[] = essencesData?.data?.essences ?? essencesData?.data ?? [];
-  const rawProducts: Product[] = productsData?.data?.products ?? productsData?.data ?? [];
+  const rawEssencesRaw = essencesData?.data?.essences ?? essencesData?.data;
+  const rawEssences: Essence[] = Array.isArray(rawEssencesRaw) ? rawEssencesRaw : [];
+  const rawProductsRaw = productsData?.data?.products ?? productsData?.data;
+  const rawProducts: Product[] = Array.isArray(rawProductsRaw) ? rawProductsRaw : [];
 
   const q = search.toLowerCase();
   const filteredEssences = rawEssences.filter(e => !q || e.name.toLowerCase().includes(q) || e.olfactiveFamily?.name?.toLowerCase().includes(q));

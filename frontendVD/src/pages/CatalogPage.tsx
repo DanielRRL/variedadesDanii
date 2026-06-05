@@ -26,6 +26,7 @@ import {
 import { clsx } from 'clsx';
 import '../css/CatalogPage.css';
 import { getProducts, getEssences, getCurrentChallenge } from '../services/api';
+import { queryKeys } from '../services/queryKeys';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
@@ -282,7 +283,7 @@ export default function CatalogPage() {
 
   // ── Data — GET /api/products ────────────────────────────────────────────
   const { data: productsRes, isLoading, isError, refetch } = useQuery({
-    queryKey: ['products'],
+    queryKey: queryKeys.products,
     queryFn: getProducts,
     staleTime: 2 * 60 * 1000,
   });
@@ -294,7 +295,7 @@ export default function CatalogPage() {
 
   // ── Data — GET /api/essences ────────────────────────────────────────────
   const { data: essencesRes, isLoading: essencesLoading, isError: essencesError, refetch: retryEssences } = useQuery({
-    queryKey: ['essences'],
+    queryKey: queryKeys.essences,
     queryFn: () => getEssences(),
     staleTime: 2 * 60 * 1000,
   });
@@ -308,7 +309,7 @@ export default function CatalogPage() {
 
   // ── Data — Weekly challenge (only if logged in) ─────────────────────────
   const { data: challengeRes } = useQuery({
-    queryKey: ['weekly-challenge'],
+    queryKey: queryKeys.challenge,
     queryFn: getCurrentChallenge,
     staleTime: 5 * 60 * 1000,
     enabled: isAuthenticated,

@@ -95,7 +95,9 @@ export function HeroSection({ cartCount, user, onNavigate }: HeroSectionProps) {
 
       <div className="home-hero__topbar">
         <div className="home-hero__logo">
-          <div className="home-hero__logo-box">VD</div>
+          <div className="home-hero__logo-box">
+            <img src="/VDlogo.png" alt="VD Logo" className="home-hero__logo-img" />
+          </div>
           <div>
             <p className="home-hero__logo-title">Variedades DANII</p>
             <p className="home-hero__logo-subtitle">Perfumería · Armenia, Quindío</p>

@@ -34,6 +34,7 @@ import {
   resendVerification,
   updateMyProfile,
 } from "../services/api";
+import { queryKeys } from "../services/queryKeys";
 import type { GameToken } from "../types";
 import { AppBar } from "../components/layout/AppBar";
 import { BottomTabBar } from "../components/layout/BottomTabBar";
@@ -227,7 +228,7 @@ export default function ProfilePage() {
   const [resendError, setResendError] = useState("");
 
   const { data: tokensRes } = useQuery({
-    queryKey: ["gameTokens", "profile"],
+    queryKey: queryKeys.gameTokens,
     queryFn: getMyGameTokens,
     staleTime: 60_000,
   });
@@ -245,7 +246,8 @@ export default function ProfilePage() {
   });
 
   const referral = referralRes?.data;
-  const allTokens: GameToken[] = tokensRes?.data?.pendingTokens ?? tokensRes?.data ?? [];
+  const rawTokens = tokensRes?.data?.pendingTokens ?? tokensRes?.data;
+  const allTokens: GameToken[] = Array.isArray(rawTokens) ? rawTokens : [];
   const pendingTokens = allTokens.filter((t) => t.status === "PENDING");
 
   const favList: unknown[] = favRes?.data ?? [];

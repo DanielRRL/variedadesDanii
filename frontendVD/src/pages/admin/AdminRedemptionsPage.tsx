@@ -72,7 +72,8 @@ export default function AdminRedemptionsPage() {
 
   if (isError) return <AdminQueryError />;
 
-  const redemptions: EssenceRedemption[] = res?.data?.redemptions ?? res?.data ?? [];
+  const redemptionsRaw = res?.data?.redemptions ?? res?.data;
+  const redemptions: EssenceRedemption[] = Array.isArray(redemptionsRaw) ? redemptionsRaw : [];
   const totalPages: number = res?.data?.totalPages ?? 1;
 
   const handleConfirm = async (e: FormEvent) => {

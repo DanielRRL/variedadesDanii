@@ -15,6 +15,9 @@ import bcrypt from "bcrypt";
 // jsonwebtoken - Creacion y firma de JWT.
 import jwt from "jsonwebtoken";
 
+// google-auth-library - Verifica ID tokens de Google Sign-In.
+import { OAuth2Client } from "google-auth-library";
+
 // IUserRepository - Inyeccion de dependencia del repo de usuarios.
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 
@@ -399,15 +402,20 @@ export class AuthService {
 
   /**
    * Autentica (o registra) un usuario mediante Google Sign-In.
-   * 1. Verifica el ID token con la libreria de Google.
-   * 2. Si el email ya existe en la BD, inicia sesion.
-   * 3. Si no existe, crea una cuenta nueva con emailVerified=true
+   * 1. Verifica que GOOGLE_CLIENT_ID este configurado.
+   * 2. Verifica el ID token con la libreria de Google.
+   * 3. Si el email ya existe en la BD, inicia sesion.
+   * 4. Si no existe, crea una cuenta nueva con emailVerified=true
    *    (Google ya verifico el correo) y password aleatorio.
    * @param idToken - Token JWT de Google devuelto por Sign In with Google.
    * @throws AppError 401 si el token es invalido o no contiene email.
    */
   async googleLogin(idToken: string): Promise<AuthResponse> {
-    const { OAuth2Client } = await import("google-auth-library");
+    // Guardia: GOOGLE_CLIENT_ID no configurado
+    if (!env.google.clientId) {
+      throw AppError.badRequest("Google Sign-In is not configured. Set GOOGLE_CLIENT_ID.");
+    }
+
     const client = new OAuth2Client(env.google.clientId);
 
     let payload;
@@ -427,7 +435,7 @@ export class AuthService {
 
     const { email, name, sub: googleId } = payload;
 
-    // Buscar usuario existente por email
+    // Buscar usuario existente por email o googleId
     let user = await this.userRepo.findByEmail(email);
 
     if (user) {
@@ -435,19 +443,35 @@ export class AuthService {
       if (!user.active) {
         throw AppError.unauthorized("Account is deactivated");
       }
+      // Vincular googleId si no estaba vinculado
+      if (!user.googleId && googleId) {
+        await this.userRepo.update(user.id!, { googleId });
+        user.googleId = googleId;
+      }
     } else {
       // Crear cuenta nueva — password aleatorio (el usuario no lo usa)
       const randomPassword = crypto.randomBytes(32).toString("hex");
       const hashedPassword = await bcrypt.hash(randomPassword, 12);
+      // Telefono unico generado a partir del Google ID
+      const googlePhone = `gsignin_${googleId?.substring(0, 24) ?? crypto.randomBytes(8).toString("hex")}`;
 
-      user = await this.userRepo.create({
-        name: name || email.split("@")[0],
-        phone: "",
-        email,
-        password: hashedPassword,
-        role: UserRole.CLIENT,
-        active: true,
-      });
+      try {
+        user = await this.userRepo.create({
+          name: name || email.split("@")[0],
+          phone: googlePhone,
+          email,
+          password: hashedPassword,
+          role: UserRole.CLIENT,
+          active: true,
+          googleId: googleId ?? null,
+        });
+      } catch (err: unknown) {
+        const prismaError = err as { code?: string };
+        if (prismaError.code === "P2002") {
+          throw AppError.conflict("An account with this Google identity already exists.");
+        }
+        throw err;
+      }
 
       // Marcar email como verificado (Google ya lo verifico)
       await this.userRepo.update(user.id!, { emailVerified: true });

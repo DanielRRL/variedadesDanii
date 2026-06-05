@@ -25,6 +25,7 @@ import { clsx } from 'clsx';
 import {
   getMyGramAccount, getGramHistory, getMyRedemptions, getEssences, redeemGrams,
 } from '../services/api';
+import { queryKeys } from '../services/queryKeys';
 import { useToastStore } from '../stores/toastStore';
 import type { GramTransaction, EssenceRedemption, Essence } from '../types';
 import { AppBar } from '../components/layout/AppBar';
@@ -300,7 +301,7 @@ export default function MyGramsPage() {
 
   // ── Data ────────────────────────────────────────────────────────────────
   const { data: accountRes, isLoading: accountLoading } = useQuery({
-    queryKey: ['gram-account'],
+    queryKey: queryKeys.gramAccount,
     queryFn: getMyGramAccount,
     staleTime: 60_000,
   });
@@ -324,8 +325,10 @@ export default function MyGramsPage() {
   const canRedeem: boolean = account?.canRedeem ?? false;
   const totalRedeemed: number = account?.totalRedeemed ?? 0;
 
-  const transactions: GramTransaction[] = historyRes?.data?.transactions ?? historyRes?.data ?? [];
-  const redemptions: EssenceRedemption[] = redemptionsRes?.data?.redemptions ?? redemptionsRes?.data ?? [];
+  const transactionsRaw = historyRes?.data?.transactions ?? historyRes?.data;
+  const transactions: GramTransaction[] = Array.isArray(transactionsRaw) ? transactionsRaw : [];
+  const redemptionsRaw = redemptionsRes?.data?.redemptions ?? redemptionsRes?.data;
+  const redemptions: EssenceRedemption[] = Array.isArray(redemptionsRaw) ? redemptionsRaw : [];
 
   // ── UI state ────────────────────────────────────────────────────────────
   const [showRedeem, setShowRedeem] = useState(false);
@@ -599,7 +602,7 @@ export default function MyGramsPage() {
           currentGrams={currentGrams}
           onClose={() => setShowRedeem(false)}
           onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['gram-account'] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.gramAccount });
             queryClient.invalidateQueries({ queryKey: ['gram-history'] });
             queryClient.invalidateQueries({ queryKey: ['my-redemptions'] });
           }}

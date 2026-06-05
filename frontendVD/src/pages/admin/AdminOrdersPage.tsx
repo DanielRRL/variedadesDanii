@@ -168,7 +168,8 @@ export default function AdminOrdersPage() {
     staleTime: 30_000,
   });
 
-  const orders: AdminOrder[] = data?.data?.orders ?? data?.data ?? [];
+  const ordersRaw = data?.data?.orders ?? data?.data;
+  const orders: AdminOrder[] = Array.isArray(ordersRaw) ? ordersRaw : [];
   const total: number = data?.data?.total ?? orders.length;
 
   if (isError) return <AdminQueryError message={error?.message} />;

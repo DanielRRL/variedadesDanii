@@ -29,7 +29,7 @@ export const useFavoriteStore = create<FavoriteState & FavoriteActions>()(
       try {
         const res = await getMyFavorites();
         const list: { essenceId?: string | null; productId?: string | null }[] =
-          res.data?.data ?? res.data ?? [];
+          Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
 
         set({
           favoriteEssenceIds: list
@@ -63,7 +63,7 @@ export const useFavoriteStore = create<FavoriteState & FavoriteActions>()(
 
       try {
         const res = await toggleFavorite(body);
-        const data = res.data?.data ?? res.data;
+        const data = res.data?.favorited !== undefined ? res.data : (res.data?.data ?? res.data);
         const favorited: boolean = data.favorited;
 
         // Ensure consistency with server

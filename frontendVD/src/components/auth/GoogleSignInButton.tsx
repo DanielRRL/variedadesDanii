@@ -6,7 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import "../../css/GoogleSignInButton.css";
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '__VITE_GOOGLE_CLIENT_ID__';
 
 export default function GoogleSignInButton() {
   const navigate = useNavigate();
@@ -22,8 +22,19 @@ export default function GoogleSignInButton() {
         const res = await googleLogin(response.credential);
         setAuth(res.data.user, res.data.token);
         navigate('/');
-      } catch {
-        addToast('No se pudo iniciar sesión con Google.', 'error');
+      } catch (err: unknown) {
+        const ax = err as { response?: { status?: number; data?: { message?: string } }; code?: string };
+        if (ax.code === 'ERR_NETWORK' || ax.code === 'ERR_BAD_RESPONSE') {
+          addToast('Error de conexión. Verifica tu internet e intenta de nuevo.', 'error');
+        } else if (ax.response?.status === 401) {
+          addToast('La sesión de Google no es válida. Intenta de nuevo.', 'error');
+        } else if (ax.response?.status === 409) {
+          addToast(ax.response?.data?.message ?? 'Ya existe una cuenta con esta identidad de Google.', 'error');
+        } else if (ax.response?.status === 400) {
+          addToast('Google Sign-In no está configurado en el servidor.', 'error');
+        } else {
+          addToast('No se pudo iniciar sesión con Google. Intenta más tarde.', 'error');
+        }
       } finally {
         setLoading(false);
       }

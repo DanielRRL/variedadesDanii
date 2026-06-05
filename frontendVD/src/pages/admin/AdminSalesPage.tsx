@@ -26,8 +26,9 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 
-import { adminGetProducts, createPOSSale, searchRegisteredClients, getEssences } from '../../services/api';
+import { adminGetProducts, createPOSSale, searchRegisteredClients, getEssences, getInvoicePdf } from '../../services/api';
 import { formatCOP } from '../../utils/format';
+import { useToastStore } from '../../stores/toastStore';
 import { getEssencePriceWithGrams, OZ_TO_ML } from '../../utils/priceCalculator';
 import type { Product, Essence, POSSaleInput, POSSaleResult } from '../../types';
 import '../../css/AdminSalesPage.css';
@@ -88,6 +89,8 @@ function SuccessModal({
   clientName: string;
   onClose: () => void;
 }) {
+  const addToast = useToastStore((s) => s.addToast);
+
   return (
     <div className="admin-sales__modal-overlay">
       <div className="admin-sales__modal-backdrop" onClick={onClose} />
@@ -118,9 +121,15 @@ function SuccessModal({
 
         <div className="admin-sales__modal-actions">
           <button
-            onClick={() => {
-              const invoiceUrl = `/api/pos/sales/${result.order.id}/invoice`;
-              window.open(invoiceUrl, '_blank');
+            onClick={async () => {
+              try {
+                const res = await getInvoicePdf(result.order.id);
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                window.open(url, '_blank');
+                setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+              } catch {
+                addToast('Error al generar la factura.', 'error');
+              }
             }}
             className="admin-sales__modal-btn admin-sales__modal-btn--secondary"
           >

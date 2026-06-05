@@ -32,7 +32,7 @@ import { useToastStore } from '../stores/toastStore';
  * If the env var is missing, falls back to the Docker Compose service URL.
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '__VITE_API_URL__',
+  baseURL: import.meta.env.VITE_API_URL || '',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
 });
@@ -89,8 +89,12 @@ api.interceptors.response.use(
     ) {
       const { success, data, ...rest } = response.data;
       const extraKeys = Object.keys(rest);
-      if (extraKeys.length > 0 && typeof data === 'object' && data !== null && !Array.isArray(data)) {
-        response.data = { ...data, ...rest };
+      if (extraKeys.length > 0) {
+        if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+          response.data = { ...data, ...rest };
+        } else {
+          response.data = { data, ...rest };
+        }
       } else {
         response.data = data;
       }
@@ -472,6 +476,14 @@ export const adminVerifyUser = (userId: string) =>
  */
 export const getAdminInvoices = (params?: { status?: string; page?: number }) =>
   api.get('/api/admin/invoices', { params });
+
+/**
+ * GET /api/invoices/:orderId/pdf
+ * Downloads the invoice PDF for a specific order.
+ * Returns the PDF as a Blob (responseType: 'blob').
+ */
+export const getInvoicePdf = (orderId: string) =>
+  api.get(`/api/invoices/${orderId}/pdf`, { responseType: 'blob' });
 
 /**
  * POST /api/admin/invoices/:orderId/retry

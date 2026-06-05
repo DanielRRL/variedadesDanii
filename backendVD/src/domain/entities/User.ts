@@ -14,6 +14,7 @@ export interface UserProps {
   role: UserRole;        // Rol que determina permisos en el sistema.
   active: boolean;       // Si la cuenta esta activa o deshabilitada.
   emailVerified?: boolean; // Si el usuario ya verifico su correo (RF-004).
+  googleId?: string | null; // ID de cuenta Google para usuarios registrados via Google Sign-In.
   createdAt?: Date;      // Fecha de creacion, asignada por la BD.
   updatedAt?: Date;      // Fecha de ultima actualizacion, asignada por la BD.
 }
@@ -46,6 +47,7 @@ export class User {
   public role: UserRole;
   public active: boolean;
   public emailVerified: boolean;
+  public googleId?: string | null;
   public readonly createdAt?: Date;
   public readonly updatedAt?: Date;
 
@@ -59,6 +61,7 @@ export class User {
     this.role = props.role;
     this.active = props.active;
     this.emailVerified = props.emailVerified ?? false;
+    this.googleId = props.googleId ?? null;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getMyGameTokens, getCurrentChallenge, getMyGramAccount, playGame } from '../services/api';
+import { queryKeys } from '../services/queryKeys';
 import { useToastStore } from '../stores/toastStore';
 import type { GameToken, WeeklyChallenge } from '../types';
 import { AppBar } from '../components/layout/AppBar';
@@ -1063,24 +1064,25 @@ export default function GamesPage() {
   const queryClient = useQueryClient();
 
   const { data: tokensRes, isLoading: tokensLoading } = useQuery({
-    queryKey: ['my-game-tokens'],
+    queryKey: queryKeys.gameTokens,
     queryFn: getMyGameTokens,
     staleTime: 30_000,
   });
 
   const { data: challengeRes } = useQuery({
-    queryKey: ['current-challenge'],
+    queryKey: queryKeys.challenge,
     queryFn: getCurrentChallenge,
     staleTime: 2 * 60 * 1000,
   });
 
   const { data: gramRes } = useQuery({
-    queryKey: ['gram-account'],
+    queryKey: queryKeys.gramAccount,
     queryFn: getMyGramAccount,
     staleTime: 2 * 60 * 1000,
   });
 
-  const pendingTokens: GameToken[] = tokensRes?.data?.pendingTokens ?? tokensRes?.data ?? [];
+  const rawTokens = tokensRes?.data?.pendingTokens ?? tokensRes?.data;
+  const pendingTokens: GameToken[] = Array.isArray(rawTokens) ? rawTokens : [];
   const challenge: WeeklyChallenge | null = challengeRes?.data?.challenge ?? challengeRes?.data ?? null;
   const gramBalance: number = gramRes?.data?.account?.currentGrams ?? gramRes?.data?.currentGrams ?? 0;
 
@@ -1115,8 +1117,8 @@ export default function GamesPage() {
   const handleGameComplete = (gramsWon: number, newBalance: number, ozCompleted: boolean) => {
     setResult({ gramsWon, newBalance, ozCompleted });
     setPageState('result');
-    queryClient.invalidateQueries({ queryKey: ['my-game-tokens'] });
-    queryClient.invalidateQueries({ queryKey: ['gram-account'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.gameTokens });
+    queryClient.invalidateQueries({ queryKey: queryKeys.gramAccount });
   };
 
   const handleBackFromGame = () => setPageState('idle');

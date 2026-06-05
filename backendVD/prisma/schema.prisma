@@ -201,6 +201,8 @@ model User {
   active        Boolean  @default(true)
   /// Indica si el usuario ya verifico su correo electronico (RF-004)
   emailVerified Boolean  @default(false) @map("email_verified")
+  /// Google account ID — para usuarios registrados via Google Sign-In
+  googleId       String?  @unique @map("google_id")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 

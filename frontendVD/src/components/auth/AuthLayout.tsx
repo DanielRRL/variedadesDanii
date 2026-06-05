@@ -134,7 +134,7 @@ export default function AuthLayout({
           {/* Logo */}
           <div className="auth-logo">
             <div className="auth-logo-box">
-              VD
+              <img src="/VDlogo.png" alt="VD Logo" className="auth-logo-img" />
             </div>
             <div>
               <p className="auth-logo-title">Variedades DANII</p>

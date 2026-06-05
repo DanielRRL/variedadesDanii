@@ -100,13 +100,16 @@
   height: 3.5rem;
   border-radius: 1rem;
   background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1.25rem;
-  color: var(--brand-pink);
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+  padding: 0.35rem;
+}
+
+.auth-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .auth-logo-title {

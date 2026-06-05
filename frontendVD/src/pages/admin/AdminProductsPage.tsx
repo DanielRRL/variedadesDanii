@@ -252,7 +252,8 @@ export default function AdminProductsPage() {
     staleTime: 30_000,
   });
 
-  const products: Product[] = res?.data?.products ?? res?.data ?? [];
+  const productsRaw = res?.data?.products ?? res?.data;
+  const products: Product[] = Array.isArray(productsRaw) ? productsRaw : [];
   const totalPages: number = res?.data?.totalPages ?? 1;
 
   const filtered = search

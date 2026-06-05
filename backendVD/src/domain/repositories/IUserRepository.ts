@@ -22,6 +22,7 @@ export interface CreateUserData {
   password: string;
   role: UserRole;
   active: boolean;
+  googleId?: string | null;
 }
 
 /** Contrato del repositorio de usuarios. */

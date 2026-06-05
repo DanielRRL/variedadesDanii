@@ -23,6 +23,7 @@ import { Home, Search, Gamepad2, Package, User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { getMyGameTokens } from '../../services/api';
+import { queryKeys } from '../../services/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import type { GameToken } from '../../types';
 
@@ -63,11 +64,11 @@ export function BottomTabBar({ activeOrderCount = 0, pendingGameTokens = 0 }: Bo
 
   // Auto-fetch pending game tokens when authenticated
   const { data: tokensRes } = useQuery({
-    queryKey: ['gameTokens', 'bottom-bar'],
+    queryKey: queryKeys.gameTokens,
     queryFn: getMyGameTokens,
     enabled: isAuthenticated,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
   });
 
   const fetchedPending = isAuthenticated

@@ -134,7 +134,7 @@ export function AppBar({
             className="app-bar__brand"
             aria-label="Inicio"
           >
-            VD
+            <img src="/VDlogo.png" alt="VD Logo" className="app-bar__brand-img" />
           </button>
         )}
       </div>

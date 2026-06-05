@@ -348,8 +348,8 @@ export default function AdminDashboardPage() {
     amount: chartValues[i] ?? 0,
   }));
 
-  const lowStockList: { name: string; stockMl: number }[] =
-    lowStockRes?.data?.essences ?? lowStockRes?.data ?? [];
+  const lowStockRaw = lowStockRes?.data?.essences ?? lowStockRes?.data;
+  const lowStockList: { name: string; stockMl: number }[] = Array.isArray(lowStockRaw) ? lowStockRaw : [];
 
   const topEssenceData = topEssences.slice(0, 5).map((ess) => ({
     name: ess.name.length > 18 ? ess.name.slice(0, 16) + "\u2026" : ess.name,

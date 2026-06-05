@@ -146,13 +146,16 @@
   height: 2rem;
   border-radius: 0.5rem;
   background: var(--color-brand-pink, #D81B60);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: white;
   flex-shrink: 0;
+  overflow: hidden;
+  padding: 0.15rem;
+}
+
+.admin-sidebar__brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .admin-sidebar__brand-logo-text {

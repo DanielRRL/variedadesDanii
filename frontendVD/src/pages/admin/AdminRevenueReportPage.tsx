@@ -205,7 +205,7 @@ export default function AdminRevenueReportPage() {
                         <td className="admin-revenue__sales-td">
                           <span className={clsx('admin-revenue__channel-badge', isInStore ? 'admin-revenue__channel-badge--local' : 'admin-revenue__channel-badge--online')}>{isInStore ? 'LOCAL' : 'ONLINE'}</span>
                         </td>
-                        <td className="admin-revenue__sales-td"><span className="admin-revenue__sales-td-products">{order.items?.map(i => i.product?.name).filter(Boolean).join(', ') || `${order.items?.length ?? 0} productos`}</span></td>
+                        <td className="admin-revenue__sales-td"><span className="admin-revenue__sales-td-products">{order.items?.map(i => i.product?.name)?.filter(Boolean)?.join(', ') || `${order.items?.length ?? 0} productos`}</span></td>
                         <td className="admin-revenue__sales-td" style={{ textAlign: 'right' }}><span className="admin-revenue__sales-td-total">{formatCOP(order.total)}</span></td>
                         <td className="admin-revenue__sales-td" style={{ textAlign: 'center' }}>
                           <span className={clsx('admin-revenue__status', `admin-revenue__status--${(STATUS_LABELS[order.status] || order.status).toLowerCase()}`)}>{STATUS_LABELS[order.status] ?? order.status}</span>

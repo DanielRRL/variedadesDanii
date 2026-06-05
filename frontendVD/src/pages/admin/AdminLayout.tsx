@@ -183,7 +183,9 @@ export default function AdminLayout() {
             onClick={() => { if (collapsed) setCollapsed(false); }}
             style={collapsed ? { cursor: 'pointer' } : undefined}
           >
-            <div className="admin-sidebar__brand-logo-icon">VD</div>
+            <div className="admin-sidebar__brand-logo-icon">
+              <img src="/VDlogo.png" alt="VD Logo" className="admin-sidebar__brand-logo-img" />
+            </div>
             {!collapsed && (
               <div className="admin-sidebar__brand-logo-text">
                 <span>Admin</span>

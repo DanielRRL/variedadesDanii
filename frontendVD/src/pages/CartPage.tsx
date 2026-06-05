@@ -27,6 +27,7 @@ import {
 import { clsx } from 'clsx';
 import { useCartStore } from '../stores/cartStore';
 import { createOrder, getProducts } from '../services/api';
+import { queryKeys } from '../services/queryKeys';
 import type { CartItem, Order, Product } from '../types';
 import { formatCOP } from '../utils/format';
 import { AppBar } from '../components/layout/AppBar';
@@ -147,7 +148,7 @@ export default function CartPage() {
 
   // ── Live product stock (to detect out-of-stock items in cart) ──────────────
   const { data: productsRes } = useQuery({
-    queryKey: ['products'],
+    queryKey: queryKeys.products,
     queryFn: getProducts,
     staleTime: 60_000,
   });

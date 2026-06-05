@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import '../css/HomePage.css';
 import { getProducts, getMyGramAccount } from '../services/api';
+import { queryKeys } from '../services/queryKeys';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
@@ -53,12 +54,14 @@ export default function HomePage() {
   const products: Product[] = (() => {
     const raw = Array.isArray(productsData?.data)
       ? productsData.data
-      : productsData?.data?.products ?? [];
+      : Array.isArray(productsData?.data?.products)
+        ? productsData.data.products
+        : [];
     return raw.filter((p: Product) => p.active).slice(0, 6);
   })();
 
   const { data: gramRes } = useQuery({
-    queryKey: ['gramAccount', 'home'],
+    queryKey: queryKeys.gramAccount,
     queryFn: getMyGramAccount,
     enabled: isAuthenticated,
     staleTime: 2 * 60_000,

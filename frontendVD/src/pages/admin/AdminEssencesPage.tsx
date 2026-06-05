@@ -240,10 +240,14 @@ export default function AdminEssencesPage() {
 
   if (isError || isLowStockError || isFamiliesError || isHousesError) return <AdminQueryError />;
 
-  const essences: Essence[] = essencesRes?.data?.essences ?? essencesRes?.data ?? [];
-  const lowStock: { name: string; stockMl: number }[] = lowStockRes?.data?.essences ?? lowStockRes?.data ?? [];
-  const families: OlfactiveFamily[] = familiesRes?.data ?? [];
-  const houses: House[] = housesRes?.data ?? [];
+  const essencesRaw = essencesRes?.data?.essences ?? essencesRes?.data;
+  const essences: Essence[] = Array.isArray(essencesRaw) ? essencesRaw : [];
+  const lowStockRaw = lowStockRes?.data?.essences ?? lowStockRes?.data;
+  const lowStock: { name: string; stockMl: number }[] = Array.isArray(lowStockRaw) ? lowStockRaw : [];
+  const familiesRaw = familiesRes?.data;
+  const families: OlfactiveFamily[] = Array.isArray(familiesRaw) ? familiesRaw : [];
+  const housesRaw = housesRes?.data;
+  const houses: House[] = Array.isArray(housesRaw) ? housesRaw : [];
 
   const q = search.toLowerCase();
   const filtered = q ? essences.filter(e => e.name.toLowerCase().includes(q) || e.olfactiveFamily?.name?.toLowerCase().includes(q) || (e.house?.name?.toLowerCase().includes(q)) || (e.house?.handle?.toLowerCase().includes(q))) : essences;
