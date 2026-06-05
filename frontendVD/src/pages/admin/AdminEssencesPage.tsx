@@ -233,10 +233,10 @@ export default function AdminEssencesPage() {
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [toggleTarget, setToggleTarget] = useState<Essence | null>(null);
 
-  const { data: essencesRes, isLoading, isError } = useQuery({ queryKey: ['admin-essences'], queryFn: getEssences, staleTime: 30_000 });
+  const { data: essencesRes, isLoading, isError } = useQuery({ queryKey: ['admin-essences'], queryFn: () => getEssences(), staleTime: 30_000 });
   const { data: lowStockRes, isError: isLowStockError } = useQuery({ queryKey: ['admin-low-stock'], queryFn: () => getLowStockAlerts(), staleTime: 5 * 60_000 });
-  const { data: familiesRes, isError: isFamiliesError } = useQuery({ queryKey: ['olfactive-families'], queryFn: getOlfactiveFamilies, staleTime: 60_000 });
-  const { data: housesRes, isError: isHousesError } = useQuery({ queryKey: ['houses'], queryFn: getHouses, staleTime: 60_000 });
+  const { data: familiesRes, isError: isFamiliesError } = useQuery({ queryKey: ['olfactive-families'], queryFn: () => getOlfactiveFamilies(), staleTime: 60_000 });
+  const { data: housesRes, isError: isHousesError } = useQuery({ queryKey: ['houses'], queryFn: () => getHouses(), staleTime: 60_000 });
 
   if (isError || isLowStockError || isFamiliesError || isHousesError) return <AdminQueryError />;
 
