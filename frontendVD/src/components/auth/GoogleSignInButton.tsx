@@ -13,7 +13,9 @@ export default function GoogleSignInButton() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
-  const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [showFallbackBtn, setShowFallbackBtn] = useState(false);
+  const fallbackRef = useRef<HTMLDivElement>(null);
+  const gsiReady = useRef(false);
 
   const handleCredentialResponse = useCallback(
     async (response: { credential: string }) => {
@@ -46,21 +48,20 @@ export default function GoogleSignInButton() {
     if (!GOOGLE_CLIENT_ID) return;
 
     function initGsi() {
-      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
+      if (!window.google?.accounts?.id) return;
 
+      // itp_support: upgraded One Tap UX on ITP browsers (Safari, Firefox, Chrome on iOS)
+      //   — shows welcome page + popup instead of normal One Tap which requires 3P cookies
+      //   Ref: https://developers.google.com/identity/gsi/web/guides/features#upgraded_ux_on_itp_browsers
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleCredentialResponse,
         auto_select: false,
+        cancel_on_tap_outside: true,
+        itp_support: true,
       });
 
-      window.google.accounts.id.renderButton(googleBtnRef.current, {
-        type: 'standard',
-        size: 'large',
-        theme: 'outline',
-        text: 'continue_with',
-        width: 300,
-      });
+      gsiReady.current = true;
     }
 
     if (window.google?.accounts?.id) {
@@ -81,30 +82,55 @@ export default function GoogleSignInButton() {
     }
   }, [handleCredentialResponse]);
 
-  function handleClick() {
-    const iframe = googleBtnRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
-    const div = googleBtnRef.current?.querySelector('div[role="button"]') as HTMLElement | null;
-    if (div) {
-      div.click();
-    } else if (iframe) {
-      iframe.click();
-    } else {
-      window.google?.accounts?.id?.prompt();
+  // Render fallback Google button when One Tap was suppressed
+  // use_fedcm_for_button: enables FedCM button UX on Chrome M125+ (desktop) / M128+ (Android)
+  //   Ref: https://developers.google.com/identity/gsi/web/guides/fedcm-migration#1-add-a-boolean-flag-to-enable-fedcm-for-button-when-initializing-using-optional
+  useEffect(() => {
+    if (showFallbackBtn && fallbackRef.current && gsiReady.current) {
+      window.google!.accounts!.id.renderButton(fallbackRef.current, {
+        type: 'standard',
+        size: 'large',
+        theme: 'outline',
+        text: 'continue_with',
+        width: 300,
+        click_listener: () => setLoading(true),
+      });
     }
+  }, [showFallbackBtn]);
+
+  function handleClick() {
+    if (loading) return;
+
+    // prompt() displays One Tap prompt or browser credential manager.
+    // On ITP browsers (with itp_support:true) shows upgraded UX: welcome page + popup.
+    // FedCM is auto-enabled on Chrome 117+ (use_fedcm_for_prompt is deprecated).
+    // Ref: https://developers.google.com/identity/gsi/web/reference/js-reference#google.accounts.id.prompt
+    window.google?.accounts?.id?.prompt((notification) => {
+      if (notification.isNotDisplayed()) {
+        // One Tap not shown: no Google session, suppressed, or ITP fallback needed
+        // Show the rendered Google button as direct-click fallback
+        setShowFallbackBtn(true);
+      } else if (notification.isSkippedMoment()) {
+        // User cancelled or credential issuance failed → show fallback button
+        setShowFallbackBtn(true);
+      }
+      // isDismissedMoment: credential was returned (callback already handled) or cancel() called
+    });
   }
 
   if (!GOOGLE_CLIENT_ID) return null;
 
+  // Fallback: show the real Google-rendered button (appears after prompt() was suppressed)
+  if (showFallbackBtn) {
+    return (
+      <div className="google-btn-container google-btn-container--fallback">
+        <div ref={fallbackRef} />
+      </div>
+    );
+  }
+
   return (
     <div className="google-btn-container">
-      {/* Hidden Google-rendered button — clickable layer, opacity near 0 */}
-      <div
-        ref={googleBtnRef}
-        className="google-btn-hidden"
-        aria-hidden="true"
-      />
-
-      {/* Visible custom-styled button — sits on top, matches clickable zone */}
       <button
         type="button"
         onClick={handleClick}
