@@ -160,8 +160,6 @@ import { createPOSRoutes } from "./interfaces/routes/posRoutes";
 import { createFavoriteRoutes } from "./interfaces/routes/favoriteRoutes";
 // createUploadRoutes - Subida de imagenes con multer (admin).
 import { createUploadRoutes } from "./interfaces/routes/uploadRoutes";
-// createImageProxyRoutes - Proxy de imagenes externas (Google Drive, etc.).
-import { createImageProxyRoutes } from "./interfaces/routes/imageProxyRoutes";
 
 /**
  * Crea y configura la aplicacion Express completa.
@@ -352,7 +350,6 @@ export function createApp(): express.Application {
   app.use("/api/admin/upload", createUploadRoutes());
   app.use("/api/pos", createPOSRoutes(posController));
   app.use("/api/favorites", createFavoriteRoutes(favoriteController));
-  app.use("/api/images", createImageProxyRoutes());
 
   // ---------------------------------------------------------------------------
   // Cron: expirar fichas de juego viejas cada 6 horas
