@@ -10,7 +10,7 @@ import {
   createHouse, createOlfactiveFamily, registerEssenceMovement, getLowStockAlerts, adminDeleteEssence,
   uploadImage,
 } from '../../services/api';
-import { getImageSrc } from '../../utils/imageUtils';
+import { normaliseDriveUrl, getImageSrc } from '../../utils/imageUtils';
 import type { Essence, OlfactiveFamily, House } from '../../types';
 import '../../css/AdminEssencesPage.css';
 
@@ -194,9 +194,7 @@ function EssenceFormModal({ initial, open, onClose, onSubmit, loading, title, su
             ) : (
               <input type="url" value={form.photoUrl}
                 onChange={(e) => {
-                  let val = e.target.value;
-                  const driveMatch = val.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-                  if (driveMatch) val = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+                  const val = normaliseDriveUrl(e.target.value);
                   setForm((f: any) => ({ ...f, photoUrl: val }));
                 }}
                 placeholder="https://drive.google.com/file/d/... o URL externa"

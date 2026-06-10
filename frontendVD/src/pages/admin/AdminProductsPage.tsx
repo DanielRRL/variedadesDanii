@@ -29,7 +29,7 @@ import {
   uploadImage,
 } from '../../services/api';
 import { formatCOP } from '../../utils/format';
-import { getImageSrc } from '../../utils/imageUtils';
+import { normaliseDriveUrl, getImageSrc } from '../../utils/imageUtils';
 import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
 import { useToastStore } from '../../stores/toastStore';
 import { AdminQueryError } from '../../components/admin/AdminQueryError';
@@ -162,9 +162,7 @@ function ProductForm({
         ) : (
           <input type="url" value={form.photoUrl}
             onChange={(e) => {
-              let val = e.target.value;
-              const driveMatch = val.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-              if (driveMatch) val = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+              const val = normaliseDriveUrl(e.target.value);
               setForm((f: any) => ({ ...f, photoUrl: val }));
             }}
             placeholder="https://drive.google.com/file/d/... o URL externa"
