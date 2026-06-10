@@ -10,6 +10,7 @@ import {
   createHouse, createOlfactiveFamily, registerEssenceMovement, getLowStockAlerts, adminDeleteEssence,
   uploadImage,
 } from '../../services/api';
+import { getImageSrc } from '../../utils/imageUtils';
 import type { Essence, OlfactiveFamily, House } from '../../types';
 import '../../css/AdminEssencesPage.css';
 
@@ -203,7 +204,7 @@ function EssenceFormModal({ initial, open, onClose, onSubmit, loading, title, su
             )}
 
             {form.photoUrl && (
-              <img src={form.photoUrl} alt="Preview" className="admin-essences__photo-preview" />
+              <img src={getImageSrc(form.photoUrl)} alt="Preview" className="admin-essences__photo-preview" />
             )}
           </div>
           <button type="submit" disabled={loading || !form.name || !form.olfactiveFamilyId} className="admin-essences__form-submit">

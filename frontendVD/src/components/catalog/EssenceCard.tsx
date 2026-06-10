@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { ESSENCE_PRICE_1OZ } from "../../utils/priceCalculator";
 import type { Essence } from "../../types";
 import { formatCOP } from "../../utils/format";
+import { getImageSrc } from "../../utils/imageUtils";
 import { useAuthStore } from "../../stores/authStore";
 import { useFavoriteStore } from "../../stores/favoriteStore";
 import "../../css/EssenceCard.css";
@@ -101,7 +102,7 @@ export function EssenceCard({ essence, onPress, className }: EssenceCardProps) {
       <div className="essence-card__image-area">
         {essence.photoUrl ? (
           <img
-            src={essence.photoUrl}
+            src={getImageSrc(essence.photoUrl)}
             alt={essence.name}
             className="essence-card__image"
             loading="lazy"

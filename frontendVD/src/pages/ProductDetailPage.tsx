@@ -25,6 +25,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useFavoriteStore } from '../stores/favoriteStore';
 import { useToastStore } from '../stores/toastStore';
 import { formatCOP } from '../utils/format';
+import { getImageSrc } from '../utils/imageUtils';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
 import type { Product } from '../types';
 import '../css/ProductDetailPage.css';
@@ -213,7 +214,7 @@ export default function ProductDetailPage() {
           <div className="pd-hero">
             {product.photoUrl ? (
               <img
-                src={product.photoUrl}
+                src={getImageSrc(product.photoUrl)}
                 alt={product.name}
                 className="pd-hero__img"
               />

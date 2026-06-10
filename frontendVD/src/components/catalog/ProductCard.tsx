@@ -13,6 +13,7 @@ import { useCartStore } from "../../stores/cartStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFavoriteStore } from "../../stores/favoriteStore";
 import { formatCOP } from "../../utils/format";
+import { getImageSrc } from "../../utils/imageUtils";
 import type { Product } from "../../types";
 import "../../css/ProductCard.css";
 
@@ -76,7 +77,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="product-card__image-area">
         {product.photoUrl ? (
           <img
-            src={product.photoUrl}
+            src={getImageSrc(product.photoUrl)}
             alt={product.name}
             className="product-card__image"
             loading="lazy"

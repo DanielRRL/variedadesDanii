@@ -30,6 +30,7 @@ import { createOrder, getProducts } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import type { CartItem, Order, Product } from '../types';
 import { formatCOP } from '../utils/format';
+import { getImageSrc } from '../utils/imageUtils';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
 import '../css/CartPage.css';
@@ -67,7 +68,7 @@ function CartItemRow({ item, onUpdateQty, onRemove, isOutOfStock }: CartItemRowP
       {/* Thumbnail */}
       {item.photoUrl ? (
         <img
-          src={item.photoUrl}
+          src={getImageSrc(item.photoUrl)}
           alt={item.name}
           className="cart-item__thumb"
           loading="lazy"

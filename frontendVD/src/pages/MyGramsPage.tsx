@@ -28,6 +28,7 @@ import {
 import { queryKeys } from '../services/queryKeys';
 import { useToastStore } from '../stores/toastStore';
 import type { GramTransaction, EssenceRedemption, Essence } from '../types';
+import { getImageSrc } from '../utils/imageUtils';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomTabBar } from '../components/layout/BottomTabBar';
 import '../css/MyGramsPage.css';
@@ -205,7 +206,7 @@ function RedeemModal({ currentGrams, onClose, onSuccess }: RedeemModalProps) {
                       )}
                     >
                       {ess.photoUrl ? (
-                        <img src={ess.photoUrl} alt={ess.name} className="grams-modal__essence-img" />
+                        <img src={getImageSrc(ess.photoUrl)} alt={ess.name} className="grams-modal__essence-img" />
                       ) : (
                         <div className="grams-modal__essence-placeholder">
                           <span>{ess.name.charAt(0)}</span>

@@ -28,6 +28,7 @@ import clsx from 'clsx';
 
 import { adminGetProducts, createPOSSale, searchRegisteredClients, getEssences, getInvoicePdf } from '../../services/api';
 import { formatCOP } from '../../utils/format';
+import { getImageSrc } from '../../utils/imageUtils';
 import { useToastStore } from '../../stores/toastStore';
 import { getEssencePriceWithGrams, OZ_TO_ML } from '../../utils/priceCalculator';
 import type { Product, Essence, POSSaleInput, POSSaleResult } from '../../types';
@@ -167,7 +168,7 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }
     >
       {product.photoUrl ? (
         <img
-          src={product.photoUrl}
+          src={getImageSrc(product.photoUrl)}
           alt={product.name}
           className="admin-sales__product-img"
         />

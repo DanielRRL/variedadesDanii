@@ -34,6 +34,7 @@ import {
   getEssencePrice,
   buildOzOptions,
 } from '../utils/priceCalculator';
+import { getImageSrc } from '../utils/imageUtils';
 import type { Essence, Product } from '../types';
 import styles from './EssenceDetailPage.module.css';
 
@@ -200,7 +201,7 @@ export default function EssenceDetailPage() {
       <div className={styles.hero}>
         {essence.photoUrl ? (
           <img
-            src={essence.photoUrl}
+            src={getImageSrc(essence.photoUrl)}
             alt={essence.name}
             className={styles.heroImg}
           />

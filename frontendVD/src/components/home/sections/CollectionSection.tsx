@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '../../../types';
 import { formatCOP } from '../../../utils/format';
+import { getImageSrc } from '../../../utils/imageUtils';
 
 interface CollectionSectionProps {
   products: Product[];
@@ -67,7 +68,7 @@ function FeaturedProductCard({
       <div className="home-product-card__image-wrap">
         {product.photoUrl ? (
           <img
-            src={product.photoUrl}
+            src={getImageSrc(product.photoUrl)}
             alt={product.name}
             className="home-product-card__image"
             loading="lazy"

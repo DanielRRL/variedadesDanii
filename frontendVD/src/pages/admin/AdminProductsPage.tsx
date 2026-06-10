@@ -29,6 +29,7 @@ import {
   uploadImage,
 } from '../../services/api';
 import { formatCOP } from '../../utils/format';
+import { getImageSrc } from '../../utils/imageUtils';
 import AdminConfirmDialog from '../../components/admin/AdminConfirmDialog';
 import { useToastStore } from '../../stores/toastStore';
 import { AdminQueryError } from '../../components/admin/AdminQueryError';
@@ -171,7 +172,7 @@ function ProductForm({
         )}
 
         {form.photoUrl && (
-          <img src={form.photoUrl} alt="Preview" className="admin-products__photo-preview" />
+          <img src={getImageSrc(form.photoUrl)} alt="Preview" className="admin-products__photo-preview" />
         )}
       </div>
 
@@ -382,7 +383,7 @@ export default function AdminProductsPage() {
                     <td className="admin-products__td">
                       <div className="admin-products__td-info">
                         {p.photoUrl ? (
-                          <img src={p.photoUrl} alt={p.name} className="admin-products__thumb" />
+                          <img src={getImageSrc(p.photoUrl)} alt={p.name} className="admin-products__thumb" />
                         ) : (
                           <div className="admin-products__thumb-placeholder"><span>{p.name.charAt(0)}</span></div>
                         )}
