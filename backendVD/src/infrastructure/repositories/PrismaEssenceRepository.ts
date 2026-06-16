@@ -35,6 +35,7 @@ function toEntity(e: any): Essence {
     inspirationBrand: e.inspirationBrand ?? undefined,
     houseId: e.houseId ?? undefined,
     photoUrl: e.photoUrl ?? undefined,
+    gender: e.gender as string,
     house: e.house
       ? { id: e.house.id, name: e.house.name, handle: e.house.handle }
       : undefined,
@@ -83,6 +84,7 @@ export class PrismaEssenceRepository implements IEssenceRepository {
         inspirationBrand: essence.inspirationBrand,
         houseId: essence.houseId || null,
         photoUrl: essence.photoUrl ?? null,
+        gender: (essence.gender ?? "UNISEX") as any,
         active: essence.active,
         ...(essence.olfactiveTags && essence.olfactiveTags.length > 0
           ? {
@@ -124,6 +126,7 @@ export class PrismaEssenceRepository implements IEssenceRepository {
             ...(data.inspirationBrand !== undefined && { inspirationBrand: data.inspirationBrand }),
             ...(data.houseId !== undefined && { houseId: data.houseId }),
             ...(data.photoUrl !== undefined && { photoUrl: data.photoUrl }),
+            ...(data.gender && { gender: data.gender as any }),
           },
           include: ESSENCE_INCLUDE,
         });
@@ -144,6 +147,7 @@ export class PrismaEssenceRepository implements IEssenceRepository {
         }),
         ...(data.houseId !== undefined && { houseId: data.houseId || null }),
         ...(data.photoUrl !== undefined && { photoUrl: data.photoUrl }),
+        ...(data.gender && { gender: data.gender as any }),
         ...(data.active !== undefined && { active: data.active }),
       },
       include: ESSENCE_INCLUDE,

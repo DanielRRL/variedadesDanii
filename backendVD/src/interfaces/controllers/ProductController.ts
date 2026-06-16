@@ -87,6 +87,7 @@ export class ProductController {
         bottleId: category === "PERFUME" ? bottleId : undefined,
         mlQuantity: category === "PERFUME" ? mlQuantity : undefined,
         price,
+        gender: "UNISEX",
         active: true,
         isPerfume: () => category === "PERFUME",
       });
@@ -146,7 +147,7 @@ export class ProductController {
   ): Promise<void> => {
     try {
       const {
-        name, description, productType, price, stockUnits, photoUrl,
+        name, description, productType, price, stockUnits, photoUrl, gender,
       } = req.body;
 
       // Validaciones
@@ -175,6 +176,7 @@ export class ProductController {
           stockUnits: stockUnits ?? 0,
           generatesGram: false,
           photoUrl: photoUrl || null,
+          gender: gender || "UNISEX",
           active: true,
         },
       });
@@ -199,7 +201,7 @@ export class ProductController {
     try {
       const id = param(req, "id");
       const {
-        name, description, productType, price, stockUnits, photoUrl, active,
+        name, description, productType, price, stockUnits, photoUrl, active, gender,
       } = req.body;
 
       // Validar productType si se envia
@@ -226,6 +228,7 @@ export class ProductController {
       if (price !== undefined) updateData.price = price;
       if (stockUnits !== undefined) updateData.stockUnits = stockUnits;
       if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
+      if (gender !== undefined) updateData.gender = gender;
       if (active !== undefined) updateData.active = active;
 
       const product = await prisma.product.update({
@@ -280,10 +283,12 @@ export class ProductController {
       const page  = parseInt(String(req.query.page  ?? "1"),  10);
       const limit = parseInt(String(req.query.limit ?? "20"), 10);
       const type  = req.query.type as string | undefined;
+      const genderQ = req.query.gender as string | undefined;
       const active = req.query.active as string | undefined;
 
       const where: any = {};
       if (type) where.productType = type;
+      if (genderQ) where.gender = genderQ;
       if (active !== undefined) where.active = active === "true";
 
       const [products, total] = await Promise.all([

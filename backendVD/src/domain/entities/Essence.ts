@@ -23,11 +23,19 @@ export interface EssenceProps {
   house?: { id: string; name: string; handle: string };
   /** URL de la foto de la esencia. */
   photoUrl?: string;
+  /** Género al que va dirigida: MUJER, HOMBRE o UNISEX. */
+  gender?: string;
   /** Etiquetas de familias olfativas adicionales (many-to-many). */
   olfactiveTags?: { id: string; name: string }[];
   active: boolean;          // Si esta disponible en el catalogo.
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export enum Gender {
+  MUJER = "MUJER",
+  HOMBRE = "HOMBRE",
+  UNISEX = "UNISEX",
 }
 
 /**
@@ -45,6 +53,7 @@ export class Essence {
   public houseId?: string;
   public house?: { id: string; name: string; handle: string };
   public photoUrl?: string;
+  public gender: string;
   public olfactiveTags?: { id: string; name: string }[];
   public active: boolean;
   public readonly createdAt?: Date;
@@ -61,6 +70,7 @@ export class Essence {
     this.houseId = props.houseId;
     this.house = props.house;
     this.photoUrl = props.photoUrl;
+    this.gender = props.gender ?? Gender.UNISEX;
     this.olfactiveTags = props.olfactiveTags;
     this.active = props.active;
     this.createdAt = props.createdAt;

@@ -22,6 +22,10 @@ const TYPE_LABELS: Record<string, string> = {
   MAKEUP: "Maquillaje", SPLASH: "Splash", ACCESSORY: "Accesorio",
 };
 
+const GENDER_LABELS: Record<string, string> = {
+  MUJER: "Mujer", HOMBRE: "Hombre", UNISEX: "Unisex",
+};
+
 interface ProductCardProps {
   product: Product;
 }
@@ -91,6 +95,11 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Type badge */}
         <span className="product-card__type-badge">
           {TYPE_LABELS[product.productType] ?? product.productType}
+        </span>
+
+        {/* Gender badge */}
+        <span className="product-card__gender-badge">
+          {GENDER_LABELS[product.gender] ?? 'Unisex'}
         </span>
 
         {/* Favorite button */}

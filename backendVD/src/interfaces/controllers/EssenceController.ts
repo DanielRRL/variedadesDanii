@@ -149,7 +149,7 @@ export class EssenceController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { name, description, olfactiveFamilyId, inspirationBrand, houseId, photoUrl, tagIds } = req.body;
+      const { name, description, olfactiveFamilyId, inspirationBrand, houseId, photoUrl, tagIds, gender } = req.body;
       if (!name || !olfactiveFamilyId) {
         throw AppError.badRequest("name and olfactiveFamilyId are required");
       }
@@ -160,6 +160,7 @@ export class EssenceController {
         inspirationBrand,
         houseId: houseId || undefined,
         photoUrl: photoUrl || undefined,
+        gender: gender || undefined,
         olfactiveTags: tagIds ? tagIds.map((id: string) => ({ id, name: "" })) : [],
         active: true,
       });

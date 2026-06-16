@@ -226,6 +226,8 @@ export interface Essence {
   house?: { id: string; name: string; handle: string };
   houseId?: string;
   photoUrl?: string;
+  /** Género al que va dirigida: MUJER, HOMBRE o UNISEX. */
+  gender?: 'MUJER' | 'HOMBRE' | 'UNISEX';
   isActive?: boolean;
   active?: boolean;
   /** Minimum stock threshold in grams that triggers a low-stock alert. */
@@ -272,6 +274,8 @@ export interface Product {
   productType: 'LOTION' | 'CREAM' | 'SHAMPOO' | 'MAKEUP' | 'SPLASH' | 'ACCESSORY' | 'ESSENCE_CATALOG';
   /** Final selling price in COP. */
   price: number;
+  /** Género al que va dirigido: MUJER, HOMBRE o UNISEX. */
+  gender: 'MUJER' | 'HOMBRE' | 'UNISEX';
   active: boolean;
   /** Available units in warehouse. */
   stockUnits: number;

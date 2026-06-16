@@ -77,8 +77,8 @@ function MovementModal({ essence, onClose }: { essence: Essence; onClose: () => 
 
 // ─── Essence Form Modal (create / edit) ──────────────────────────────────────
 
-type EssenceFormData = { name: string; description: string; olfactiveFamilyId: string; inspirationBrand: string; houseId: string; tagIds: string[]; photoUrl: string; };
-const EMPTY_FORM: EssenceFormData = { name: '', description: '', olfactiveFamilyId: '', inspirationBrand: '', houseId: '', tagIds: [], photoUrl: '' };
+type EssenceFormData = { name: string; description: string; olfactiveFamilyId: string; inspirationBrand: string; houseId: string; tagIds: string[]; photoUrl: string; gender: string; };
+const EMPTY_FORM: EssenceFormData = { name: '', description: '', olfactiveFamilyId: '', inspirationBrand: '', houseId: '', tagIds: [], photoUrl: '', gender: 'UNISEX' };
 
 function EssenceFormModal({ initial, open, onClose, onSubmit, loading, title, submitLabel, families, houses, onCreateFamily, onCreateHouse }: {
   initial: EssenceFormData; open: boolean; onClose: () => void; onSubmit: (d: EssenceFormData) => void;
@@ -159,6 +159,14 @@ function EssenceFormModal({ initial, open, onClose, onSubmit, loading, title, su
           <div className="admin-essences__form-group">
             <label className="admin-essences__form-label">Inspiración</label>
             <input value={form.inspirationBrand} onChange={e => set('inspirationBrand', e.target.value)} className="admin-essences__form-input" placeholder="Ej: Chanel Nº5" />
+          </div>
+          <div className="admin-essences__form-group">
+            <label className="admin-essences__form-label">Género</label>
+            <select value={form.gender} onChange={e => set('gender', e.target.value)} className="admin-essences__form-select">
+              <option value="MUJER">Mujer</option>
+              <option value="HOMBRE">Hombre</option>
+              <option value="UNISEX">Unisex</option>
+            </select>
           </div>
 
           {/* ── Photo URL ────────────────────────────── */}
@@ -251,8 +259,8 @@ export default function AdminEssencesPage() {
   const q = search.toLowerCase();
   const filtered = q ? essences.filter(e => e.name.toLowerCase().includes(q) || e.olfactiveFamily?.name?.toLowerCase().includes(q) || (e.house?.name?.toLowerCase().includes(q)) || (e.house?.handle?.toLowerCase().includes(q))) : essences;
 
-  const handleCreate = async (form: EssenceFormData) => { setSaving(true); try { await createEssence({ name: form.name, description: form.description || undefined, olfactiveFamilyId: form.olfactiveFamilyId, inspirationBrand: form.inspirationBrand || undefined, houseId: form.houseId || undefined, photoUrl: form.photoUrl || undefined, tagIds: form.tagIds.length > 0 ? form.tagIds : undefined }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); setCreateOpen(false); } catch { addToast('Error al crear esencia.', 'error'); } finally { setSaving(false); } };
-  const handleEdit = async (form: EssenceFormData) => { if (!editTarget) return; setSaving(true); try { await updateEssence(editTarget.id, { name: form.name, description: form.description || undefined, olfactiveFamilyId: form.olfactiveFamilyId, inspirationBrand: form.inspirationBrand || undefined, houseId: form.houseId || undefined, photoUrl: form.photoUrl || undefined, tagIds: form.tagIds }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); setEditTarget(null); } catch { addToast('Error al actualizar esencia.', 'error'); } finally { setSaving(false); } };
+  const handleCreate = async (form: EssenceFormData) => { setSaving(true); try { await createEssence({ name: form.name, description: form.description || undefined, olfactiveFamilyId: form.olfactiveFamilyId, inspirationBrand: form.inspirationBrand || undefined, houseId: form.houseId || undefined, photoUrl: form.photoUrl || undefined, tagIds: form.tagIds.length > 0 ? form.tagIds : undefined, gender: form.gender }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); setCreateOpen(false); } catch { addToast('Error al crear esencia.', 'error'); } finally { setSaving(false); } };
+  const handleEdit = async (form: EssenceFormData) => { if (!editTarget) return; setSaving(true); try { await updateEssence(editTarget.id, { name: form.name, description: form.description || undefined, olfactiveFamilyId: form.olfactiveFamilyId, inspirationBrand: form.inspirationBrand || undefined, houseId: form.houseId || undefined, photoUrl: form.photoUrl || undefined, tagIds: form.tagIds, gender: form.gender }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); setEditTarget(null); } catch { addToast('Error al actualizar esencia.', 'error'); } finally { setSaving(false); } };
   const handleToggle = async () => { if (!toggleTarget) return; const e = toggleTarget; setToggleTarget(null); const newActive = e.active === false ? true : (e.isActive === false ? true : false); try { await updateEssence(e.id, { active: newActive }); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); } catch { addToast('Error al cambiar estado.', 'error'); } };
   const handleDelete = async () => { if (!deleteTarget || !deletePassword) return; setDeleting(true); setDeleteError(''); try { await adminDeleteEssence(deleteTarget.id, deletePassword); queryClient.invalidateQueries({ queryKey: ['admin-essences'] }); queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] }); setDeleteTarget(null); setDeletePassword(''); } catch (err: unknown) { const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message; setDeleteError(msg ?? 'Error al eliminar esencia.'); } finally { setDeleting(false); } };
   const handleCreateFamily = async (name: string) => { try { await createOlfactiveFamily(name); queryClient.invalidateQueries({ queryKey: ['olfactive-families'] }); } catch { addToast('Error al crear familia.', 'error'); } };
@@ -309,6 +317,7 @@ export default function AdminEssencesPage() {
                   {stockMl === 0 && isActive && <span className="admin-essences__card-status admin-essences__card-status--low"><AlertTriangle size={9} /> Agotado</span>}
                   {isLow && <span className="admin-essences__card-status admin-essences__card-status--low"><AlertTriangle size={9} /> Bajo</span>}
                   {!isLow && stockMl > 0 && <span className="admin-essences__card-status admin-essences__card-status--ok">Disponible</span>}
+                  {e.gender && <span className="admin-essences__card-status admin-essences__card-status--ok">{e.gender === 'MUJER' ? '👩 Mujer' : e.gender === 'HOMBRE' ? '👨 Hombre' : '🧑 Unisex'}</span>}
                   {e.house && <span className="admin-essences__card-house" title={e.house.name}>@{e.house.handle}</span>}
                 </div>
                 {e.olfactiveTags && e.olfactiveTags.length > 0 && (
@@ -341,7 +350,7 @@ export default function AdminEssencesPage() {
       )}
 
       <EssenceFormModal initial={EMPTY_FORM} open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={handleCreate} loading={saving} title="Nueva Esencia" submitLabel="Crear esencia" families={families} houses={houses} onCreateFamily={handleCreateFamily} onCreateHouse={handleCreateHouse} />
-      <EssenceFormModal initial={editTarget ? { name: editTarget.name, description: editTarget.description ?? '', olfactiveFamilyId: editTarget.olfactiveFamily?.id ?? '', inspirationBrand: editTarget.inspirationBrand ?? '', houseId: editTarget.houseId ?? '', tagIds: editTarget.olfactiveTags?.map(t => t.id) ?? [], photoUrl: editTarget.photoUrl || '' } : EMPTY_FORM} open={!!editTarget} onClose={() => setEditTarget(null)} onSubmit={handleEdit} loading={saving} title="Editar Esencia" submitLabel="Guardar cambios" families={families} houses={houses} onCreateFamily={handleCreateFamily} onCreateHouse={handleCreateHouse} />
+      <EssenceFormModal initial={editTarget ? { name: editTarget.name, description: editTarget.description ?? '', olfactiveFamilyId: editTarget.olfactiveFamily?.id ?? '', inspirationBrand: editTarget.inspirationBrand ?? '', houseId: editTarget.houseId ?? '', tagIds: editTarget.olfactiveTags?.map(t => t.id) ?? [], photoUrl: editTarget.photoUrl || '', gender: editTarget.gender || 'UNISEX' } : EMPTY_FORM} open={!!editTarget} onClose={() => setEditTarget(null)} onSubmit={handleEdit} loading={saving} title="Editar Esencia" submitLabel="Guardar cambios" families={families} houses={houses} onCreateFamily={handleCreateFamily} onCreateHouse={handleCreateHouse} />
       {movementTarget && <MovementModal essence={movementTarget} onClose={() => setMovementTarget(null)} />}
 
       {/* Delete modal */}

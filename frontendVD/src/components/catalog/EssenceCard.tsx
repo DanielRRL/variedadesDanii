@@ -25,6 +25,10 @@ const PREMIUM_BRANDS = [
   "Tom Ford", "Dolce & Gabbana", "Valentino", "Burberry", "Balenciaga",
 ];
 
+const GENDER_LABELS: Record<string, string> = {
+  MUJER: "Mujer", HOMBRE: "Hombre", UNISEX: "Unisex",
+};
+
 function isPremiumBrand(brand: string | undefined): boolean {
   if (!brand) return false;
   return PREMIUM_BRANDS.some((b) => brand.toLowerCase().includes(b.toLowerCase()));
@@ -152,6 +156,10 @@ export function EssenceCard({ essence, onPress, className }: EssenceCardProps) {
         )}
 
         <p className="essence-card__family">{essence.olfactiveFamily.name}</p>
+
+        {essence.gender && (
+          <p className="essence-card__gender">{GENDER_LABELS[essence.gender] ?? essence.gender}</p>
+        )}
 
         <StarRating rating={essence.rating} reviewCount={essence.reviewCount} />
 

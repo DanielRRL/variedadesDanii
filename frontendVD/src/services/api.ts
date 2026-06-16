@@ -236,6 +236,7 @@ export const createEssence = (data: {
   houseId?: string;
   photoUrl?: string;
   tagIds?: string[];
+  gender?: string;
 }) => api.post('/api/essences', data);
 
 /**
@@ -583,7 +584,7 @@ export const getMyChallengeProgress = () =>
  * GET /api/admin/products?page&type&active
  * Paginated product list with filters for admin panel.
  */
-export const adminGetProducts = (params?: { page?: number; type?: string; active?: boolean; limit?: number }) =>
+export const adminGetProducts = (params?: { page?: number; type?: string; gender?: string; active?: boolean; limit?: number }) =>
   api.get('/api/admin/products', { params });
 
 /**

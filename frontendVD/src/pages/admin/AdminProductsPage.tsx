@@ -46,6 +46,13 @@ const PRODUCT_TYPES: Record<string, string> = {
   ACCESSORY:       'Accesorios',
 };
 
+const GENDER_LABELS: Record<string, string> = {
+  ALL:    'Todos',
+  MUJER:  'Mujer',
+  HOMBRE: 'Hombre',
+  UNISEX: 'Unisex',
+};
+
 // ── Modal ──────────────────────────────────────────────────────────────────
 
 function Modal({ open, onClose, title, children }: {
@@ -80,11 +87,12 @@ type ProductFormData = {
   price: string;
   stockUnits: string;
   photoUrl: string;
+  gender: string;
 };
 
 const EMPTY_FORM: ProductFormData = {
   name: '', description: '', productType: 'LOTION',
-  price: '', stockUnits: '', photoUrl: '',
+  price: '', stockUnits: '', photoUrl: '', gender: 'UNISEX',
 };
 
 function ProductForm({
@@ -116,6 +124,14 @@ function ProductForm({
           <label className="admin-products__form-label">Tipo</label>
           <select value={form.productType} onChange={(e) => set('productType', e.target.value)} className="admin-products__form-select">
             {Object.entries(PRODUCT_TYPES).filter(([k]) => k !== 'ALL').map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </div>
+        <div className="admin-products__form-group">
+          <label className="admin-products__form-label">Género</label>
+          <select value={form.gender} onChange={(e) => set('gender', e.target.value)} className="admin-products__form-select">
+            {Object.entries(GENDER_LABELS).filter(([k]) => k !== 'ALL').map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
           </select>
@@ -231,6 +247,7 @@ export default function AdminProductsPage() {
   const addToast = useToastStore((s) => s.addToast);
 
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [genderFilter, setGenderFilter] = useState('ALL');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -246,8 +263,8 @@ export default function AdminProductsPage() {
   const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   const { data: res, isLoading, isError } = useQuery({
-    queryKey: ['admin-products', typeFilter, activeFilter, page],
-    queryFn: () => adminGetProducts({ page, type: typeFilter === 'ALL' ? undefined : typeFilter, active: activeFilter === 'all' ? undefined : activeFilter === 'active' }),
+    queryKey: ['admin-products', typeFilter, genderFilter, activeFilter, page],
+    queryFn: () => adminGetProducts({ page, type: typeFilter === 'ALL' ? undefined : typeFilter, gender: genderFilter === 'ALL' ? undefined : genderFilter, active: activeFilter === 'all' ? undefined : activeFilter === 'active' }),
     staleTime: 30_000,
   });
 
@@ -267,6 +284,7 @@ export default function AdminProductsPage() {
         productType: form.productType, price: Number(form.price),
         stockUnits: Number(form.stockUnits),
         photoUrl: form.photoUrl || undefined,
+        gender: form.gender as Product['gender'],
       });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setCreateOpen(false);
@@ -283,6 +301,7 @@ export default function AdminProductsPage() {
         productType: form.productType as Product['productType'], price: Number(form.price),
         stockUnits: Number(form.stockUnits),
         photoUrl: form.photoUrl || undefined,
+        gender: form.gender as Product['gender'],
       });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setEditTarget(null);
@@ -348,6 +367,13 @@ export default function AdminProductsPage() {
         >
           {Object.entries(PRODUCT_TYPES).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
         </select>
+        <select
+          value={genderFilter}
+          onChange={(e) => { setGenderFilter(e.target.value); setPage(1); }}
+          className="admin-products__select"
+        >
+          {Object.entries(GENDER_LABELS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
+        </select>
         <div className="admin-products__toggle-group">
           {(['all', 'active', 'inactive'] as const).map((f) => (
             <button
@@ -367,14 +393,14 @@ export default function AdminProductsPage() {
           <table className="admin-products__table">
             <thead>
               <tr>
-                {['PRODUCTO', 'TIPO', 'PRECIO', 'STOCK', 'ESTADO', 'ACCIONES'].map((h) => (
+                {['PRODUCTO', 'TIPO', 'GÉNERO', 'PRECIO', 'STOCK', 'ESTADO', 'ACCIONES'].map((h) => (
                   <th key={h} className="admin-products__th">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="admin-products__tbody">
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="admin-products__empty">No se encontraron productos.</td></tr>
+                <tr><td colSpan={7} className="admin-products__empty">No se encontraron productos.</td></tr>
               ) : (
                 filtered.map((p) => (
                   <tr key={p.id}>
@@ -393,6 +419,9 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="admin-products__td">
                       <span className="admin-products__td-type-badge">{PRODUCT_TYPES[p.productType] ?? p.productType}</span>
+                    </td>
+                    <td className="admin-products__td">
+                      <span className="admin-products__td-type-badge">{GENDER_LABELS[p.gender] ?? p.gender}</span>
                     </td>
                     <td className="admin-products__td admin-products__td-price">{formatCOP(p.price)}</td>
                     <td className="admin-products__td">
@@ -441,6 +470,7 @@ export default function AdminProductsPage() {
               productType: editTarget.productType, price: String(editTarget.price),
               stockUnits: String(editTarget.stockUnits),
               photoUrl: editTarget.photoUrl || '',
+              gender: editTarget.gender ?? 'UNISEX',
             }}
             onSubmit={handleEdit} loading={saving} submitLabel="Guardar cambios"
           />

@@ -9,7 +9,7 @@ export { User, UserRole } from "./User";
 export type { UserProps } from "./User";
 
 // Entidad Esencia y sus tipos asociados.
-export { Essence } from "./Essence";
+export { Essence, Gender } from "./Essence";
 export type { EssenceProps } from "./Essence";
 
 // Entidad Frasco y sus tipos asociados.

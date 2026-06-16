@@ -16,6 +16,7 @@ export const createEssenceValidator = [
   body("houseId").optional(),
   body("inspirationBrand").optional(),
   body("photoUrl").optional({ values: "falsy" }).isString().isLength({ max: 500 }),
+  body("gender").optional().isIn(["MUJER", "HOMBRE", "UNISEX"]).withMessage("gender must be MUJER, HOMBRE or UNISEX"),
 ];
 
 export const createFamilyValidator = [
@@ -42,4 +43,5 @@ export const updateEssenceValidator = [
   body("inspirationBrand").optional(),
   body("houseId").optional(),
   body("photoUrl").optional({ values: "falsy" }).isString().isLength({ max: 500 }),
+  body("gender").optional().isIn(["MUJER", "HOMBRE", "UNISEX"]).withMessage("gender must be MUJER, HOMBRE or UNISEX"),
 ];

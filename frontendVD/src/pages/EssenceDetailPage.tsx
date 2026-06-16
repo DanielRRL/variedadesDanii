@@ -38,6 +38,10 @@ import { getImageSrc } from '../utils/imageUtils';
 import type { Essence, Product } from '../types';
 import styles from './EssenceDetailPage.module.css';
 
+const GENDER_LABELS: Record<string, string> = {
+  MUJER: 'Mujer', HOMBRE: 'Hombre', UNISEX: 'Unisex',
+};
+
 interface ToastState {
   visible: boolean;
   message: string;
@@ -264,6 +268,11 @@ export default function EssenceDetailPage() {
             {essence.olfactiveFamily && (
               <span className={styles.metaPill}>
                 {essence.olfactiveFamily.name}
+              </span>
+            )}
+            {essence.gender && (
+              <span className={styles.metaPill}>
+                {GENDER_LABELS[essence.gender] ?? essence.gender}
               </span>
             )}
           </div>

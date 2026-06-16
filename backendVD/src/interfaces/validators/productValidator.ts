@@ -73,4 +73,5 @@ export const adminCreateProductValidator = [
   body("description").optional({ values: "falsy" }).isLength({ max: 500 }),
   body("photoUrl").optional({ values: "falsy" }).isString().isLength({ max: 500 }),
   body("stockUnits").optional().isInt({ min: 0 }),
+  body("gender").optional().isIn(["MUJER", "HOMBRE", "UNISEX"]).withMessage("gender must be MUJER, HOMBRE or UNISEX"),
 ];

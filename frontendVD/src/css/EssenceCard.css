@@ -158,6 +158,16 @@
   white-space: nowrap;
 }
 
+.essence-card__gender {
+  font-size: 0.625rem;
+  color: var(--color-brand-blue, #1565C0);
+  font-weight: 600;
+  margin-top: 0.125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Star rating ────────────────────────────────────────────────────────── */
 .essence-card__rating {
   display: flex;

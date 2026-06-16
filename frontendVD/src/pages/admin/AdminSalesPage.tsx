@@ -288,6 +288,7 @@ export default function AdminSalesPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [genderFilter, setGenderFilter] = useState('ALL');
 
   const [items, setItems] = useState<TicketItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<POSSaleInput['paymentMethod'] | null>(null);
@@ -358,12 +359,15 @@ export default function AdminSalesPage() {
     if (typeFilter !== 'ALL') {
       list = list.filter((p) => p.productType === typeFilter);
     }
+    if (genderFilter !== 'ALL') {
+      list = list.filter((p) => p.gender === genderFilter);
+    }
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
       list = list.filter((p) => p.name.toLowerCase().includes(q));
     }
     return list.filter((p) => p.name !== 'Catálogo de Esencias');
-  }, [allProducts, typeFilter, searchTerm]);
+  }, [allProducts, typeFilter, genderFilter, searchTerm]);
 
   const addItem = useCallback((product: Product) => {
     setItems((prev) => {
@@ -526,6 +530,26 @@ export default function AdminSalesPage() {
             className={clsx(
               'admin-sales__chip',
               typeFilter === key ? 'admin-sales__chip--active' : 'admin-sales__chip--default',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="admin-sales__chips" style={{ marginTop: '0.25rem' }}>
+        {[
+          { value: 'ALL', label: 'Todos' },
+          { value: 'MUJER', label: 'Mujer' },
+          { value: 'HOMBRE', label: 'Hombre' },
+          { value: 'UNISEX', label: 'Unisex' },
+        ].map(({ value, label }) => (
+          <button
+            key={value}
+            onClick={() => setGenderFilter(value)}
+            className={clsx(
+              'admin-sales__chip',
+              genderFilter === value ? 'admin-sales__chip--active' : 'admin-sales__chip--default',
             )}
           >
             {label}

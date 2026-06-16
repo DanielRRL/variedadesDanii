@@ -22,6 +22,7 @@ import {
   LayoutGrid, Flower, Droplets, Container,
   Sparkles, Palette, Wind, Gem,
   FilterX, PackageSearch, RotateCcw, ArrowLeft,
+  Users, User, Venus,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import '../css/CatalogPage.css';
@@ -51,6 +52,13 @@ const TYPE_CHIPS: { value: string; label: string; icon: ChipIcon }[] = [
   { value: 'MAKEUP', label: 'Maquillaje', icon: Palette },
   { value: 'SPLASH', label: 'Splash', icon: Wind },
   { value: 'ACCESSORY', label: 'Accesorios', icon: Gem },
+];
+
+const GENDER_CHIPS: { value: string; label: string; icon: ChipIcon }[] = [
+  { value: 'ALL', label: 'Todos', icon: Users },
+  { value: 'MUJER', label: 'Mujer', icon: Venus },
+  { value: 'HOMBRE', label: 'Hombre', icon: User },
+  { value: 'UNISEX', label: 'Unisex', icon: Users },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,6 +224,7 @@ export default function CatalogPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedType, setSelectedType] = useState('ALL');
+  const [selectedGender, setSelectedGender] = useState('ALL');
   const [sortBy, _setSortBy] = useState<SortOption>('name');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -329,6 +338,10 @@ export default function CatalogPage() {
       list = list.filter((p) => p.productType === selectedType);
     }
 
+    if (selectedGender !== 'ALL') {
+      list = list.filter((p) => p.gender === selectedGender);
+    }
+
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
       list = list.filter(
@@ -339,11 +352,16 @@ export default function CatalogPage() {
     }
 
     return sortProducts(list, sortBy);
-  }, [allProducts, selectedType, debouncedSearch, sortBy]);
+  }, [allProducts, selectedType, selectedGender, debouncedSearch, sortBy]);
 
   // ── Filtering essences ──────────────────────────────────────────────────
   const filteredEssences = useMemo(() => {
     let list = allEssences.filter((e) => e.active !== false && e.isActive !== false);
+
+    if (selectedGender !== 'ALL') {
+      list = list.filter((e) => e.gender === selectedGender);
+    }
+
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
       list = list.filter(
@@ -355,7 +373,7 @@ export default function CatalogPage() {
       );
     }
     return list;
-  }, [allEssences, debouncedSearch]);
+  }, [allEssences, selectedGender, debouncedSearch]);
 
   const visibleProducts = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
@@ -370,6 +388,7 @@ export default function CatalogPage() {
     setSearchTerm('');
     setDebouncedSearch('');
     setSelectedType('ALL');
+    setSelectedGender('ALL');
     setSortBy('name');
   };
 
@@ -533,6 +552,34 @@ export default function CatalogPage() {
                       {allProducts.filter((p) => p.active && p.productType === chip.value).length}
                     </span>
                   )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Gender filter chips */}
+        <div className="catalog-filters-scroll" style={{ marginTop: '0.5rem' }}>
+          <div
+            className="catalog-filters-wrapper"
+            role="listbox"
+            aria-label="Filtrar por género"
+          >
+            {GENDER_CHIPS.map((chip) => {
+              const Icon = chip.icon;
+              return (
+                <button
+                  key={chip.value}
+                  onClick={() => { setSelectedGender(chip.value); setVisibleCount(PAGE_SIZE); }}
+                  className={clsx(
+                    'catalog-chip',
+                    selectedGender === chip.value && 'catalog-chip--active'
+                  )}
+                  role="option"
+                  aria-selected={selectedGender === chip.value}
+                >
+                  <Icon size={14} strokeWidth={1.8} />
+                  {chip.label}
                 </button>
               );
             })}

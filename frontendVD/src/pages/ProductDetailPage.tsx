@@ -44,6 +44,10 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
   ESSENCE_CATALOG: 'ESENCIA',
 };
 
+const GENDER_LABELS: Record<string, string> = {
+  MUJER: 'Mujer', HOMBRE: 'Hombre', UNISEX: 'Unisex',
+};
+
 const MAX_QTY = 10;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -232,6 +236,11 @@ export default function ProductDetailPage() {
             {/* Type badge — top left */}
             <span className="pd-hero__type-badge">
               {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
+            </span>
+
+            {/* Gender badge — below type */}
+            <span className="pd-hero__gender-badge">
+              {GENDER_LABELS[product.gender] ?? 'Unisex'}
             </span>
 
             {/* Favorite & Share — top right */}

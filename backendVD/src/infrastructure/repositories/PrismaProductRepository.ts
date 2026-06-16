@@ -24,6 +24,7 @@ function toProduct(p: any): Product {
     description: p.description,
     category: p.category,
     price: p.price,
+    gender: p.gender as string,
     active: p.active,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
@@ -87,6 +88,7 @@ export class PrismaProductRepository implements IProductRepository {
         bottleId: product.bottleId || undefined,
         mlQuantity: product.mlQuantity || undefined,
         price: product.price,
+        gender: (product.gender ?? "UNISEX") as any,
         active: product.active,
       },
     });
@@ -105,6 +107,7 @@ export class PrismaProductRepository implements IProductRepository {
         ...(data.bottleId !== undefined && { bottleId: data.bottleId || undefined }),
         ...(data.mlQuantity !== undefined && { mlQuantity: data.mlQuantity || undefined }),
         ...(data.price && { price: data.price }),
+        ...(data.gender && { gender: data.gender as any }),
         ...(data.active !== undefined && { active: data.active }),
       },
     });

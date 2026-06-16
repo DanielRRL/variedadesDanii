@@ -28,6 +28,8 @@ export interface ProductProps {
   bottleId?: string | null;   // FK a frasco (solo PERFUME).
   mlQuantity?: number | null; // Cantidad en ml (solo PERFUME).
   price: number;              // Precio en pesos colombianos.
+  /** Género al que va dirigido: MUJER, HOMBRE o UNISEX. */
+  gender?: string;
   active: boolean;            // Si esta disponible para venta.
   createdAt?: Date;
   updatedAt?: Date;
@@ -48,6 +50,7 @@ export class Product {
   public bottleId?: string | null;
   public mlQuantity?: number | null;
   public price: number;
+  public gender: string;
   public active: boolean;
   public readonly createdAt?: Date;
   public readonly updatedAt?: Date;
@@ -78,6 +81,7 @@ export class Product {
     this.bottleId = props.bottleId;
     this.mlQuantity = props.mlQuantity;
     this.price = props.price;
+    this.gender = props.gender ?? "UNISEX";
     this.active = props.active;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;

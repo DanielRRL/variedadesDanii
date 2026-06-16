@@ -179,6 +179,13 @@ enum LoyaltyTxType {
   ADJUST // Ajuste manual realizado por un administrador
 }
 
+// Género al que va dirigido el producto/esencia.
+enum Gender {
+  MUJER
+  HOMBRE
+  UNISEX
+}
+
 // Estado de la factura electronica ante la DIAN (Colombia).
 enum InvoiceStatus {
   DRAFT    // Borrador generado localmente, aun no enviado a la DIAN
@@ -291,6 +298,8 @@ model Essence {
   houseId           String?  @map("house_id")
   /// URL de la foto de la esencia (local /uploads/... o externa Google Drive).
   photoUrl          String?  @map("photo_url")
+  /// Género al que va dirigida la esencia: MUJER, HOMBRE o UNISEX.
+  gender            Gender   @default(UNISEX)
   active            Boolean  @default(true)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
@@ -356,6 +365,8 @@ model Product {
   stockUnits     Int          @default(0) @map("stock_units")
   /// URL de foto del producto. Puede ser diferente a la foto de la esencia vinculada.
   photoUrl       String?      @map("photo_url")
+  /// Género al que va dirigido el producto: MUJER, HOMBRE o UNISEX.
+  gender         Gender       @default(UNISEX)
 
   essence          Essence?          @relation(fields: [essenceId], references: [id])
   bottle           Bottle?           @relation(fields: [bottleId], references: [id])

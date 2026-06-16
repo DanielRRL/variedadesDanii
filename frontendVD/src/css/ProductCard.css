@@ -72,6 +72,22 @@
   border: 1px solid rgba(226, 232, 240, 0.5);
 }
 
+.product-card__gender-badge {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.625rem;
+  background: rgba(21, 101, 192, 0.88);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 600;
+  padding: 0.125rem 0.45rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+  margin-top: 1.75rem;
+}
+
 /* ── Favorite button ─────────────────────────────────────────────────────── */
 .product-card__fav-btn {
   position: absolute;
