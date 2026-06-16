@@ -73,6 +73,7 @@ COPY --from=builder /app/dist ./dist
 # Puerto que expone la aplicacion (informativo, no abre puertos realmente)
 EXPOSE 4000
 
-# Comando por defecto: arrancar el servidor Express compilado.
-# El prisma db push se ejecuta via docker-compose.railway.yml antes de node.
-CMD ["node", "dist/server.js"]
+# Comando por defecto: sincroniza el schema de Prisma con la base de datos
+# usando db push y luego arranca el servidor Express compilado.
+# Se usa sh -c para que prisma db push lea DATABASE_URL del entorno.
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/server.js"]
