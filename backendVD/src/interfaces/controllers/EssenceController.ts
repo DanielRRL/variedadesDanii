@@ -103,22 +103,54 @@ export class EssenceController {
 
   // ── Essence CRUD ─────────────────────────────────────────────────────
 
-  /** GET /essences - Lista todas con stock actual en ml. */
+  /** GET /essences - Lista con stock actual y paginacion. */
   getAll = async (
-    _req: Request,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const essences = await this.essenceRepo.findAll();
-      // Agregar currentStockMl a cada esencia en paralelo.
+      const page  = parseInt(String(req.query.page  ?? "1"),  10);
+      const limit = parseInt(String(req.query.limit ?? "20"), 10);
+
+      const [essences, total] = await Promise.all([
+        prisma.essence.findMany({
+          where: { active: true },
+          include: {
+            olfactiveFamily: true,
+            house: true,
+            olfactiveTags: { include: { olfactiveFamily: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.essence.count({ where: { active: true } }),
+      ]);
+
       const withStock = await Promise.all(
         essences.map(async (e) => ({
-          ...e,
-          currentStockMl: await this.inventoryService.getEssenceStock(e.id!),
+          id: e.id,
+          name: e.name,
+          description: e.description,
+          olfactiveFamily: e.olfactiveFamily ? { id: e.olfactiveFamily.id, name: e.olfactiveFamily.name } : undefined,
+          inspirationBrand: e.inspirationBrand,
+          house: e.house ? { id: e.house.id, name: e.house.name, handle: e.house.handle } : undefined,
+          houseId: e.houseId,
+          photoUrl: e.photoUrl,
+          active: e.active,
+          gender: e.gender,
+          olfactiveTags: e.olfactiveTags?.map((t: any) => ({ id: t.olfactiveFamily.id, name: t.olfactiveFamily.name })) ?? [],
+          currentStockMl: await this.inventoryService.getEssenceStock(e.id),
+          createdAt: e.createdAt,
+          updatedAt: e.updatedAt,
         }))
       );
-      res.json({ success: true, data: withStock });
+
+      res.json({
+        success: true,
+        data: { essences: withStock, total, page, limit, totalPages: Math.ceil(total / limit) },
+      });
     } catch (error) {
       next(error);
     }
@@ -214,11 +246,11 @@ export class EssenceController {
         throw AppError.unauthorized("User not found.");
       }
       if (!adminUser.password) {
-        throw AppError.unauthorized("Admin password not set. Login with password first.");
+        throw AppError.forbidden("Admin password not set. Login with password first.");
       }
       const valid = await bcrypt.compare(password, adminUser.password);
       if (!valid) {
-        throw AppError.unauthorized("Contraseña incorrecta.");
+        throw AppError.forbidden("Contraseña incorrecta.");
       }
 
       // Check essence exists

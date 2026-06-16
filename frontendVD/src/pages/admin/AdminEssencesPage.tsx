@@ -228,6 +228,7 @@ export default function AdminEssencesPage() {
   const queryClient = useQueryClient();
   const addToast = useToastStore(s => s.addToast);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Essence | null>(null);
@@ -240,7 +241,7 @@ export default function AdminEssencesPage() {
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [toggleTarget, setToggleTarget] = useState<Essence | null>(null);
 
-  const { data: essencesRes, isLoading, isError } = useQuery({ queryKey: ['admin-essences'], queryFn: () => getEssences(), staleTime: 30_000 });
+  const { data: essencesRes, isLoading, isError } = useQuery({ queryKey: ['admin-essences', page], queryFn: () => getEssences({ page, limit: 20 }), staleTime: 30_000 });
   const { data: lowStockRes, isError: isLowStockError } = useQuery({ queryKey: ['admin-low-stock'], queryFn: () => getLowStockAlerts(), staleTime: 5 * 60_000 });
   const { data: familiesRes, isError: isFamiliesError } = useQuery({ queryKey: ['olfactive-families'], queryFn: () => getOlfactiveFamilies(), staleTime: 60_000 });
   const { data: housesRes, isError: isHousesError } = useQuery({ queryKey: ['houses'], queryFn: () => getHouses(), staleTime: 60_000 });
@@ -249,6 +250,7 @@ export default function AdminEssencesPage() {
 
   const essencesRaw = essencesRes?.data?.essences ?? essencesRes?.data;
   const essences: Essence[] = Array.isArray(essencesRaw) ? essencesRaw : [];
+  const totalPages = essencesRes?.data?.totalPages ?? 1;
   const lowStockRaw = lowStockRes?.data?.essences ?? lowStockRes?.data;
   const lowStock: { name: string; stockMl: number }[] = Array.isArray(lowStockRaw) ? lowStockRaw : [];
   const familiesRaw = familiesRes?.data;
@@ -323,8 +325,16 @@ export default function AdminEssencesPage() {
                 {e.olfactiveTags && e.olfactiveTags.length > 0 && (
                   <div className="admin-essences__card-tags">
                     {e.olfactiveTags.map(t => <span key={t.id} className="admin-essences__card-tag">{t.name}</span>)}
-                  </div>
-                )}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="admin-essences__pagination">
+          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="admin-essences__page-btn">Anterior</button>
+          <span className="admin-essences__page-info">Pagina {page} de {totalPages}</span>
+          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="admin-essences__page-btn">Siguiente</button>
+        </div>
+      )}
                 <div className="admin-essences__card-stock">
                   <div className="admin-essences__card-stock-row">
                     <span className="admin-essences__card-stock-label">Stock</span>

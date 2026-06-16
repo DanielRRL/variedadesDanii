@@ -303,7 +303,7 @@ export class ProductController {
 
       res.json({
         success: true,
-        data: { products, total, page, limit },
+        data: { products, total, page, limit, totalPages: Math.ceil(total / limit) },
       });
     } catch (error) {
       next(error);
@@ -391,11 +391,11 @@ export class ProductController {
         throw AppError.unauthorized("User not found.");
       }
       if (!adminUser.password) {
-        throw AppError.unauthorized("Admin password not set. Login with password first.");
+        throw AppError.forbidden("Admin password not set. Login with password first.");
       }
       const valid = await bcrypt.compare(password, adminUser.password);
       if (!valid) {
-        throw AppError.unauthorized("Contraseña incorrecta.");
+        throw AppError.forbidden("Contraseña incorrecta.");
       }
 
       // Check product exists
