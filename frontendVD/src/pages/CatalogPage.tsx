@@ -555,17 +555,10 @@ export default function CatalogPage() {
                 </button>
               );
             })}
-          </div>
-        </div>
 
-        {/* Gender filter chips */}
-        <div className="catalog-filters-scroll" style={{ marginTop: '0.5rem' }}>
-          <div
-            className="catalog-filters-wrapper"
-            role="listbox"
-            aria-label="Filtrar por género"
-          >
-            {GENDER_CHIPS.map((chip) => {
+            {/* Gender chips — inline after type chips */}
+            <span className="catalog-chip__separator" aria-hidden="true" />
+            {GENDER_CHIPS.filter(c => c.value !== 'ALL').map((chip) => {
               const Icon = chip.icon;
               return (
                 <button
@@ -586,12 +579,21 @@ export default function CatalogPage() {
           </div>
         </div>
 
-        {/* Mobile filter select — replaces chips below sm breakpoint */}
+        {/* Gender chips row — shown only on desktop (hidden on mobile by catalog-filters-scroll display:none) */}
+        {/* Removed — merged into the same row above */}
+
+        {/* Mobile filter selects — replace chips below sm breakpoint */}
         <div className="catalog-filter-select-wrapper">
           <FilterDropdown
             selectedType={selectedType}
             setSelectedType={setSelectedType}
             typeChips={TYPE_CHIPS}
+            setVisibleCount={setVisibleCount}
+          />
+          <FilterDropdown
+            selectedType={selectedGender}
+            setSelectedType={setSelectedGender}
+            typeChips={GENDER_CHIPS}
             setVisibleCount={setVisibleCount}
           />
         </div>

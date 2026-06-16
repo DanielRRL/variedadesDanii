@@ -598,6 +598,11 @@
 .catalog-filter-select-wrapper {
   display: none;
   position: relative;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.catalog-filter-select-wrapper > * {
   flex: 1;
   min-width: 0;
 }
@@ -725,6 +730,16 @@
 .catalog-chip--active .catalog-chip__count {
   background: rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.9);
+}
+
+/* Separator between type chips and gender chips (desktop) */
+.catalog-chip__separator {
+  width: 1px;
+  height: 1.25rem;
+  background: #e2e8f0;
+  margin: 0 0.25rem;
+  align-self: center;
+  flex-shrink: 0;
 }
 
 /* ── Results count — inline with filters ─────────────────────────────────── */
