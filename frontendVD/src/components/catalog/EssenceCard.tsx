@@ -95,12 +95,11 @@ export function EssenceCard({ essence, onPress, className }: EssenceCardProps) {
 
   return (
     <article
-      onClick={isOutOfStock ? undefined : onPress}
+      onClick={onPress}
       className={clsx("essence-card", isOutOfStock && "essence-card--out-of-stock", className)}
-      aria-disabled={isOutOfStock}
       role="button"
-      tabIndex={isOutOfStock ? -1 : 0}
-      onKeyDown={(e) => { if (!isOutOfStock && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onPress(); } }}
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onPress(); } }}
     >
       {/* Image */}
       <div className="essence-card__image-area">
@@ -183,13 +182,8 @@ export function EssenceCard({ essence, onPress, className }: EssenceCardProps) {
 
         {/* Detail button */}
         <button
-          onClick={(e) => { e.stopPropagation(); if (!isOutOfStock) onPress(); }}
-          disabled={isOutOfStock}
-          className={clsx(
-            "essence-card__detail-btn",
-            isOutOfStock && "essence-card__detail-btn--disabled",
-          )}
-          aria-disabled={isOutOfStock}
+          onClick={(e) => { e.stopPropagation(); onPress(); }}
+          className="essence-card__detail-btn"
         >
           Ver detalles
         </button>
